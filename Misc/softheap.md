@@ -107,7 +107,7 @@ meld(node *q)
     tohead->prev = h;
     // restore suffix_min
     fix_minlist(h);
-    }
+}
 ```
 
 ### Исправление suffix_min
@@ -216,7 +216,7 @@ node *sift(node *v)
 ```C++
 deletemin()
 {
-    node *sift, *tmp;
+    node* tmp;
     int min, childcount;
     head *h = header->next->suffix_min;
     while (h->queue->il == NULL)
@@ -273,6 +273,157 @@ for a in range(1, 9):
   s.insert(a)
 ```
 
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+```
+
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+```
+
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+    subgraph _3
+    3_0
+    end
+```
+
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+    subgraph _3
+    3_0
+    end
+    subgraph _4
+    3_1 -- next --> 3_0
+    3_1 -- child --> 4_0
+
+    1_2 -- next --> 1_1
+    1_2 -- child --> 3_1
+    end
+```
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+    subgraph _3
+    3_0
+    end
+    subgraph _4
+    3_1 -- next --> 3_0
+    3_1 -- child --> 4_0
+
+    1_2 -- next --> 1_1
+    1_2 -- child --> 3_1
+    end
+
+    subgraph _5
+    5_0
+    end
+```
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+    subgraph _3
+    3_0
+    end
+    subgraph _4
+    3_1 -- next --> 3_0
+    3_1 -- child --> 4_0
+
+    1_2 -- next --> 1_1
+    1_2 -- child --> 3_1
+    end
+
+    subgraph _5
+    5_0
+    end
+
+    subgraph _6
+    5_1 -- next --> 5_0
+    5_1 -- child --> 6_0
+    end
+```
+
+```mermaid
+graph TD
+    subgraph _1
+    1_0
+    end
+
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
+
+    end
+    subgraph _3
+    3_0
+    end
+    subgraph _4
+    3_1 -- next --> 3_0
+    3_1 -- child --> 4_0
+
+    1_2 -- next --> 1_1
+    1_2 -- child --> 3_1
+    end
+
+    subgraph _5
+    5_0
+    end
+
+    subgraph _6
+    5_1 -- next --> 5_0
+    5_1 -- child --> 6_0
+    end
+
+    subgraph _7
+    7_0
+    end
+```
 ```mermaid
 graph TD
     subgraph _1
