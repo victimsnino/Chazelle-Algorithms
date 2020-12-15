@@ -267,68 +267,55 @@ deletemin()
 
 ### Example
 ```python
-s = SoftHeap(r=1)
+s = SoftHeap(r=10000000)
 
 for a in range(1, 9):
   s.insert(a)
 ```
-```mermaid
-graph TD
-    1
-```
 
 ```mermaid
 graph TD
-    1 --> 2
-```
+    subgraph _1
+    1_0
+    end
 
-```mermaid
-graph TB
-    3
-    1 --> 2
-```
+    subgraph _2
+    1_1 -- child --> 2_0
+    1_1 -- next --> 1_0
 
-```mermaid
-graph TD
-    1 --> 2
-    1 --> 3
-    3 --> 4
-```
+    end
+    subgraph _3
+    3_0
+    end
+    subgraph _4
+    3_1 -- next --> 3_0
+    3_1 -- child --> 4_0
 
-```mermaid
-graph TD
-    1 --> 2
-    1 --> 3
-    3 --> 4
-    5
-```
+    1_2 -- next --> 1_1
+    1_2 -- child --> 3_1
+    end
 
-```mermaid
-graph TD
-    1 --> 2
-    1 --> 3
-    3 --> 4
-    5 --> 6
-```
+    subgraph _5
+    5_0
+    end
 
-```mermaid
-graph TD
-    1 --> 2
-    1 --> 3
-    3 --> 4
-    5 --> 6
-    7
-```
+    subgraph _6
+    5_1 -- next --> 5_0
+    5_1 -- child --> 6_0
+    end
 
+    subgraph _7
+    7_0
+    end
 
-```mermaid
-graph TD
-    1 --> 2
-    1 --> 3
-    3 --> 4
-    5 --> 6
-    7 --> 8
+    subgraph _8
+    7_1 -- next --> 7_0
+    7_1 -- child --> 8_0
 
-    5 --> 7
-    1 --> 5
+    5_2 -- next --> 5_1
+    5_2 -- child --> 7_1
+
+    1_3 -- next --> 1_2
+    1_3 -- child --> 5_2
+    end
 ```
