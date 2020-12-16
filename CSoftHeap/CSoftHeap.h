@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// This source is the original source from the paper with small modifications
+
 #pragma once
 
 struct head;
@@ -32,6 +34,8 @@ public:
 
     void insert(int new_key);
     int  deletemin();
+
+    static int CalculateRByEps(double eps);
 private:
     void  meld(node* q);
     void  fix_minlist(head* h);

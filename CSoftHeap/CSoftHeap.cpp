@@ -20,9 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+
+// This source is the original source from the paper with small modifications
+
 #include "CSoftHeap.h"
 
 #include <cstdlib>
+#include <cmath>
 
 struct ilcell
 {
@@ -122,6 +126,11 @@ int CSoftHeap::deletemin()
     if (h->queue->il == NULL)
         h->queue->il_tail = NULL;
     return min;
+}
+
+int CSoftHeap::CalculateRByEps(double eps)
+{
+    return static_cast<int>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
 }
 
 void CSoftHeap::meld(node* q)
