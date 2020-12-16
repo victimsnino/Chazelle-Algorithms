@@ -62,7 +62,7 @@ CSoftHeap::CSoftHeap(int r)
     m_tail->prev   = m_header;
 }
 
-void CSoftHeap::insert(int new_key)
+void CSoftHeap::Insert(int new_key)
 {
     node*   q;
     ilcell* l;
@@ -75,10 +75,10 @@ void CSoftHeap::insert(int new_key)
     q->il      = l;
     q->il_tail = l;
 
-    meld(q);
+    Meld(q);
 }
 
-int CSoftHeap::deletemin()
+int CSoftHeap::DeleteMin()
 {
     node *tmp;
     int   min,   childcount;
@@ -98,24 +98,24 @@ int CSoftHeap::deletemin()
         {
             h->prev->next = h->next;
             h->next->prev = h->prev;
-            fix_minlist(h->prev);
+            FixMinlist(h->prev);
             tmp = h->queue;
             while (tmp->next != NULL)
             {
-                meld(tmp->child);
+                Meld(tmp->child);
                 tmp = tmp->next;
             }
         }
         else
         {
-            h->queue = sift(h->queue);
+            h->queue = Sift(h->queue);
             if (h->queue->ckey == INFTY)
             {
                 h->prev->next = h->next;
                 h->next->prev = h->prev;
                 h             = h->prev;
             }
-            fix_minlist(h);
+            FixMinlist(h);
         }
         h = m_header->next->suffix_min;
     } /* end of outer while loop */
@@ -128,12 +128,7 @@ int CSoftHeap::deletemin()
     return min;
 }
 
-int CSoftHeap::CalculateRByEps(double eps)
-{
-    return static_cast<int>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
-}
-
-void CSoftHeap::meld(node* q)
+void CSoftHeap::Meld(node* q)
 {
     head* tohead = m_header->next;
     while (q->rank > tohead->rank)
@@ -176,10 +171,10 @@ void CSoftHeap::meld(node* q)
     prevhead->next = h;
     tohead->prev   = h;
 
-    fix_minlist(h);
+    FixMinlist(h);
 }
 
-void CSoftHeap::fix_minlist(head* h)
+void CSoftHeap::FixMinlist(head* h)
 {
     head* tmpmin;
     if (h->next == m_tail)
@@ -195,7 +190,7 @@ void CSoftHeap::fix_minlist(head* h)
     }
 }
 
-node* CSoftHeap::sift(node* v)
+node* CSoftHeap::Sift(node* v)
 {
     node* tmp;
     v->il      = NULL;
@@ -205,7 +200,7 @@ node* CSoftHeap::sift(node* v)
         v->ckey = INFTY;
         return v;
     }
-    v->next = sift(v->next);
+    v->next = Sift(v->next);
 
     // It is possible that v->next has INFTY ckey. Swap it in this case 
     if (v->next->ckey > v->child->ckey)
@@ -224,7 +219,7 @@ node* CSoftHeap::sift(node* v)
     if (v->rank > m_r &&
         (v->rank % 2 == 1 || v->child->rank < v->rank - 1))
     {
-        v->next = sift(v->next);
+        v->next = Sift(v->next);
 
         // Do it again
         if (v->next->ckey > v->child->ckey)

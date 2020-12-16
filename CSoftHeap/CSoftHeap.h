@@ -32,14 +32,13 @@ class CSoftHeap
 public:
     CSoftHeap(int r);
 
-    void insert(int new_key);
-    int  deletemin();
+    void Insert(int new_key);
+    int  DeleteMin();
 
-    static int CalculateRByEps(double eps);
 private:
-    void  meld(node* q);
-    void  fix_minlist(head* h);
-    node* sift(node* v);
+    void  Meld(node* q);
+    void  FixMinlist(head* h);
+    node* Sift(node* v);
 private:
     head* m_header{};
     head* m_tail{};

@@ -24,4 +24,5 @@ SET_TARGET_PROPERTIES (gtest_main PROPERTIES FOLDER gtest/)
 
 enable_testing()
 
+add_subdirectory(Common)
 add_subdirectory(CSoftHeap)
