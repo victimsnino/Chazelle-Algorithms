@@ -38,7 +38,7 @@ int SoftHeapSelect(std::vector<int> a, int k)
 {
     if (a.size() <= 3)
     {
-        std::sort(a.begin(), a.end());
+        std::nth_element(a.begin(), a.begin() +k, a.end());
         return a[k];
     }
 
@@ -47,7 +47,7 @@ int SoftHeapSelect(std::vector<int> a, int k)
         heap.Insert(v);
 
     int max_value = -1;
-    for (int i = 0; i < int(a.size() / 3); ++i)
+    for (int i = 0; i < static_cast<int>(a.size() / 3); ++i)
     {
         auto removed = heap.DeleteMin();
         if (removed >= max_value)
