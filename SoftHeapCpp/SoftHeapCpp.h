@@ -24,7 +24,6 @@
 
 #include "Utils.h"
 
-
 #include <algorithm>
 #include <list>
 #include <memory>
@@ -78,7 +77,10 @@ public:
         return Utils::ComparableObject<ItemType>{m_values.empty() ? nullptr : m_values.front().get()};
     }
 
-    std::size_t GetRank() const { return m_rank; }
+    std::size_t GetRank() const
+    {
+        return m_rank;
+    }
 
 
     /**************************** Modifiers ************************************/
@@ -104,23 +106,35 @@ public:
 
     /**************************** Getters ************************************/
 
-    std::size_t                          GetRank() const { return m_root->GetRank(); }
-    Utils::ComparableObject<ItemType>    Ckey() const { return m_root->Ckey(); }
-    const std::weak_ptr<Head<ItemType>>& GetSuffixMin() const { return m_suffix_min; }
+    std::size_t GetRank() const
+    {
+        return m_root->GetRank();
+    }
+
+    Utils::ComparableObject<ItemType> Ckey() const
+    {
+        return m_root->Ckey();
+    }
+
+    const std::weak_ptr<Head<ItemType>>& GetSuffixMin() const
+    {
+        return m_suffix_min;
+    }
 
     /**************************** Modifiers ************************************/
 
     void Meld(std::shared_ptr<Head<ItemType>>&& another_head)
     {
-        // Expects, that m_root->Ckey < another->Ckey
         if (Ckey() >= another_head->Ckey())
             std::swap(m_root, another_head.get()->m_root);
 
         m_root->Meld(std::move(another_head->m_root));
     }
 
-    void SetSuffixMin(const std::weak_ptr<Head<ItemType>>& suffix_min) { m_suffix_min = suffix_min; }
-
+    void SetSuffixMin(const std::weak_ptr<Head<ItemType>>& suffix_min)
+    {
+        m_suffix_min = suffix_min;
+    }
 
 private:
     std::shared_ptr<Node<ItemType>> m_root{};
