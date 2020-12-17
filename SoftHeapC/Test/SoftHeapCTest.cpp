@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 
-#include <CSoftHeap.h>
+#include <SoftHeapC.h>
 
 #include <numeric>
 #include <random>
 
-TEST(CSoftHeap, AsSimpleHeap)
+TEST(SoftHeapC, AsSimpleHeap)
 {
-    CSoftHeap heap(10000);
+    SoftHeapC heap(10000);
 
     for (int i = 0; i < 10; ++i)
         heap.Insert(i);
@@ -21,9 +21,9 @@ TEST(CSoftHeap, AsSimpleHeap)
     }
 }
 
-TEST(CSoftHeap, WithSomeR)
+TEST(SoftHeapC, WithSomeR)
 {
-    CSoftHeap           heap(0);
+    SoftHeapC           heap(0);
     constexpr const int count = 9;
 
     for (int i = 1; i < count; ++i)
@@ -48,7 +48,7 @@ TEST(CSoftHeap, WithSomeR)
 }
 
 
-TEST(CSoftHeap, AsKthLargestElement)
+TEST(SoftHeapC, AsKthLargestElement)
 {
     for (auto count : { 30, 40, 51, 73 })
     {
@@ -62,6 +62,6 @@ TEST(CSoftHeap, AsKthLargestElement)
 
 
         for (int i = 0; i < count; ++i)
-            EXPECT_EQ(Utils::SoftHeapSelect<CSoftHeap>(values, i), i);
+            EXPECT_EQ(Utils::SoftHeapSelect<SoftHeapC>(values, i), i);
     }
 }

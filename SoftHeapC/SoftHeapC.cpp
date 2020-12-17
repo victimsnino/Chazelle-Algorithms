@@ -23,7 +23,7 @@
 
 // This source is the original source from the paper with small modifications
 
-#include "CSoftHeap.h"
+#include "SoftHeapC.h"
 
 #include <cstdlib>
 #include <cmath>
@@ -51,7 +51,7 @@ struct head
 
 #define INFTY 100000
 
-CSoftHeap::CSoftHeap(int r)
+SoftHeapC::SoftHeapC(int r)
     : m_r(r)
 {
     m_header = new head();
@@ -62,7 +62,7 @@ CSoftHeap::CSoftHeap(int r)
     m_tail->prev   = m_header;
 }
 
-void CSoftHeap::Insert(int new_key)
+void SoftHeapC::Insert(int new_key)
 {
     node*   q;
     ilcell* l;
@@ -78,7 +78,7 @@ void CSoftHeap::Insert(int new_key)
     Meld(q);
 }
 
-int CSoftHeap::DeleteMin()
+int SoftHeapC::DeleteMin()
 {
     node *tmp;
     int   min,   childcount;
@@ -128,7 +128,7 @@ int CSoftHeap::DeleteMin()
     return min;
 }
 
-void CSoftHeap::Meld(node* q)
+void SoftHeapC::Meld(node* q)
 {
     head* tohead = m_header->next;
     while (q->rank > tohead->rank)
@@ -174,7 +174,7 @@ void CSoftHeap::Meld(node* q)
     FixMinlist(h);
 }
 
-void CSoftHeap::FixMinlist(head* h)
+void SoftHeapC::FixMinlist(head* h)
 {
     head* tmpmin;
     if (h->next == m_tail)
@@ -190,7 +190,7 @@ void CSoftHeap::FixMinlist(head* h)
     }
 }
 
-node* CSoftHeap::Sift(node* v)
+node* SoftHeapC::Sift(node* v)
 {
     node* tmp;
     v->il      = NULL;

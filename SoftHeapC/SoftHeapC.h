@@ -27,10 +27,10 @@
 struct head;
 struct node;
 
-class CSoftHeap
+class SoftHeapC
 {
 public:
-    CSoftHeap(int r);
+    SoftHeapC(int r);
 
     void Insert(int new_key);
     int  DeleteMin();
