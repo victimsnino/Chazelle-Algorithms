@@ -26,4 +26,4 @@ enable_testing()
 
 add_subdirectory(Common)
 add_subdirectory(SoftHeapC)
-# add_subdirectory(SoftHeapCpp)
+add_subdirectory(SoftHeapCpp)
