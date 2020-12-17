@@ -3,6 +3,8 @@ set(TARGET SoftHeapCpp)
 add_library(${TARGET} 
     SoftHeapCpp.h
     SoftHeapCpp.cpp
+
+    Utils.h
 )
 
 target_include_directories(${TARGET} PUBLIC .)
