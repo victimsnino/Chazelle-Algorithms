@@ -72,7 +72,7 @@ public:
         m_values.emplace_front(std::move(item));
     }
 
-    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Getters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
+    /**************************** Getters ************************************/
     Utils::ComparableObject<ItemType> Ckey() const
     {
         return Utils::ComparableObject<ItemType>{m_values.empty() ? nullptr : m_values.front().get()};
@@ -80,7 +80,9 @@ public:
 
     std::size_t GetRank() const { return m_rank; }
 
-    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Modifiers >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
+
+    /**************************** Modifiers ************************************/
+
     void Meld(std::shared_ptr<Node<ItemType>>&& another)
     {
         ++m_rank;
@@ -100,12 +102,14 @@ public:
     Head(std::shared_ptr<Node<ItemType>>&& item)
         : m_root(std::move(item)) {}
 
-    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Getters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
+    /**************************** Getters ************************************/
+
     std::size_t                          GetRank() const { return m_root->GetRank(); }
     Utils::ComparableObject<ItemType>    Ckey() const { return m_root->Ckey(); }
     const std::weak_ptr<Head<ItemType>>& GetSuffixMin() const { return m_suffix_min; }
 
-    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Modifiers >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
+    /**************************** Modifiers ************************************/
+
     void Meld(std::shared_ptr<Head<ItemType>>&& another_head)
     {
         // Expects, that m_root->Ckey < another->Ckey
