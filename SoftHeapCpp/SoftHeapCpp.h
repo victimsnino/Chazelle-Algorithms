@@ -122,6 +122,18 @@ public:
 
         m_childs.clear();
     }
+
+    void Sift()
+    {
+        if (m_childs.empty())
+            return;
+
+        auto last_child = m_childs.back();
+        m_childs.pop_back();
+        m_childs.insert(m_childs.end(), last_child->m_childs.begin(), last_child->m_childs.end());
+        m_values.insert(m_values.begin(), last_child->m_values.begin(), last_child->m_values.end());
+    }
+
 private:
     std::list<std::shared_ptr<ItemType>>       m_values{};
     std::list<std::shared_ptr<Node<ItemType>>> m_childs{};
@@ -172,11 +184,6 @@ public:
         m_suffix_min = suffix_min;
     }
 
-    void Sift()
-    {
-        
-    }
-
 private:
     std::shared_ptr<Node<ItemType>> m_root{};
     std::weak_ptr<Head<ItemType>>   m_suffix_min{};
@@ -205,7 +212,7 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
         }
         else
         {
-            possible_candidate->Sift();
+            possible_candidate->GetRoot()->Sift();
 
             auto itr_to_fix_min_list = std::find(m_queues.begin(), m_queues.end(), possible_candidate);
             if (possible_candidate->GetRoot()->Empty())
