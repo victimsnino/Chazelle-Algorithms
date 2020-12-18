@@ -193,7 +193,7 @@ private:
 template<typename ItemType>
 void SoftHeapCpp<ItemType>::Insert(ItemType value)
 {
-    Meld(std::make_shared<THead>(std::make_shared<TNode>(std::make_shared<ItemType>(value))));
+    Meld(std::make_shared<THead>(std::make_shared<TNode>(std::make_shared<ItemType>(std::move(value)))));
 }
 
 template<typename ItemType>
@@ -225,7 +225,7 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
         possible_candidate = m_queues.front()->GetSuffixMin().lock();
     }
 
-    return *(possible_candidate->GetRoot()->PopFront());
+    return std::move(*(possible_candidate->GetRoot()->PopFront()));
 }
 
 template<typename ItemType>
