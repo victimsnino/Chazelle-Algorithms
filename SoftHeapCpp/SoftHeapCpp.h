@@ -25,8 +25,10 @@
 #include "Utils.h"
 
 #include <algorithm>
+#include <functional>
 #include <list>
 #include <memory>
+#include <stdexcept>
 
 namespace Details
 {
@@ -45,6 +47,7 @@ public:
         : m_r(r) {}
 
     void Insert(ItemType value);
+    ItemType DeleteMin();
 
 private:
     using TNode = Details::Node<ItemType>;
@@ -72,6 +75,7 @@ public:
     }
 
     /**************************** Getters ************************************/
+
     Utils::ComparableObject<ItemType> Ckey() const
     {
         return Utils::ComparableObject<ItemType>{m_values.empty() ? nullptr : m_values.front().get()};
@@ -82,6 +86,22 @@ public:
         return m_rank;
     }
 
+    bool Empty() const
+    {
+        return m_values.empty();
+    }
+
+    bool IsNeedRemeldChilds() const
+    {
+        return m_childs.size() < m_rank / 2;
+    }
+
+    std::shared_ptr<ItemType> PopFront()
+    {
+        auto value_to_remove = std::move(m_values.front());
+        m_values.pop_front();
+        return value_to_remove;
+    }
 
     /**************************** Modifiers ************************************/
 
@@ -91,6 +111,17 @@ public:
         m_childs.emplace_front(std::move(another));
     }
 
+    void ReMeld(std::function<void(std::shared_ptr<Head<ItemType>>&& new_head)>&& func_to_meld)
+    {
+        std::for_each(std::make_move_iterator(m_childs.begin()),
+                      std::make_move_iterator(m_childs.end()),
+                      [&](std::shared_ptr<Node<ItemType>>&& child)
+                      {
+                          func_to_meld(std::make_shared<Head<ItemType>>(std::move(child)));
+                      });
+
+        m_childs.clear();
+    }
 private:
     std::list<std::shared_ptr<ItemType>>       m_values{};
     std::list<std::shared_ptr<Node<ItemType>>> m_childs{};
@@ -121,6 +152,11 @@ public:
         return m_suffix_min;
     }
 
+    const std::shared_ptr<Node<ItemType>>& GetRoot() const
+    {
+        return m_root;
+    }
+
     /**************************** Modifiers ************************************/
 
     void Meld(std::shared_ptr<Head<ItemType>>&& another_head)
@@ -136,6 +172,11 @@ public:
         m_suffix_min = suffix_min;
     }
 
+    void Sift()
+    {
+        
+    }
+
 private:
     std::shared_ptr<Node<ItemType>> m_root{};
     std::weak_ptr<Head<ItemType>>   m_suffix_min{};
@@ -146,6 +187,38 @@ template<typename ItemType>
 void SoftHeapCpp<ItemType>::Insert(ItemType value)
 {
     Meld(std::make_shared<THead>(std::make_shared<TNode>(std::make_shared<ItemType>(value))));
+}
+
+template<typename ItemType>
+ItemType SoftHeapCpp<ItemType>::DeleteMin()
+{
+    if (m_queues.empty())
+        throw  std::out_of_range{"No available queues"};
+
+    auto possible_candidate = m_queues.front()->GetSuffixMin().lock();
+    while(possible_candidate->GetRoot()->Empty())
+    {
+        if (possible_candidate->GetRoot()->IsNeedRemeldChilds())
+        {
+            FixMinList(--m_queues.erase(std::find(m_queues.begin(), m_queues.end(), possible_candidate)));
+            possible_candidate->GetRoot()->ReMeld(std::bind(&SoftHeapCpp<ItemType>::Meld, this, std::placeholders::_1));
+        }
+        else
+        {
+            possible_candidate->Sift();
+
+            auto itr_to_fix_min_list = std::find(m_queues.begin(), m_queues.end(), possible_candidate);
+            if (possible_candidate->GetRoot()->Empty())
+            {
+                --itr_to_fix_min_list;
+                m_queues.remove(possible_candidate);
+            }
+            FixMinList(itr_to_fix_min_list);
+        }
+        possible_candidate = m_queues.front()->GetSuffixMin().lock();
+    }
+
+    return *(possible_candidate->GetRoot()->PopFront());
 }
 
 template<typename ItemType>
@@ -160,17 +233,18 @@ void SoftHeapCpp<ItemType>::Meld(THeadPtr&& new_head)
                                                      return rank <= queue->GetRank();
                                                  });
 
+        // We can insert it now
         if (next_queue_itr == m_queues.end() || (*next_queue_itr)->GetRank() != new_head->GetRank())
         {
             FixMinList(m_queues.emplace(next_queue_itr, std::move(new_head)));
             break;
         }
 
-        auto head_from_heap_to_meld_with = std::move(*next_queue_itr);
-        m_queues.erase(next_queue_itr);
+        (*next_queue_itr)->Meld(std::move(new_head));
+        new_head = std::move(*next_queue_itr);
 
-        head_from_heap_to_meld_with->Meld(std::move(new_head));
-        new_head = head_from_heap_to_meld_with;
+        // Now we need to extract it and to insert in the correct place
+        m_queues.erase(next_queue_itr);
     }
 }
 
