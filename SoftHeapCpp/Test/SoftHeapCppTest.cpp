@@ -41,14 +41,14 @@ struct ComparableObject
 
     static bool s_debug_logs;
 private:
-    int         m_v;
+    int m_v;
 };
 
 bool ComparableObject::s_debug_logs = false;
 
 TEST(SoftHeapCpp, AsSimpleHeap)
 {
-    constexpr size_t count = 30;
+    constexpr size_t              count = 30;
     SoftHeapCpp<ComparableObject> heap(10000);
 
     for (size_t i = 0; i < count; ++i)
@@ -57,5 +57,31 @@ TEST(SoftHeapCpp, AsSimpleHeap)
     for (size_t i = 0; i < count; ++i)
     {
         EXPECT_EQ(i, heap.DeleteMin());
+    }
+}
+
+TEST(SoftHeapCpp, WithSomeR)
+{
+    SoftHeapCpp<int>    heap(0);
+    constexpr const int count = 9;
+
+    for (int i = 1; i < count; ++i)
+        heap.Insert(i);
+
+    // 0 -> 1 && 2 = 2,1 -> 3 && 4 = 4,3
+    for (int i = 1; i < count; ++i)
+    {
+        auto value = heap.DeleteMin();
+        //std::cout << i << ":" << value << std::endl;
+        if (i == 1 || count - i <= 1)
+        {
+            EXPECT_EQ(i, value);
+            continue;
+        }
+
+        if (i % 2 == 0)
+            EXPECT_EQ(i + 1, value);
+        else
+            EXPECT_EQ(i - 1, value);
     }
 }

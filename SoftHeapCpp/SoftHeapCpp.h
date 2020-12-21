@@ -68,8 +68,15 @@ namespace Details
 template<typename ItemType>
 class Node
 {
+    struct ChildPerRank
+    {
+        size_t                          rank{};
+        std::shared_ptr<Node<ItemType>> child{};
+    };
+
 public:
-    Node(std::shared_ptr<ItemType>&& item)
+    Node(std::shared_ptr<ItemType>&& item, size_t r)
+        : m_r(r)
     {
         m_values.emplace_front(std::move(item));
     }
@@ -83,7 +90,7 @@ public:
 
     std::size_t GetRank() const
     {
-        return m_rank;
+        return (m_childs.empty() ? 0 : m_childs.front().rank);
     }
 
     bool Empty() const
@@ -93,7 +100,7 @@ public:
 
     bool IsNeedRemeldChilds() const
     {
-        return m_childs.size() < m_rank / 2;
+        return m_childs.size() < GetRank() / 2;
     }
 
     std::shared_ptr<ItemType> PopFront()
@@ -107,17 +114,16 @@ public:
 
     void Meld(std::shared_ptr<Node<ItemType>>&& another)
     {
-        ++m_rank;
-        m_childs.emplace_front(std::move(another));
+        m_childs.insert(m_childs.begin(), { GetRank()+1, std::move(another) });
     }
 
     void ReMeld(std::function<void(std::shared_ptr<Head<ItemType>>&& new_head)>&& func_to_meld)
     {
         std::for_each(std::make_move_iterator(m_childs.begin()),
                       std::make_move_iterator(m_childs.end()),
-                      [&](std::shared_ptr<Node<ItemType>>&& child)
+                      [&](ChildPerRank&& child)
                       {
-                          func_to_meld(std::make_shared<Head<ItemType>>(std::move(child)));
+                          func_to_meld(std::make_shared<Head<ItemType>>(std::move(child.child)));
                       });
 
         m_childs.clear();
@@ -125,19 +131,52 @@ public:
 
     void Sift()
     {
+        SiftDown(0);
+    }
+private:
+
+    void SiftDown(int end)
+    {
+        auto begin = m_childs.size() - 2; // last element will be popped
+        SiftImpl();
+
+        for (int i = begin; i >= end; --i)
+        {
+            const auto& [rank, child] = m_childs[i];
+            if(rank > m_r && (rank % 2 == 1 || child->GetRank() < rank - 1))
+            {
+                SiftDown(i+1);
+            }
+        }
+    }
+
+    void SiftImpl()
+    {
         if (m_childs.empty())
             return;
 
-        auto last_child = m_childs.back();
+        auto [last_rank, last_child] = m_childs.back();
         m_childs.pop_back();
-        m_childs.insert(m_childs.end(), last_child->m_childs.begin(), last_child->m_childs.end());
-        m_values.insert(m_values.begin(), last_child->m_values.begin(), last_child->m_values.end());
+
+        m_values.insert(m_values.begin(),
+                        std::make_move_iterator(last_child->m_values.begin()),
+                        std::make_move_iterator(last_child->m_values.end()));
+
+        if (last_child->m_childs.empty())
+            return;
+
+        auto new_pos = m_childs.size();
+        m_childs.insert(m_childs.end(),
+                        std::make_move_iterator(last_child->m_childs.begin()),
+                        std::make_move_iterator(last_child->m_childs.end()));
+
+        m_childs[new_pos].rank = last_rank;
     }
 
 private:
-    std::list<std::shared_ptr<ItemType>>       m_values{};
-    std::list<std::shared_ptr<Node<ItemType>>> m_childs{};
-    std::size_t                                m_rank = 0;
+    std::list<std::shared_ptr<ItemType>> m_values{};
+    std::vector<ChildPerRank>            m_childs{};
+    const std::size_t                    m_r;
 };
 
 template<typename ItemType>
@@ -193,7 +232,7 @@ private:
 template<typename ItemType>
 void SoftHeapCpp<ItemType>::Insert(ItemType value)
 {
-    Meld(std::make_shared<THead>(std::make_shared<TNode>(std::make_shared<ItemType>(std::move(value)))));
+    Meld(std::make_shared<THead>(std::make_shared<TNode>(std::make_shared<ItemType>(std::move(value)), m_r)));
 }
 
 template<typename ItemType>
