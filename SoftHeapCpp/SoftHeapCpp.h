@@ -246,7 +246,9 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
     {
         if (possible_candidate->GetRoot()->IsNeedRemeldChilds())
         {
-            FixMinList(--m_queues.erase(std::find(m_queues.begin(), m_queues.end(), possible_candidate)));
+            if (auto itr_to_fix = m_queues.erase(std::find(m_queues.begin(), m_queues.end(), possible_candidate));
+                itr_to_fix != m_queues.begin())
+                FixMinList(--itr_to_fix);
             possible_candidate->GetRoot()->ReMeld(std::bind(&SoftHeapCpp<ItemType>::Meld, this, std::placeholders::_1));
         }
         else
@@ -256,8 +258,9 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
             auto itr_to_fix_min_list = std::find(m_queues.begin(), m_queues.end(), possible_candidate);
             if (possible_candidate->GetRoot()->Empty())
             {
-                --itr_to_fix_min_list;
-                m_queues.remove(possible_candidate);
+                itr_to_fix_min_list = m_queues.erase(itr_to_fix_min_list);
+                if (itr_to_fix_min_list != m_queues.begin())
+                    --itr_to_fix_min_list;
             }
             FixMinList(itr_to_fix_min_list);
         }
@@ -295,7 +298,7 @@ void SoftHeapCpp<ItemType>::Meld(THeadPtr&& new_head)
 }
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>::FixMinList(typename std::list<THeadPtr>::iterator end)
+void SoftHeapCpp<ItemType>:: FixMinList(typename std::list<THeadPtr>::iterator end)
 {
     std::shared_ptr<THead> current_min_suffix = *end;
     if (++end != m_queues.end())

@@ -1,3 +1,7 @@
+#include "Common.h"
+
+#include <numeric>
+#include <random>
 #include <SoftHeapCpp.h>
 
 #include <gtest/gtest.h>
@@ -83,5 +87,23 @@ TEST(SoftHeapCpp, WithSomeR)
             EXPECT_EQ(i + 1, value);
         else
             EXPECT_EQ(i - 1, value);
+    }
+}
+
+TEST(SoftHeapCpp, AsKthLargestElement)
+{
+    for (auto count : { 3, 5, 10, 30, 40, 51, 73, 91, 132 })
+    {
+        std::vector<int> values;
+        values.resize(count);
+        std::iota(values.begin(), values.end(), 0);
+
+        std::random_device rd;
+        std::mt19937       g(rd());
+        std::shuffle(values.begin(), values.end(), g);
+
+
+        for (int i = 0; i < count; ++i)
+            EXPECT_EQ(Utils::SoftHeapSelect<SoftHeapCpp<int>>(values, i), i);
     }
 }
