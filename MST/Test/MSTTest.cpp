@@ -24,16 +24,51 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+
+constexpr bool s_show_graphs = true;
+
 TEST(MST, Init)
 {
+    constexpr size_t                                      nodes_count = 7;
+    std::array<std::array<int, nodes_count>, nodes_count> adjacency_matrix{
+        std::array{0, 1, 0, 3, 0, 0, 0},
+        std::array{0, 0, 2, 0, 4, 0, 0},
+        std::array{0, 0, 0, 5, 6, 7, 0},
+        std::array{0, 0, 0, 0, 0, 8, 0},
+        std::array{0, 0, 0, 0, 0, 0, 9},
+        std::array{0, 0, 0, 0, 0, 0, 10},
+        std::array{0, 0, 0, 0, 0, 0, 0},
+    };
+
     Graph::Graph g{};
-    g.AddEdge(1, 2, 1);
-    g.AddEdge(1, 3, 2);
-    g.AddEdge(1, 4, 3);
-    g.AddEdge(1, 5, 4);
-    g.AddEdge(2, 5, 5);
-    g.AddEdge(3, 6, 6);
-    g.AddEdge(4, 6, 7);
-    g.AddEdge(5, 6, 8);
-    g.ToFile("temp", true);
+    size_t       count_of_edges = 0;
+    for (size_t i = 0; i < nodes_count; ++i)
+        for (size_t j = i + 1; j < nodes_count; ++j)
+            if (const auto weight = adjacency_matrix[i][j])
+            {
+                g.AddEdge(std::to_string(i), std::to_string(j), weight);
+                ++count_of_edges;
+            }
+
+    EXPECT_EQ(count_of_edges, g.GetEdgesCount());
+    EXPECT_EQ(nodes_count, g.GetVertexesCount());
+
+    g.ToFile("Test_1", s_show_graphs);
+
+    std::set<Graph::EdgePtr> edges_to_delete{};
+    g.ForEachVertex([&](const Graph::Vertex& vertex)
+    {
+        auto edges = vertex.GetEdges();
+        if (!edges.empty())
+            edges_to_delete.insert(*edges.begin());
+    });
+
+    for (const auto& edge : edges_to_delete)
+        g.ContractEdge(edge);
+
+    EXPECT_EQ(count_of_edges - edges_to_delete.size(), g.GetEdgesCount());
+    EXPECT_EQ(1, g.GetVertexesCount());
+
+    g.ToFile("Test_1_contracted", s_show_graphs);
 }

@@ -22,45 +22,60 @@
 
 #pragma once
 
+#include <array>
+#include <array>
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
-#include <vector>
 
 namespace Graph
 {
 struct Vertex;
 
+struct VertexDoublePtr
+{
+    VertexDoublePtr(Vertex** ptr)
+        : m_ptr(ptr) {}
+
+    operator Vertex*() const { return *m_ptr; }
+    Vertex* operator->() const { return *m_ptr; }
+private:
+    Vertex** m_ptr{};
+};
+
 struct Edge
 {
-    using Ptr = std::shared_ptr<Edge>;
+    Edge(VertexDoublePtr begin, VertexDoublePtr end, uint32_t weight);
 
-    Edge(Vertex* begin, Vertex* end, uint32_t weight);
-
-    uint32_t GetWeight() const { return m_weight; }
-
-    std::string ToFile() const;
+    uint32_t                              GetWeight() const { return m_weight; }
+    const std::array<VertexDoublePtr, 2>& GetVertexes() const { return m_vertexes; }
+    std::string                           ToFile() const;
 private:
-    const Vertex*  m_begin;
-    const Vertex*  m_end;
-    const uint32_t m_weight;
+    const std::array<VertexDoublePtr, 2> m_vertexes;
+    const uint32_t                       m_weight;
 };
+
+using EdgePtr = std::shared_ptr<Edge>;
 
 struct Vertex
 {
-    Vertex(uint32_t label);
+    using LabelType = std::string;
+    Vertex(LabelType label);
 
-    uint32_t GetLabel() const{return m_label;}
+    LabelType   GetLabel() const { return m_label; }
+    const auto& GetEdges() const { return m_edges; }
 
-    void AddEdge(const Edge::Ptr& edge) { m_edges.insert(edge); }
+    void AddEdge(const EdgePtr& edge) { m_edges.insert(edge); }
+    void RemoveEdge(const EdgePtr& edge) { m_edges.erase(edge); }
 private:
-    std::set<Edge::Ptr, std::function<bool(const Edge::Ptr&, const Edge::Ptr&)>> m_edges{
-        [](const Edge::Ptr& left, const Edge::Ptr& right) -> bool { return left->GetWeight() < right->GetWeight(); }
+    std::set<EdgePtr, std::function<bool(const EdgePtr&, const EdgePtr&)>> m_edges{
+        [](const EdgePtr& left, const EdgePtr& right) -> bool { return left->GetWeight() < right->GetWeight(); }
     };
-    uint32_t m_label;
+    const LabelType m_label;
 };
 
 class Graph
@@ -68,13 +83,23 @@ class Graph
 public:
     Graph() = default;
 
-    void AddEdge(uint32_t begin, uint32_t end, uint32_t weight);
+    void AddEdge(const Vertex::LabelType& begin, const Vertex::LabelType& end, uint32_t weight);
     void ToFile(const std::string& graph_name, bool show = false);
 
+    void ContractEdge(const EdgePtr& edge);
+    void ForEachVertex(std::function<void(const Vertex&)> function) const;
+
     size_t GetEdgesCount() const { return m_edges.size(); }
-    size_t GetVertexesCount() const { return m_vertexes.size(); }
+    size_t GetVertexesCount() const { return m_original_vertexes.size(); }
 private:
-    std::vector<Edge::Ptr>     m_edges{};
-    std::map<uint32_t, Vertex> m_vertexes{};
+    VertexDoublePtr AddOrReturnVertex(const Vertex::LabelType& label);
+    void            ChangeOldVertexToContracted(Vertex* new_vertex, const VertexDoublePtr& vertex);
+    void            CreateContractedVertex(const std::array<VertexDoublePtr, 2>& vertexes, const EdgePtr& same_edge);
+private:
+    std::list<EdgePtr>                   m_edges{};
+    std::list<Vertex>                    m_original_vertexes{};
+    std::map<Vertex::LabelType, Vertex*> m_label_to_vertexes{};
+
+    std::list<EdgePtr> m_contracted_edges{};
 };
 } // namespace Graph
