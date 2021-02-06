@@ -86,7 +86,7 @@ void Graph::ContractEdge(const EdgePtr& edge)
                               m_edges,
                               std::find(m_edges.begin(), m_edges.end(), edge));
 
-    CreateContractedVertex(edge->GetVertexes(), edge);
+    CreateContractedVertex(edge);
 }
 
 void Graph::ForEachVertex(std::function<void(const Vertex&)> function) const
@@ -119,15 +119,30 @@ void Graph::ChangeOldVertexToContracted(Vertex* new_vertex, const VertexDoublePt
         itr->second = new_vertex;
 }
 
-void Graph::CreateContractedVertex(const std::array<VertexDoublePtr, 2>& vertexes, const EdgePtr& same_edge)
+void Graph::CreateContractedVertex(const EdgePtr& same_edge)
 {
+    auto vertexes = same_edge->GetVertexes();
     Vertex* new_vertex = &m_original_vertexes.emplace_back(vertexes[0]->GetLabel() + "_" + vertexes[1]->GetLabel());
 
     for (const auto& vertex : vertexes)
     {
-        vertex->RemoveEdge(same_edge);
         for (const auto& edge_to_move : vertex->GetEdges())
-            new_vertex->AddEdge(edge_to_move);
+        {
+            if (edge_to_move->GetVertexes() == vertexes)
+            {
+                m_edges.remove(edge_to_move);
+                continue;
+            }
+            if (auto itr = std::find_if(new_vertex->GetEdges().begin(),
+                new_vertex->GetEdges().end(),
+                [&](const EdgePtr& edge_to_check)
+                {
+                    return edge_to_check->GetVertexes() == edge_to_move->GetVertexes();
+                }); itr != new_vertex->GetEdges().end())
+            {}
+
+                new_vertex->AddEdge(edge_to_move)
+        }
 
         ChangeOldVertexToContracted(new_vertex, vertex);
     }

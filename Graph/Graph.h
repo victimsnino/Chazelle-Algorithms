@@ -94,7 +94,7 @@ public:
 private:
     VertexDoublePtr AddOrReturnVertex(const Vertex::LabelType& label);
     void            ChangeOldVertexToContracted(Vertex* new_vertex, const VertexDoublePtr& vertex);
-    void            CreateContractedVertex(const std::array<VertexDoublePtr, 2>& vertexes, const EdgePtr& same_edge);
+    void            CreateContractedVertex(const EdgePtr& same_edge);
 private:
     std::list<EdgePtr>                   m_edges{};
     std::list<Vertex>                    m_original_vertexes{};
