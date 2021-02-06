@@ -28,7 +28,8 @@ C of G contractible - intersection with MST(G) is connected
 ### Algorithm: msf(G, t)
 1,2) Boruvka phase __c__ times
 3) Building the Hierarchy T
-
+4) Recursing 
+5) Final
 ### Step 1,2 Boruvka
 
 
@@ -151,3 +152,30 @@ T-tree is based on stack
   * a <= (in chain) u
   * (????) We extend chain by adding single-vertex Czk == v and (u,v) - chain link
   * zk - end of path: without fusion is k +1, with fusion i+1
+
+
+#### How to build T:
+```python
+zk
+assert(height(zk) >= 1)
+while(True)
+  if size_zk_is_not_meet_condition:
+    if possible: # border edges exists
+      extension()
+    else:
+      break
+  else:
+    retraction()
+```
+### Step 4. Recursing
+We have T - target tree and B - graph of bad edges
+```python
+F = []
+for zk in T:
+  assert(C[zk] not have discarded_edges)
+  C[zk].remove_bad_edges()
+  C[zk].reset_costs_to_original()
+  F += msf(C[zk], t-1) # set of edges joining vertices in C[zk]
+```
+### Step 5: Final
+return msf(F U B, t)
