@@ -7,6 +7,8 @@ C of G contractible - intersection with MST(G) is connected
 * Cz - subgraph
   * nz - number of verticies
 
+G - input graph
+G0 - graph after Boruvka
 
 ### z1,...,zk = z - active path
 
