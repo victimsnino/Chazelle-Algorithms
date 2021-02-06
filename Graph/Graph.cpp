@@ -23,8 +23,6 @@
 #include "Graph.h"
 
 #include <algorithm>
-#include <array>
-#include <array>
 #include <fstream>
 #include <utility>
 
@@ -32,30 +30,10 @@ using namespace std::string_literals;
 
 namespace Graph
 {
-Edge::Edge(VertexDoublePtr begin, VertexDoublePtr end, uint32_t weight)
-    : m_vertexes{begin, end}
-    , m_weight{weight} { }
-
-std::string Edge::ToFile() const
+void Graph::AddEdge(uint32_t begin, uint32_t end, uint32_t weight)
 {
-    return "v"s+m_vertexes[0]->GetLabel()
-            + " -- v"
-            + m_vertexes[1]->GetLabel()
-            + " [label="
-            + std::to_string(m_weight)
-            + "]";
-}
-
-Vertex::Vertex(LabelType label)
-    : m_label(std::move(label)) { }
-
-void Graph::AddEdge(const Vertex::LabelType& begin, const Vertex::LabelType& end, uint32_t weight)
-{
-    auto       vertex_1 = AddOrReturnVertex(begin);
-    auto       vertex_2 = AddOrReturnVertex(end);
-    const auto edge     = m_edges.emplace_back(std::make_shared<Edge>(vertex_1, vertex_2, weight));
-    vertex_1->AddEdge(edge);
-    vertex_2->AddEdge(edge);
+    m_adjacency_matrix[begin][end] = weight;
+    m_adjacency_matrix[end][begin] = weight;
 }
 
 void Graph::ToFile(const std::string& graph_name, bool show)
@@ -64,9 +42,12 @@ void Graph::ToFile(const std::string& graph_name, bool show)
     const auto    filename = graph_name + ".dot";
     std::ofstream file_to_out{filename};
     file_to_out << "strict graph {" << std::endl;
-    for (const auto& edge : m_edges)
+    for (const auto& [i, edges] : m_adjacency_matrix)
     {
-        file_to_out << edge->ToFile() << std::endl;
+        for (const auto& [j, weight] : edges)
+        {
+            file_to_out << i << " -- " << j << " [label=" << weight << "]" << std::endl;
+        }
     }
     file_to_out << "}";
     file_to_out.close();
@@ -80,71 +61,35 @@ void Graph::ToFile(const std::string& graph_name, bool show)
 #endif
 }
 
-void Graph::ContractEdge(const EdgePtr& edge)
+void Graph::ContractEdge(uint32_t begin, uint32_t end)
 {
-    m_contracted_edges.splice(m_contracted_edges.begin(),
-                              m_edges,
-                              std::find(m_edges.begin(), m_edges.end(), edge));
-
-    CreateContractedVertex(edge);
-}
-
-void Graph::ForEachVertex(std::function<void(const Vertex&)> function) const
-{
-    std::for_each(m_original_vertexes.cbegin(),
-                  m_original_vertexes.cend(),
-                  std::move(function));
-}
-
-VertexDoublePtr Graph::AddOrReturnVertex(const Vertex::LabelType& label)
-{
-    auto itr = m_label_to_vertexes.find(label);
-
-    if (itr == m_label_to_vertexes.cend())
-        itr = m_label_to_vertexes.emplace(label, &m_original_vertexes.emplace_back(label)).first;
-
-    return &itr->second;
-}
-
-void Graph::ChangeOldVertexToContracted(Vertex* new_vertex, const VertexDoublePtr& vertex)
-{
-    std::vector<decltype(m_label_to_vertexes)::iterator> iterators_to_edit{};
-    for (auto itr = m_label_to_vertexes.begin(); itr != m_label_to_vertexes.end(); ++itr)
-        if (itr->second == vertex)
-            iterators_to_edit.push_back(itr);
-
-    m_original_vertexes.remove_if([&](const Vertex& to_check) { return &to_check == vertex; });
-
-    for (auto& itr : iterators_to_edit)
-        itr->second = new_vertex;
-}
-
-void Graph::CreateContractedVertex(const EdgePtr& same_edge)
-{
-    auto vertexes = same_edge->GetVertexes();
-    Vertex* new_vertex = &m_original_vertexes.emplace_back(vertexes[0]->GetLabel() + "_" + vertexes[1]->GetLabel());
-
-    for (const auto& vertex : vertexes)
+    for (const auto& [j, weight] : m_adjacency_matrix[end])
     {
-        for (const auto& edge_to_move : vertex->GetEdges())
-        {
-            if (edge_to_move->GetVertexes() == vertexes)
-            {
-                m_edges.remove(edge_to_move);
-                continue;
-            }
-            if (auto itr = std::find_if(new_vertex->GetEdges().begin(),
-                new_vertex->GetEdges().end(),
-                [&](const EdgePtr& edge_to_check)
-                {
-                    return edge_to_check->GetVertexes() == edge_to_move->GetVertexes();
-                }); itr != new_vertex->GetEdges().end())
-            {}
+        if (j == begin)
+            continue;
 
-                new_vertex->AddEdge(edge_to_move)
-        }
-
-        ChangeOldVertexToContracted(new_vertex, vertex);
+        const auto new_weight = m_adjacency_matrix[begin][j] > 0 ?
+            std::min(weight, m_adjacency_matrix[begin][j]) :
+            weight;
+        m_adjacency_matrix[begin][j] = new_weight;
+        m_adjacency_matrix[j][begin] = new_weight;
     }
+
+    m_adjacency_matrix.erase(end);
+
+    for (auto& [i, edges] : m_adjacency_matrix)
+    {
+        edges.erase(end);
+    }
+}
+
+size_t Graph::GetEdgesCount() const
+{
+    size_t count = {};
+    for (const auto& [i, edges] : m_adjacency_matrix)
+    {
+        count += std::count_if(edges.cbegin(), edges.cend(), [&](const auto& pair) { return pair.first <= i; });
+    }
+    return count;
 }
 } // namespace Graph
