@@ -32,23 +32,90 @@ namespace Graph
 {
 void Graph::AddEdge(uint32_t begin, uint32_t end, uint32_t weight)
 {
-    m_adjacency_matrix[begin][end] = weight;
-    m_adjacency_matrix[end][begin] = weight;
+    for (const auto& matrix_ptr : {&m_adjacency_matrix, &m_original_adjacency_matrix})
+    {
+        (*matrix_ptr)[begin][end] = weight;
+        (*matrix_ptr)[end][begin] = weight;
+    }
 }
 
-void Graph::ToFile(const std::string& graph_name, bool show)
+void Graph::ContractEdge(uint32_t begin, uint32_t end)
+{
+    auto pair            = BuildPairForEdge(begin, end);
+    std::tie(begin, end) = pair;
+    for (const auto& [j, weight] : m_adjacency_matrix[end])
+    {
+        if (j == begin)
+            continue;
+
+        const auto new_weight = m_adjacency_matrix[begin][j] > 0 ?
+                                    std::min(weight, m_adjacency_matrix[begin][j]) :
+                                    weight;
+        m_adjacency_matrix[begin][j] = new_weight;
+        m_adjacency_matrix[j][begin] = new_weight;
+    }
+
+    m_adjacency_matrix.erase(end);
+
+    for (auto& [i, edges] : m_adjacency_matrix)
+    {
+        edges.erase(end);
+    }
+
+    m_contracted_edges.emplace(std::move(pair));
+}
+
+void Graph::ForEachVertex(const VertexFunction& function, bool original) const
+{
+    for (const auto& [i, edges] : original ? m_original_adjacency_matrix : m_adjacency_matrix)
+    {
+        function(i, edges);
+    }
+}
+
+void Graph::ForEachEdge(const EdgeFunction& function, bool original) const
+{
+    ForEachVertex([&](uint32_t i, const std::map<uint32_t, uint32_t>& edges)
+                  {
+                      for (const auto& [j, weight] : edges)
+                      {
+                          if (j >= i)
+                              break;
+
+                          function(i, j, weight);
+                      }
+                  },
+                  original);
+}
+
+size_t Graph::GetEdgesCount() const
+{
+    size_t count = {};
+    for (const auto& [i, edges] : m_adjacency_matrix)
+    {
+        count += std::count_if(edges.cbegin(), edges.cend(), [&](const auto& pair) { return pair.first <= i; });
+    }
+    return count;
+}
+
+void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool with_mst)
 {
 #ifndef GRAPHVIZ_DISABLED
     const auto    filename = graph_name + ".dot";
     std::ofstream file_to_out{filename};
     file_to_out << "strict graph {" << std::endl;
-    for (const auto& [i, edges] : m_adjacency_matrix)
-    {
-        for (const auto& [j, weight] : edges)
-        {
-            file_to_out << i << " -- " << j << " [label=" << weight << "]" << std::endl;
-        }
-    }
+
+    const auto& contracted_edges = graph.GetContractedEdges();
+
+    graph.ForEachEdge([&](uint32_t i, uint32_t j, uint32_t weight)
+                      {
+                          std::string options = "label="s + std::to_string(weight);
+                          if (with_mst && contracted_edges.count(BuildPairForEdge(i, j)))
+                              options += ", color=red, penwidth=3";
+                          file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
+                      },
+                      with_mst);
+
     file_to_out << "}";
     file_to_out.close();
 
@@ -61,35 +128,24 @@ void Graph::ToFile(const std::string& graph_name, bool show)
 #endif
 }
 
-void Graph::ContractEdge(uint32_t begin, uint32_t end)
+void BoruvkaPhase(Graph& graph)
 {
-    for (const auto& [j, weight] : m_adjacency_matrix[end])
+    std::set<std::pair<uint32_t, uint32_t>> edges_to_contract{};
+    graph.ForEachVertex([&](uint32_t        i, const std::map<uint32_t, uint32_t>& edges)
     {
-        if (j == begin)
-            continue;
+        const auto [j, weight] = *std::min_element(edges.cbegin(),
+                                                   edges.cend(),
+                                                   [](const std::pair<uint32_t, uint32_t>& first_edge,
+                                                      const std::pair<uint32_t, uint32_t>& second_edge)
+                                                   {
+                                                       return first_edge.second < second_edge.second;
+                                                   });
+        edges_to_contract.insert(BuildPairForEdge(i, j));
+    });
 
-        const auto new_weight = m_adjacency_matrix[begin][j] > 0 ?
-            std::min(weight, m_adjacency_matrix[begin][j]) :
-            weight;
-        m_adjacency_matrix[begin][j] = new_weight;
-        m_adjacency_matrix[j][begin] = new_weight;
-    }
-
-    m_adjacency_matrix.erase(end);
-
-    for (auto& [i, edges] : m_adjacency_matrix)
+    for (const auto& [i, j] : edges_to_contract)
     {
-        edges.erase(end);
+        graph.ContractEdge(i, j);
     }
-}
-
-size_t Graph::GetEdgesCount() const
-{
-    size_t count = {};
-    for (const auto& [i, edges] : m_adjacency_matrix)
-    {
-        count += std::count_if(edges.cbegin(), edges.cend(), [&](const auto& pair) { return pair.first <= i; });
-    }
-    return count;
 }
 } // namespace Graph

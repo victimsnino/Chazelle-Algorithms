@@ -40,14 +40,29 @@ public:
     Graph() = default;
 
     void AddEdge(uint32_t begin, uint32_t end, uint32_t weight);
-    void ToFile(const std::string& graph_name, bool show = false);
-
     void ContractEdge(uint32_t begin, uint32_t end);
 
-    [[nodiscard]] size_t GetEdgesCount() const;
-    size_t GetVertexesCount() const { return m_adjacency_matrix.size(); }
+    using VertexFunction = std::function<void(uint32_t i, const std::map<uint32_t, uint32_t>& edges)>;
+    void ForEachVertex(const VertexFunction& function, bool original = false) const;
 
+    using EdgeFunction = std::function<void(uint32_t i, uint32_t j, uint32_t weight)>;
+    void ForEachEdge(const EdgeFunction& function, bool original = false) const;
+
+    [[nodiscard]] size_t GetEdgesCount() const;
+    size_t               GetVertexesCount() const { return m_adjacency_matrix.size(); }
+    const auto&          GetContractedEdges() const { return m_contracted_edges; }
 private:
     std::map<uint32_t, std::map<uint32_t, uint32_t>> m_adjacency_matrix{};
+    std::map<uint32_t, std::map<uint32_t, uint32_t>> m_original_adjacency_matrix{};
+    std::set<std::pair<uint32_t, uint32_t>>          m_contracted_edges{};
 };
+
+void ToFile(const Graph& graph, const std::string& graph_name, bool show = false, bool with_mst = false);
+
+void BoruvkaPhase(Graph& graph);
+
+inline std::pair<uint32_t, uint32_t> BuildPairForEdge(uint32_t i, uint32_t j)
+{
+    return std::make_pair(std::max(i, j), std::min(i, j));
+}
 } // namespace Graph
