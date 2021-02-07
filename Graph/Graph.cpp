@@ -80,9 +80,7 @@ void Graph::ForEachEdge(const EdgeFunction& function, bool original) const
                       for (const auto& [j, weight] : edges)
                       {
                           if (j >= i)
-                              break;
-
-                          function(i, j, weight);
+                              function(i, j, weight);
                       }
                   },
                   original);
@@ -142,10 +140,11 @@ void BoruvkaPhase(Graph& graph)
                                                    });
         edges_to_contract.insert(BuildPairForEdge(i, j));
     });
-
+    size_t count = 0;
     for (const auto& [i, j] : edges_to_contract)
     {
         graph.ContractEdge(i, j);
+        ToFile(graph, "Boruvka_debug_"s + std::to_string(++count) + "__"+std::to_string(i)+"_"+std::to_string(j), true);
     }
 }
 } // namespace Graph
