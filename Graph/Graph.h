@@ -50,11 +50,15 @@ public:
 
     [[nodiscard]] size_t GetEdgesCount() const;
     size_t               GetVertexesCount() const { return m_adjacency_matrix.size(); }
-    const auto&          GetContractedEdges() const { return m_contracted_edges; }
+    bool IsMstEdge(uint32_t i, uint32_t j) const;
+    const std::vector<std::pair<uint32_t, uint32_t>>& GetMST() const { return m_mst; }
+private:
+    uint32_t GetCurrentVertexAfterContracts(uint32_t vertex) const;
 private:
     std::map<uint32_t, std::map<uint32_t, uint32_t>> m_adjacency_matrix{};
     std::map<uint32_t, std::map<uint32_t, uint32_t>> m_original_adjacency_matrix{};
-    std::set<std::pair<uint32_t, uint32_t>>          m_contracted_edges{};
+    std::map<uint32_t, uint32_t>                     m_vertex_to_cluster{};
+    std::vector<std::pair<uint32_t, uint32_t>>       m_mst{};
 };
 
 void ToFile(const Graph& graph, const std::string& graph_name, bool show = false, bool with_mst = false);
