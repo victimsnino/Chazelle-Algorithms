@@ -65,8 +65,5 @@ void ToFile(const Graph& graph, const std::string& graph_name, bool show = false
 
 void BoruvkaPhase(Graph& graph);
 
-inline std::pair<uint32_t, uint32_t> BuildPairForEdge(uint32_t i, uint32_t j)
-{
-    return std::make_pair(std::min(i, j), std::max(i, j));
-}
+std::pair<uint32_t, uint32_t> BuildPairForEdge(uint32_t i, uint32_t j);
 } // namespace Graph

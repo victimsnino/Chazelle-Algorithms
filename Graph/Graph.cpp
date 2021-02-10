@@ -187,4 +187,9 @@ void BoruvkaPhase(Graph& graph)
         graph.ContractEdge(i, j);
     }
 }
+
+std::pair<uint32_t, uint32_t> BuildPairForEdge(uint32_t i, uint32_t j)
+{
+    return std::make_pair(std::min(i, j), std::max(i, j));
+}
 } // namespace Graph
