@@ -14,3 +14,5 @@ target_link_libraries(${TARGET}
 )
 
 SET_TARGET_PROPERTIES (${TARGET} PROPERTIES FOLDER MST)
+
+add_subdirectory(Test)

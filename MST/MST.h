@@ -28,5 +28,5 @@
 
 namespace MST
 {
-    std::vector<Graph::Edge> FindMST(const Graph::Graph& graph, uint32_t c=1);
+    //std::vector<> FindMST(const Graph::Graph& graph, uint32_t c=1);
 }
