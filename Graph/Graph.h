@@ -60,7 +60,7 @@ private:
     Details::EdgesView                     m_edges_view{};
     std::vector<Details::MemberOfSubGraph> m_subgraphs{}; // aka vertexes
 
-    friend void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool with_mst);
+    friend void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };
 
 template<size_t size, typename Type>
@@ -75,5 +75,5 @@ Graph::Graph(const std::array<std::array<Type, size>, size>& adjacency)
     }
 }
 
-void ToFile(const Graph& graph, const std::string& graph_name, bool show = false, bool with_mst = false);
+void ToFile(Graph& graph, const std::string& graph_name, bool show = false, bool with_mst = false);
 } // namespace Graph

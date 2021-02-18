@@ -63,18 +63,14 @@ static_assert(s_matrix.size() == s_matrix[0].size());
 
 TEST(MST, Init)
 {
-    Graph::Graph g{};
-    for (size_t i = 0; i < s_matrix.size(); ++i)
-        for (size_t j = 0; j < i; ++j)
-            if (const auto weight = s_matrix[i][j])
-                g.AddEdge(i, j, weight);
+    Graph::Graph g{s_matrix};
 
     //ToFile(g, "MST_Test_1", true, true);
 
     size_t i = 0;
     while (g.GetVertexesCount() != 1 && ++i)
     {
-        Graph::BoruvkaPhase(g);
+        g.BoruvkaPhase();
         ToFile(g, "MST_Test_2_contracted_"+std::to_string(i), true, true);
         ToFile(g, "MST_Test_2_"+std::to_string(i), true, false);
     }

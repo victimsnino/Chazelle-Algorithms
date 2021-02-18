@@ -152,7 +152,7 @@ std::vector<std::tuple<size_t, size_t>> Graph::GetMST() const
     return result;
 }
 
-void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool with_mst)
+void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst)
 {
 #ifndef GRAPHVIZ_DISABLED
     const auto    filename = graph_name + ".dot";
@@ -162,14 +162,21 @@ void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool w
     for (const auto& edge : graph.m_edges_view.Original())
     {
         std::string options = "label="s + std::to_string(edge.GetWeight());
+        auto [i, j] = edge.GetOriginalVertexes();
+
         if (with_mst)
         {
             if (edge.IsContracted())
                 options += ", color=red, penwidth=3";
         }
-        else if (edge.IsDisabled())
-            continue;
-        auto [i, j] = edge.GetOriginalVertexes();
+        else
+        {
+            if (edge.IsDisabled())
+                continue;
+            i = graph.FindRootOfSubGraph(i);
+            j = graph.FindRootOfSubGraph(j);
+        }
+        
         file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
     }
 
