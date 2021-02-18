@@ -33,31 +33,45 @@ using namespace std::string_literals;
 
 namespace Graph
 {
-namespace Details
-{
-    Edge::Edge(size_t i, size_t j, uint32_t weight)
-        : m_i(i)
-        , m_j(j)
-        , m_weight(weight) { }
-
-    MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)
-        : m_parent(parent)
-        , m_original_vertex(parent)
-        , m_rank(rank) {}
-} // namespace Details
-
 void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
 {
-    if (begin == end)
+    if (begin == end || !weight)
         return;
 
-    m_edges.emplace_back(std::min(begin, end), std::max(begin, end), weight);
-    m_edges_view.EdgeAdded();
+    m_edges_view.AddEdge(std::min(begin, end), std::max(begin, end), weight);
+}
+
+void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
+{
+    std::map<size_t, const Details::Edge*> cheapest_out_edges{};
+    std::vector<size_t>                    edges_to_disable{};
+    for (const auto& edge : m_edges_view)
+    {
+        auto [i, j] = edge.GetOriginalVertexes();
+        i           = FindRootOfSubGraph(i);
+        j           = FindRootOfSubGraph(j);
+
+        if (i != vertex_id && j != vertex_id)
+            continue;
+
+        auto  out_index = i == vertex_id ? j : i;
+        auto& ptr       = cheapest_out_edges[out_index];
+        if (!ptr)
+        {
+            ptr = &edge;
+            continue;
+        }
+        edges_to_disable.push_back(*ptr < edge ? edge.GetIndex() : ptr->GetIndex());
+        ptr = edge < *ptr ? &edge : ptr;
+    }
+
+    for (auto edge_to_disable : edges_to_disable)
+        m_edges_view.DisableEdge(edge_to_disable);
 }
 
 void Graph::ContractEdge(size_t edge_index)
 {
-    const auto [i, j] = m_edges[edge_index].GetVertexes();
+    const auto [i, j] = m_edges_view[edge_index].GetOriginalVertexes();
 
     auto& root_subgraph_1 = m_subgraphs[FindRootOfSubGraph(i)];
     auto& root_subgraph_2 = m_subgraphs[FindRootOfSubGraph(j)];
@@ -70,8 +84,9 @@ void Graph::ContractEdge(size_t edge_index)
     else
         root_subgraph_2.SetParent(root_subgraph_1.GetParent());
 
-    m_edges[edge_index].SetIsContracted();
     m_edges_view.ContractEdge(edge_index);
+
+    RemoveMultipleEdgesForVertex(root_subgraph_1.GetParent());
 }
 
 size_t Graph::FindRootOfSubGraph(size_t i)
@@ -85,20 +100,12 @@ size_t Graph::FindRootOfSubGraph(size_t i)
     return member_of_subgraph.GetParent();
 }
 
-void Details::ActiveEdgesView::EdgeAdded()
-{
-    m_indexes.push_back(m_edges.size() - 1);
-}
-
 void Graph::BoruvkaPhase()
 {
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
-    for (const auto&& [edge_index, edge] : Utils::enumerate(Edges()))
+    for (const auto& edge : m_edges_view)
     {
-        if (edge.IsContracted())
-            continue;
-
-        const auto [i, j]     = edge.GetVertexes();
+        const auto [i, j]     = edge.GetOriginalVertexes();
         const auto subgraph_1 = FindRootOfSubGraph(i);
         const auto subgraph_2 = FindRootOfSubGraph(j);
 
@@ -108,8 +115,8 @@ void Graph::BoruvkaPhase()
         for (const auto& subgraph : {subgraph_1, subgraph_2})
         {
             auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
-            if (!cheapest_edge.has_value() || edge < m_edges[cheapest_edge.value()])
-                cheapest_edge.emplace(edge_index);
+            if (!cheapest_edge.has_value() || edge < m_edges_view[cheapest_edge.value()])
+                cheapest_edge.emplace(edge.GetIndex());
         }
     }
 
@@ -131,17 +138,17 @@ size_t Graph::GetVertexesCount() const
 
 size_t Graph::GetEdgesCount() const
 {
-    return std::count_if(Edges().begin(),
-                         Edges().end(),
+    return std::count_if(m_edges_view.begin(),
+                         m_edges_view.end(),
                          [](const Details::Edge& edge) { return !edge.IsContracted(); });
 }
 
 std::vector<std::tuple<size_t, size_t>> Graph::GetMST() const
 {
     std::vector<std::tuple<size_t, size_t>> result{};
-    for (const auto& edge : m_edges)
+    for (const auto& edge : m_edges_view.Original())
         if (edge.IsContracted())
-            result.emplace_back(edge.GetVertexes());
+            result.emplace_back(edge.GetOriginalVertexes());
     return result;
 }
 
