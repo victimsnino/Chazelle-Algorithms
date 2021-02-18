@@ -155,28 +155,33 @@ std::vector<std::tuple<size_t, size_t>> Graph::GetMST() const
 void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool with_mst)
 {
 #ifndef GRAPHVIZ_DISABLED
-    //const auto    filename = graph_name + ".dot";
-    //std::ofstream file_to_out{filename};
-    //file_to_out << "strict graph {" << std::endl;
+    const auto    filename = graph_name + ".dot";
+    std::ofstream file_to_out{filename};
+    file_to_out << "strict graph {" << std::endl;
 
-    //graph.ForEachEdge([&](uint32_t i, uint32_t j, uint32_t weight)
-    //                  {
-    //                      std::string options = "label="s + std::to_string(weight);
-    //                      if (with_mst && graph.IsMstEdge(i, j))
-    //                          options += ", color=red, penwidth=3";
-    //                      file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
-    //                  },
-    //                  with_mst);
+    for (const auto& edge : graph.m_edges_view.Original())
+    {
+        std::string options = "label="s + std::to_string(edge.GetWeight());
+        if (with_mst)
+        {
+            if (edge.IsContracted())
+                options += ", color=red, penwidth=3";
+        }
+        else if (edge.IsDisabled())
+            continue;
+        auto [i, j] = edge.GetOriginalVertexes();
+        file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
+    }
 
-    //file_to_out << "}";
-    //file_to_out.close();
+    file_to_out << "}";
+    file_to_out.close();
 
-    //if (!show)
-    //    return;
+    if (!show)
+        return;
 
-    //const auto image_file_name = graph_name + ".png";
-    //system(("dot "s + filename + " -Tpng -o " + image_file_name).c_str());
-    //system(image_file_name.c_str());
+    const auto image_file_name = graph_name + ".png";
+    system(("dot "s + filename + " -Tpng -o " + image_file_name).c_str());
+    system(image_file_name.c_str());
 #endif
 }
 } // namespace Graph

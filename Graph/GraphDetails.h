@@ -37,9 +37,13 @@ public:
 
     auto GetOriginalVertexes() const { return std::tuple(m_i, m_j); }
     size_t GetIndex() const { return m_index; }
+    uint32_t GetWeight() const { return m_weight; }
 
     void SetIsContracted() { m_is_contracted = true; }
     bool IsContracted() const { return m_is_contracted; }
+
+    void SetIsDisabled() { m_is_disabled = true; }
+    bool IsDisabled() const { return m_is_disabled; }
 
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
     //bool operator>(const Edge& rhs) const { return rhs < *this; }
@@ -49,6 +53,7 @@ private:
     const uint32_t m_weight;
     const size_t   m_index;
     bool m_is_contracted{false};
+    bool m_is_disabled{ false };
 };
 
 class MemberOfSubGraph

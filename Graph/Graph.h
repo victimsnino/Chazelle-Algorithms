@@ -59,6 +59,8 @@ private:
 private:
     Details::EdgesView                     m_edges_view{};
     std::vector<Details::MemberOfSubGraph> m_subgraphs{}; // aka vertexes
+
+    friend void ToFile(const Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };
 
 template<size_t size, typename Type>

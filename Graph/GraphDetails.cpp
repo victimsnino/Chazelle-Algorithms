@@ -53,6 +53,7 @@ namespace Graph::Details
     void EdgesView::DisableEdge(size_t index)
     {
         m_indexes.remove(index);
+        m_edges[index].SetIsDisabled();
     }
 
     Edge& EdgesView::operator[](size_t index)
