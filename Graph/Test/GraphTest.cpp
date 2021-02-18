@@ -86,31 +86,31 @@ TEST(Graph, DummyChecks)
         EXPECT_EQ(g.GetMST().size(), 1);
     }
 }
-//
-//TEST(Graph, Init)
-//{
-//    auto [g, count_of_edges, nodes_count] = FillGraph(s_adjacency_matrix);
-//
-//    ToFile(g, "Test_1", s_show_graphs);
-//
-//    g.ContractEdge(0, 1);
-//
-//    EXPECT_EQ(count_of_edges-3, g.GetEdgesCount());
-//    EXPECT_EQ(nodes_count -1, g.GetVertexesCount());
-//
-//    const std::set<uint32_t>   rest_vertexes{0, 2, 3, 4, 5, 6}; // 1 contracted to 0
-//    std::set<uint32_t>         actual_vertices{};
-//    g.ForEachEdge([&](uint32_t i, uint32_t j, uint32_t weight)
-//    {
-//        actual_vertices.insert(i);
-//        actual_vertices.insert(j);
-//    });
-//
-//    EXPECT_EQ(rest_vertexes, actual_vertices);
-//
-//    ToFile(g, "Test_1_contracted", s_show_graphs);
-//}
-//
+
+TEST(Graph, Init)
+{
+    auto [g, count_of_edges, nodes_count] = FillGraph(s_adjacency_matrix);
+
+    ToFile(g, "Test_1", s_show_graphs);
+
+    g.ContractEdge(0);
+
+    EXPECT_EQ(count_of_edges-3, g.GetEdgesCount());
+    EXPECT_EQ(nodes_count -1, g.GetVertexesCount());
+
+    const std::set<uint32_t>   rest_vertexes{0, 2, 3, 4, 5, 6}; // 1 contracted to 0
+    std::set<uint32_t>         actual_vertices{};
+   /* g.ForEachEdge([&](uint32_t i, uint32_t j, uint32_t weight)
+    {
+        actual_vertices.insert(i);
+        actual_vertices.insert(j);
+    });
+
+    EXPECT_EQ(rest_vertexes, actual_vertices);*/
+
+    ToFile(g, "Test_1_contracted", s_show_graphs);
+}
+
 //TEST(Graph, Boruvka)
 //{
 //    auto [g, count_of_edges, nodes_count] = FillGraph(s_adjacency_matrix);

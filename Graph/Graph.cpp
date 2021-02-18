@@ -52,6 +52,7 @@ void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
         return;
 
     m_edges.emplace_back(std::min(begin, end), std::max(begin, end), weight);
+    m_edges_view.EdgeAdded();
 }
 
 void Graph::ContractEdge(size_t edge_index)
@@ -64,12 +65,13 @@ void Graph::ContractEdge(size_t edge_index)
     if (root_subgraph_1 == root_subgraph_2)
         return;
 
-    if (root_subgraph_1 > root_subgraph_2)
-        root_subgraph_2.SetParent(root_subgraph_1.GetParent());
-    else
+    if (root_subgraph_1 < root_subgraph_2)
         root_subgraph_1.SetParent(root_subgraph_2.GetParent());
+    else
+        root_subgraph_2.SetParent(root_subgraph_1.GetParent());
 
     m_edges[edge_index].SetIsContracted();
+    m_edges_view.ContractEdge(edge_index);
 }
 
 size_t Graph::FindRootOfSubGraph(size_t i)
@@ -83,10 +85,15 @@ size_t Graph::FindRootOfSubGraph(size_t i)
     return member_of_subgraph.GetParent();
 }
 
+void Details::ActiveEdgesView::EdgeAdded()
+{
+    m_indexes.push_back(m_edges.size() - 1);
+}
+
 void Graph::BoruvkaPhase()
 {
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
-    for (const auto&& [edge_index, edge] : Utils::enumerate(m_edges))
+    for (const auto&& [edge_index, edge] : Utils::enumerate(Edges()))
     {
         if (edge.IsContracted())
             continue;
@@ -101,7 +108,7 @@ void Graph::BoruvkaPhase()
         for (const auto& subgraph : {subgraph_1, subgraph_2})
         {
             auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
-            if (!cheapest_edge.has_value() || m_edges[cheapest_edge.value()] > edge)
+            if (!cheapest_edge.has_value() || edge < m_edges[cheapest_edge.value()])
                 cheapest_edge.emplace(edge_index);
         }
     }
@@ -117,7 +124,6 @@ void Graph::BoruvkaPhase()
 
 size_t Graph::GetVertexesCount() const
 {
-
     return std::count_if(m_subgraphs.cbegin(),
                          m_subgraphs.cend(),
                          [](const Details::MemberOfSubGraph& member) { return member.IsRoot(); });
@@ -125,9 +131,8 @@ size_t Graph::GetVertexesCount() const
 
 size_t Graph::GetEdgesCount() const
 {
-    // to-do
-    return std::count_if(m_edges.cbegin(),
-                         m_edges.cend(),
+    return std::count_if(Edges().begin(),
+                         Edges().end(),
                          [](const Details::Edge& edge) { return !edge.IsContracted(); });
 }
 

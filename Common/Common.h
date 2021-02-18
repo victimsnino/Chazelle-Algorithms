@@ -70,25 +70,31 @@ int SoftHeapSelect(std::vector<int> a, int k)
     return SoftHeapSelect<SoftHeap>(std::vector<int>{partition_itr + 1, a.end()}, k - (partition_index + 1));
 }
 
-template <typename T,
-    typename TIter = decltype(std::begin(std::declval<T>())),
-    typename = decltype(std::end(std::declval<T>()))>
-    constexpr auto enumerate(T&& iterable)
+template<typename T,
+         typename TIter = decltype(std::begin(std::declval<T>())),
+         typename = decltype(std::end(std::declval<T>()))>
+constexpr auto enumerate(T&& iterable)
 {
     struct iterator
     {
         size_t i;
-        TIter iter;
-        bool operator != (const iterator& other) const { return iter != other.iter; }
-        void operator ++ () { ++i; ++iter; }
-        auto operator * () const { return std::tie(i, *iter); }
+        TIter  iter;
+        bool   operator !=(const iterator& other) const { return iter != other.iter; }
+
+        void operator ++()
+        {
+            ++i;
+            ++iter;
+        }
+
+        auto operator *() const { return std::tie(i, *iter); }
     };
     struct iterable_wrapper
     {
-        T iterable;
-        auto begin() { return iterator{ 0, std::begin(iterable) }; }
-        auto end() { return iterator{ 0, std::end(iterable) }; }
+        T    iterable;
+        auto begin() { return iterator{0, std::begin(iterable)}; }
+        auto end() { return iterator{0, std::end(iterable)}; }
     };
-    return iterable_wrapper{ std::forward<T>(iterable) };
+    return iterable_wrapper{std::forward<T>(iterable)};
 }
 } // namespace Utils
