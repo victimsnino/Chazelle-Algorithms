@@ -39,8 +39,8 @@ namespace Graph
 class Graph
 {
 public:
-    template<size_t size, typename Type>
-    Graph(const std::array<std::array<Type, size>, size>& adjacency);
+    template<typename Type>
+    Graph(const std::vector<std::vector<Type>>& adjacency);
 
     Graph() = default;
 
@@ -63,10 +63,10 @@ private:
     friend void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };
 
-template<size_t size, typename Type>
-Graph::Graph(const std::array<std::array<Type, size>, size>& adjacency)
+template<typename Type>
+Graph::Graph(const std::vector<std::vector<Type>>& adjacency)
 {
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < adjacency.size(); ++i)
     {
         for (size_t j = 0; j < i; ++j)
             AddEdge(i, j, std::max(adjacency[i][j], adjacency[j][i]));

@@ -23,6 +23,7 @@
 #include "MST.h"
 
 #include <Graph.h>
+#include <iostream>
 #include <stdexcept>
 
 static constexpr uint32_t S(uint32_t i, uint32_t j)
@@ -40,15 +41,43 @@ static constexpr uint32_t S(uint32_t i, uint32_t j)
 static_assert(S(1, 5) == 2 * 5);
 static_assert(S(100500, 1) == 2);
 
-static uint32_t FindT(const Graph::Graph& graph, double c)
+static uint32_t FindD(const Graph::Graph& graph, uint32_t c)
 {
-    const double vertexes_count = graph.GetVertexesCount();
-    uint32_t     d              = c * ceil(pow(static_cast<double>(graph.GetEdgesCount()) /
-                                               vertexes_count,
-                                               1.0 / 3.0));
+    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
+    const double edges_count = static_cast<double>(graph.GetEdgesCount());
+    return c * static_cast<uint32_t>(ceil(pow(edges_count / vertexes_count, 1.0 / 3.0)));
+}
+
+static uint32_t FindT(const Graph::Graph& graph, uint32_t d)
+{
+    if (d == 1)
+        return 1;
+
+    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
+
     uint32_t result = 1;
-    while (vertexes_count > pow(S(result, d), 3.0))
+    while (vertexes_count > pow(S(result, d), 3))
         ++result;
 
     return result;
+}
+
+void MST::FindMST(Graph::Graph& graph, uint32_t c)
+{
+    auto d = FindD(graph, c);
+    auto t = FindT(graph, d);
+
+    std::cout << d << " " << t << std::endl;
+
+    if (t == 1)
+        c = std::numeric_limits<uint32_t>::max();
+
+    while (c > 0 && graph.GetVertexesCount() > 1)
+    {
+        graph.BoruvkaPhase();
+        --c;
+    }
+
+    if (graph.GetVertexesCount() == 1)
+        return;
 }
