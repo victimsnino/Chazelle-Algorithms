@@ -23,58 +23,68 @@
 #include "Graph.h"
 #include "MST.h"
 
+
+#include <algorithm>
 #include <gtest/gtest.h>
 
-static std::array s_matrix = {
-std::array{  0, 30, 29,  0, 28,  0,  0,  0, 27,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{ 30,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 26, },
-std::array{ 29,  0,  0, 25,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 24,  0, },
-std::array{  0,  0, 25,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 23,  0,  0,  0,  0, },
-std::array{ 28,  0,  0,  0,  0, 22, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 20,  0,  0, },
-std::array{  0,  0,  0,  0, 22,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 19,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0, 21,  0,  0, 18,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0, 18,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 16,  0,  0,  0,  0,  0,  0,  0, },
-std::array{ 27,  0,  0,  0,  0,  0,  0,  0,  0, 15, 14, 13,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 12,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 11,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0, 14,  0,  0,  0, 10,  0,  0,  0,  0,  0,  0,  0,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0, 13,  0,  0,  0,  0,  8,  7,  0,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 10,  0,  0,  0,  0,  0,  0,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  8,  0,  0,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  7,  0,  0,  0,  3,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  6,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0,  0, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0, 16,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0, 17,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0, 19,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0, 23,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0,  0,  0,  0,  0, 12,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0,  0,  0, 20,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0,  0, 24,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-std::array{  0, 26,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, },
-};
 
-static_assert(s_matrix.size() == s_matrix[0].size());
+static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
+{
+    std::vector<std::pair<uint32_t, uint32_t>> edges{};
+    uint32_t N = 1;
+    for (uint32_t i = 0; i < k; ++i)
+    {
+        std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
+        for(const auto[i,j] : edges)
+        {
+            edges_to_add.emplace_back(i + N, j + N);
+        }
+        std::move(edges_to_add.begin(), edges_to_add.end(), std::back_inserter(edges));
+        edges.emplace_back(0, N);
+        N *= 2;
+    }
+    for(uint32_t z = 0; z < postprocess_; ++z)
+    {
+        std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
+        std::for_each(edges.rbegin(),
+                      edges.rend(),
+                      [&](const auto& pair)
+                      {
+                          auto [i, j] = pair;
+                          edges_to_add.emplace_back(i, N);
+                          edges_to_add.emplace_back(j, N);
+                          N += 1;
+                      });
+        std::move(edges_to_add.begin(), edges_to_add.end(), std::back_inserter(edges));
+    }
+
+    std::vector<std::vector<uint32_t>> result{N};
+    for(size_t i = 0; i < N; ++i)
+        result[i].resize(N);
+
+    uint32_t weight = edges.size();
+    for (const auto& [i,j] : edges)
+    {
+        result[i][j] = weight;
+        result[j][i] = weight;
+        --weight;
+    }
+    return result;
+}
 
 TEST(MST, Init)
 {
-    Graph::Graph g{s_matrix};
-
-    //ToFile(g, "MST_Test_1", true, true);
-
-    size_t i = 0;
-    while (g.GetVertexesCount() != 1 && ++i)
+    Graph::Graph g_1{ GenerateMatrix(12, 1)};
+    std::cout << g_1.GetVertexesCount() << " " << g_1.GetEdgesCount() << std::endl;
+    uint32_t count = 0;
+    while (g_1.GetVertexesCount() != 1)
     {
-        g.BoruvkaPhase();
-        ToFile(g, "MST_Test_2_contracted_"+std::to_string(i), true, true);
-        ToFile(g, "MST_Test_2_"+std::to_string(i), true, false);
+        g_1.BoruvkaPhase();
+        ++count;
     }
+    std::cout << "Required Boruvka stages: " << count << std::endl;
 
-   std::cout << i << " stages" << std::endl;
-   ToFile(g, "MST_Test_2_contracted", true, true);
+    //Graph::Graph g{ GenerateMatrix(3, 2)};
+    //ToFile(g, "TEMP", true);
+    //MST::FindMST(g);
 }
