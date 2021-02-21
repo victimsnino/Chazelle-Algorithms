@@ -29,9 +29,9 @@
 
 namespace Utils
 {
-inline int CalculateRByEps(double eps)
+inline size_t CalculateRByEps(double eps)
 {
-    return static_cast<int>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
+    return static_cast<size_t>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
 }
 
 template<typename SoftHeap>

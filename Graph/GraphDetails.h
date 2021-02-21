@@ -28,6 +28,10 @@
 #include <type_traits>
 #include <vector>
 
+namespace Graph {
+class Graph;
+}
+
 namespace Graph::Details
 {
 class Edge
@@ -35,7 +39,9 @@ class Edge
 public:
     Edge(size_t i, size_t j, uint32_t weight, size_t index);
 
-    auto GetOriginalVertexes() const { return std::tuple(m_i, m_j); }
+    std::tuple<size_t, size_t> GetOriginalVertexes() const { return { m_i, m_j }; }
+    std::tuple<size_t, size_t> GetCurrentSubgraphs(Graph& graph) const;
+
     size_t GetIndex() const { return m_index; }
     uint32_t GetWeight() const { return m_weight; }
 
@@ -52,8 +58,8 @@ private:
     const size_t   m_j;
     const uint32_t m_weight;
     const size_t   m_index;
-    bool m_is_contracted{false};
-    bool m_is_disabled{ false };
+    bool           m_is_contracted{false};
+    bool           m_is_disabled{ false };
 };
 
 class MemberOfSubGraph

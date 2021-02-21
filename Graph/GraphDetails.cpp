@@ -22,6 +22,9 @@
 
 #include "GraphDetails.h"
 
+#include "Graph.h"
+
+
 #include <cassert>
 #include <map>
 
@@ -32,6 +35,11 @@ namespace Graph::Details
         , m_j(j)
         , m_weight(weight)
         , m_index(index) { }
+
+    std::tuple<size_t, size_t> Edge::GetCurrentSubgraphs(Graph& graph) const
+    {
+        return { graph.FindRootOfSubGraph(m_i), graph.FindRootOfSubGraph(m_j)};
+    }
 
     MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)
         : m_parent(parent)

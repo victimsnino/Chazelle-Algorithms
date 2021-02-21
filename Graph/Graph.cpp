@@ -47,9 +47,7 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
     std::vector<size_t>                    edges_to_disable{};
     for (const auto& edge : m_edges_view)
     {
-        auto [i, j] = edge.GetOriginalVertexes();
-        i           = FindRootOfSubGraph(i);
-        j           = FindRootOfSubGraph(j);
+        auto [i, j] = edge.GetCurrentSubgraphs(*this);
 
         if (i != vertex_id && j != vertex_id)
             continue;
@@ -71,10 +69,10 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
 
 void Graph::ContractEdge(size_t edge_index)
 {
-    const auto [i, j] = m_edges_view[edge_index].GetOriginalVertexes();
+    const auto [i, j] = m_edges_view[edge_index].GetCurrentSubgraphs(*this);
 
-    auto& root_subgraph_1 = m_subgraphs[FindRootOfSubGraph(i)];
-    auto& root_subgraph_2 = m_subgraphs[FindRootOfSubGraph(j)];
+    auto& root_subgraph_1 = m_subgraphs[i];
+    auto& root_subgraph_2 = m_subgraphs[j];
 
     if (root_subgraph_1 == root_subgraph_2)
         return;
@@ -100,14 +98,17 @@ size_t Graph::FindRootOfSubGraph(size_t i)
     return member_of_subgraph.GetParent();
 }
 
+void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const
+{
+    std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
+}
+
 void Graph::BoruvkaPhase()
 {
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
     for (const auto& edge : m_edges_view)
     {
-        const auto [i, j]     = edge.GetOriginalVertexes();
-        const auto subgraph_1 = FindRootOfSubGraph(i);
-        const auto subgraph_2 = FindRootOfSubGraph(j);
+        const auto [subgraph_1, subgraph_2]     = edge.GetOriginalVertexes();
 
         if (subgraph_1 == subgraph_2)
             continue;

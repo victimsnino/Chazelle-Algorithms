@@ -51,10 +51,13 @@ public:
     size_t GetEdgesCount() const;
     std::vector<std::tuple<size_t, size_t>> GetMST() const;
 
+    size_t FindRootOfSubGraph(size_t i);
+
+    void ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const;
+
 private:
     void   AddEdge(size_t begin, size_t end, uint32_t weight);
     void   RemoveMultipleEdgesForVertex(size_t vertex_id);
-    size_t FindRootOfSubGraph(size_t i);
 
 private:
     Details::EdgesView                     m_edges_view{};

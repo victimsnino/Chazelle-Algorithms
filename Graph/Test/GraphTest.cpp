@@ -28,31 +28,29 @@
 
 static constexpr  bool       s_show_graphs = false;
 
-constexpr std::array s_adjacency_matrix{
-    std::array{0,  4, 11, 3, 0, 0, 0},
-    std::array{4,  0, 1, 12, 2, 0, 0},
-    std::array{11, 1, 0, 5, 6, 7, 0},
-    std::array{3, 12, 5, 0, 0, 8, 0},
-    std::array{0,  2, 6, 0, 0, 0, 9},
-    std::array{0,  0, 7, 8, 0, 0, 10},
-    std::array{0,  0, 0, 0, 9, 10, 0},
+std::vector s_adjacency_matrix{
+    std::vector{0,  4, 11, 3, 0, 0, 0},
+    std::vector{4,  0, 1, 12, 2, 0, 0},
+    std::vector{11, 1, 0, 5, 6, 7, 0},
+    std::vector{3, 12, 5, 0, 0, 8, 0},
+    std::vector{0,  2, 6, 0, 0, 0, 9},
+    std::vector{0,  0, 7, 8, 0, 0, 10},
+    std::vector{0,  0, 0, 0, 9, 10, 0},
 };
 
-static_assert(s_adjacency_matrix.size() == s_adjacency_matrix[0].size());
 
-template<size_t nodes_count>
-std::tuple<Graph::Graph, uint32_t, uint32_t> FillGraph(const std::array<std::array<int, nodes_count>, nodes_count>& matrix)
+std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vector<int>>& matrix)
 {
     Graph::Graph g{ matrix };
     size_t       count_of_edges = 0;
-    for (size_t i = 0; i < nodes_count; ++i)
+    for (size_t i = 0; i < matrix.size(); ++i)
         for (size_t j = 0; j < i; ++j)
             if (const auto weight = matrix[i][j])
                 ++count_of_edges;
 
     EXPECT_EQ(count_of_edges, g.GetEdgesCount());
-    EXPECT_EQ(nodes_count, g.GetVertexesCount());
-    return { g, count_of_edges, nodes_count };
+    EXPECT_EQ(matrix.size(), g.GetVertexesCount());
+    return { g, count_of_edges, matrix.size() };
 }
 
 TEST(Graph, DummyChecks)
@@ -70,8 +68,8 @@ TEST(Graph, DummyChecks)
         EXPECT_EQ(g.GetMST().size(), 0);
     }
 
-    Graph::Graph g{ std::array{std::array{0, 1},
-                               std::array{1, 0}}};
+    Graph::Graph g{ std::vector{std::vector{0, 1},
+                               std::vector{1, 0}}};
 
     EXPECT_EQ(g.GetEdgesCount(), 1);
     EXPECT_EQ(g.GetVertexesCount(), 2);
@@ -134,20 +132,18 @@ TEST(Graph, Boruvka)
     ToFile(g, "Test_2_contracted_mst_final", s_show_graphs, true);
 }
 
-constexpr std::array s_extended_adjacency_matrix{
-    std::array{-1,  0,  0,  0,  0,  0,  0,  0,  0,   0},
-    std::array{ 1, -1,  0,  0,  0,  0,  0,  0,  0,   0},
-    std::array{ 0,  2, -1,  0,  0,  0,  0,  0,  0,   0},
-    std::array{ 3,  4,  5, -1,  0,  0,  0,  0,  0,   0},
-    std::array{ 0,  6,  7,  0, -1,  0,  0,  0,  0,   0},
-    std::array{ 8,  0,  9,  0, 10, -1,  0,  0,  0,   0},
-    std::array{11, 12,  0, 13,  0,  0, -1,  0,  0,   0},
-    std::array{ 0, 14, 15,  0, 16,  0, 17, -1,  0,   0},
-    std::array{18,  0,  0, 19,  0, 20,  0, 21, -1,   0},
-    std::array{ 0, 22,  0, 24,  0, 25,  0, 30, 35, - 1},
+std::vector s_extended_adjacency_matrix{
+    std::vector{-1,  0,  0,  0,  0,  0,  0,  0,  0,   0},
+    std::vector{ 1, -1,  0,  0,  0,  0,  0,  0,  0,   0},
+    std::vector{ 0,  2, -1,  0,  0,  0,  0,  0,  0,   0},
+    std::vector{ 3,  4,  5, -1,  0,  0,  0,  0,  0,   0},
+    std::vector{ 0,  6,  7,  0, -1,  0,  0,  0,  0,   0},
+    std::vector{ 8,  0,  9,  0, 10, -1,  0,  0,  0,   0},
+    std::vector{11, 12,  0, 13,  0,  0, -1,  0,  0,   0},
+    std::vector{ 0, 14, 15,  0, 16,  0, 17, -1,  0,   0},
+    std::vector{18,  0,  0, 19,  0, 20,  0, 21, -1,   0},
+    std::vector{ 0, 22,  0, 24,  0, 25,  0, 30, 35, - 1},
 };
-
-static_assert(s_extended_adjacency_matrix.size() == s_extended_adjacency_matrix[0].size());
 
 TEST(Graph, Boruvka_2)
 {
