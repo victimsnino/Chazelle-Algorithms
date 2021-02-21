@@ -28,18 +28,18 @@
 
 static constexpr  bool       s_show_graphs = false;
 
-std::vector s_adjacency_matrix{
-    std::vector{0,  4, 11, 3, 0, 0, 0},
-    std::vector{4,  0, 1, 12, 2, 0, 0},
-    std::vector{11, 1, 0, 5, 6, 7, 0},
-    std::vector{3, 12, 5, 0, 0, 8, 0},
-    std::vector{0,  2, 6, 0, 0, 0, 9},
-    std::vector{0,  0, 7, 8, 0, 0, 10},
-    std::vector{0,  0, 0, 0, 9, 10, 0},
+static std::vector<std::vector<uint32_t>> s_adjacency_matrix{
+    {0,  4, 11, 3, 0, 0, 0},
+    {4,  0, 1, 12, 2, 0, 0},
+    {11, 1, 0, 5, 6, 7, 0},
+    {3, 12, 5, 0, 0, 8, 0},
+    {0,  2, 6, 0, 0, 0, 9},
+    {0,  0, 7, 8, 0, 0, 10},
+    {0,  0, 0, 0, 9, 10, 0},
 };
 
 
-std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vector<int>>& matrix)
+std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vector<uint32_t>>& matrix)
 {
     Graph::Graph g{ matrix };
     size_t       count_of_edges = 0;
@@ -68,8 +68,8 @@ TEST(Graph, DummyChecks)
         EXPECT_EQ(g.GetMST().size(), 0);
     }
 
-    Graph::Graph g{ std::vector{std::vector{0, 1},
-                               std::vector{1, 0}}};
+    Graph::Graph g{std::vector<std::vector<uint32_t>>{{0, 1},
+                                                      {1, 0}}};
 
     EXPECT_EQ(g.GetEdgesCount(), 1);
     EXPECT_EQ(g.GetVertexesCount(), 2);
@@ -132,17 +132,17 @@ TEST(Graph, Boruvka)
     ToFile(g, "Test_2_contracted_mst_final", s_show_graphs, true);
 }
 
-std::vector s_extended_adjacency_matrix{
-    std::vector{-1,  0,  0,  0,  0,  0,  0,  0,  0,   0},
-    std::vector{ 1, -1,  0,  0,  0,  0,  0,  0,  0,   0},
-    std::vector{ 0,  2, -1,  0,  0,  0,  0,  0,  0,   0},
-    std::vector{ 3,  4,  5, -1,  0,  0,  0,  0,  0,   0},
-    std::vector{ 0,  6,  7,  0, -1,  0,  0,  0,  0,   0},
-    std::vector{ 8,  0,  9,  0, 10, -1,  0,  0,  0,   0},
-    std::vector{11, 12,  0, 13,  0,  0, -1,  0,  0,   0},
-    std::vector{ 0, 14, 15,  0, 16,  0, 17, -1,  0,   0},
-    std::vector{18,  0,  0, 19,  0, 20,  0, 21, -1,   0},
-    std::vector{ 0, 22,  0, 24,  0, 25,  0, 30, 35, - 1},
+static std::vector<std::vector<uint32_t>> s_extended_adjacency_matrix{
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 2, 0, 0, 0, 0, 0, 0, 0, 0},
+    {3, 4, 5, 0, 0, 0, 0, 0, 0, 0},
+    {0, 6, 7, 0, 0, 0, 0, 0, 0, 0},
+    {8, 0, 9, 0, 10, 0, 0, 0, 0, 0},
+    {11, 12, 0, 13, 0, 0, 0, 0, 0, 0},
+    {0, 14, 15, 0, 16, 0, 17, 0, 0, 0},
+    {18, 0, 0, 19, 0, 20, 0, 21, 0, 0},
+    {0, 22, 0, 24, 0, 25, 0, 30, 35, 0},
 };
 
 TEST(Graph, Boruvka_2)

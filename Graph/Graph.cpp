@@ -25,7 +25,9 @@
 #include <Common.h>
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
+#include <numeric>
 #include <optional>
 #include <utility>
 
@@ -33,6 +35,19 @@ using namespace std::string_literals;
 
 namespace Graph
 {
+Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
+{
+    m_subgraphs.reserve(adjacency.size());
+    for (size_t i = 0; i < adjacency.size(); ++i)
+    {
+        assert(adjacency.size() == adjacency[i].size());
+        m_subgraphs.emplace_back(i);
+
+        for (size_t j = 0; j < i; ++j)
+            AddEdge(i, j, std::max(adjacency[i][j], adjacency[j][i]));
+    }
+}
+
 void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
 {
     if (begin == end || !weight)
