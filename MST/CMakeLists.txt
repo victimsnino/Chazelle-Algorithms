@@ -9,6 +9,7 @@ target_include_directories(${TARGET} PUBLIC .)
 target_link_libraries(${TARGET}
     PRIVATE
         SoftHeapCpp
+        Common
     PUBLIC
         Graph
 )

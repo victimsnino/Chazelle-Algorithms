@@ -74,17 +74,19 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
 
 TEST(MST, Init)
 {
-    Graph::Graph g_1{ GenerateMatrix(12, 1)};
-    std::cout << g_1.GetVertexesCount() << " " << g_1.GetEdgesCount() << std::endl;
-    uint32_t count = 0;
-    while (g_1.GetVertexesCount() != 1)
+    auto         matrix = GenerateMatrix(6, 5);
     {
-        g_1.BoruvkaPhase();
-        ++count;
+        Graph::Graph g{ matrix };
+        std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;
+        uint32_t count = 0;
+        while (g.GetVertexesCount() != 1)
+        {
+            g.BoruvkaPhase();
+            ++count;
+        }
+        std::cout << "Required Boruvka stages: " << count << std::endl;
     }
-    std::cout << "Required Boruvka stages: " << count << std::endl;
 
-    //Graph::Graph g{ GenerateMatrix(3, 2)};
-    //ToFile(g, "TEMP", true);
-    //MST::FindMST(g);
+    Graph::Graph g{ matrix };
+    MST::FindMST(g, 2);
 }
