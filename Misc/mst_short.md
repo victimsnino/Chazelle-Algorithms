@@ -159,7 +159,6 @@ T-tree is based on stack
 #### How to build T:
 ```python
 zk
-assert(height(zk) >= 1)
 while(True)
   if size_zk_is_not_meet_condition:
     if possible: # border edges exists
