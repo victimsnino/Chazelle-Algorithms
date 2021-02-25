@@ -45,10 +45,11 @@ public:
 
     void BoruvkaPhase();
     void ContractEdge(size_t edge_index);
+    void DisableEdge(size_t edge_index);
 
     size_t GetVertexesCount()const;
     size_t GetEdgesCount() const;
-    std::vector<std::tuple<size_t, size_t>> GetMST() const;
+    std::vector<std::array<size_t, 2>> GetMST() const;
 
     size_t FindRootOfSubGraph(size_t i);
 

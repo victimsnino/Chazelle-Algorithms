@@ -79,7 +79,7 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
     }
 
     for (auto edge_to_disable : edges_to_disable)
-        m_edges_view.DisableEdge(edge_to_disable);
+        DisableEdge(edge_to_disable);
 }
 
 void Graph::ContractEdge(size_t edge_index)
@@ -100,6 +100,11 @@ void Graph::ContractEdge(size_t edge_index)
     m_edges_view.ContractEdge(edge_index);
 
     RemoveMultipleEdgesForVertex(root_subgraph_1.GetParent());
+}
+
+void Graph::DisableEdge(size_t edge_index)
+{
+    m_edges_view.DisableEdge(edge_index);
 }
 
 size_t Graph::FindRootOfSubGraph(size_t i)
@@ -123,12 +128,12 @@ void Graph::BoruvkaPhase()
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
     for (const auto& edge : m_edges_view)
     {
-        const auto [subgraph_1, subgraph_2]     = edge.GetOriginalVertexes();
+        const auto subgraphs     = edge.GetOriginalVertexes();
 
-        if (subgraph_1 == subgraph_2)
+        if (subgraphs[0] == subgraphs[1])
             continue;
 
-        for (const auto& subgraph : {subgraph_1, subgraph_2})
+        for (const auto& subgraph : subgraphs)
         {
             auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
             if (!cheapest_edge.has_value() || edge < m_edges_view[cheapest_edge.value()])
@@ -159,9 +164,9 @@ size_t Graph::GetEdgesCount() const
                          [](const Details::Edge& edge) { return !edge.IsContracted(); });
 }
 
-std::vector<std::tuple<size_t, size_t>> Graph::GetMST() const
+std::vector<std::array<size_t, 2>> Graph::GetMST() const
 {
-    std::vector<std::tuple<size_t, size_t>> result{};
+    std::vector<std::array<size_t, 2>> result{};
     for (const auto& edge : m_edges_view.Original())
         if (edge.IsContracted())
             result.emplace_back(edge.GetOriginalVertexes());

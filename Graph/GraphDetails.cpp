@@ -36,7 +36,7 @@ namespace Graph::Details
         , m_weight(weight)
         , m_index(index) { }
 
-    std::tuple<size_t, size_t> Edge::GetCurrentSubgraphs(Graph& graph) const
+    std::array<size_t, 2> Edge::GetCurrentSubgraphs(Graph& graph) const
     {
         return { graph.FindRootOfSubGraph(m_i), graph.FindRootOfSubGraph(m_j)};
     }

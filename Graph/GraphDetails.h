@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <list>
 #include <tuple>
@@ -39,8 +40,8 @@ class Edge
 public:
     Edge(size_t i, size_t j, uint32_t weight, size_t index);
 
-    std::tuple<size_t, size_t> GetOriginalVertexes() const { return { m_i, m_j }; }
-    std::tuple<size_t, size_t> GetCurrentSubgraphs(Graph& graph) const;
+    std::array<size_t, 2> GetOriginalVertexes() const { return {m_i, m_j}; }
+    std::array<size_t, 2> GetCurrentSubgraphs(Graph& graph) const;
 
     size_t GetIndex() const { return m_index; }
     uint32_t GetWeight() const { return m_weight; }

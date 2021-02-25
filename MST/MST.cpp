@@ -90,13 +90,14 @@ private:
         TreeNode() = default;
         TreeNode(size_t vertex) { AddVertex(vertex); }
 
-        void   AddVertex(size_t vertex) { m_vertices.push_back(vertex); }
-        size_t GetCountOfVertices() const { return m_vertices.size(); }
+        void  AddVertex(size_t vertex) { m_vertices.push_back(vertex); }
+        auto& GetHeap() { return m_heap; }
 
+        size_t                     GetCountOfVertices() const { return m_vertices.size(); }
         const std::vector<size_t>& GetVertices() const { return m_vertices; }
     private:
-        std::vector<size_t>               m_vertices{};
-        SoftHeapCpp<Graph::Details::Edge> m_heap{Utils::CalculateRByEps(1/static_cast<double>(c))};
+        std::vector<size_t>                      m_vertices{};
+        SoftHeapCpp<Graph::Details::Edge> m_heap{Utils::CalculateRByEps(1 / static_cast<double>(c))};
     };
 
 private:
@@ -115,6 +116,9 @@ private:
 
     void CreateClusters();
 
+    void CreateOneVertexNode(size_t vertex);
+    void ContractNode(const TreeNode& last_subgraph);
+
     uint32_t GetTargetSize(uint32_t node_height) const;
     uint32_t IndexToHeight(uint32_t index) const;
 
@@ -124,20 +128,23 @@ private:
     const uint32_t        m_t;
     std::vector<uint32_t> m_target_sizes_per_height{};
     std::stack<TreeNode>  m_active_path{};
+    std::vector<size_t>   m_vertices_inside_path{};
 };
 
 template<size_t c>
 MSTTree<c>::MSTTree(Graph::Graph& graph)
     : m_graph(graph)
     , m_max_height(FindMaxHeight(graph, c))
-    , m_t(FindParamT(graph, m_max_height))
+    , m_t(FindParamT(graph, m_max_height) + 1) // TODO
 {
     std::cout << "d " << m_max_height << " t " << m_t << std::endl;
 
-    if (!BoruvkaPhase()) 
-        return;
+    // TODO
+    //if (!BoruvkaPhase()) 
+    //    return;
 
     InitiateTree();
+
     BuildTree();
 }
 
@@ -160,12 +167,16 @@ bool MSTTree<c>::BoruvkaPhase() const
 template<size_t c>
 void MSTTree<c>::InitiateTree()
 {
+    // Leafs
+    m_target_sizes_per_height.push_back(1);
+
     for (uint32_t i = 1; i <= m_max_height; ++i)
         m_target_sizes_per_height.push_back(CalculateTargetSize(m_t, i));
 
-    for (size_t i = 0; i < m_max_height - 1; ++i)
+    for (size_t i = 0; i < m_max_height; ++i)
         m_active_path.push({});
-    m_active_path.emplace(m_graph.FindRootOfSubGraph(0));
+
+    CreateOneVertexNode(0);
 }
 
 template<size_t c>
@@ -197,46 +208,96 @@ void MSTTree<c>::Retraction()
     auto&& last_subgraph = std::move(m_active_path.top());
     m_active_path.pop();
 
-    // TODO: Discard corrupted edges from H(k) and H(k-1,k)
+    ContractNode(last_subgraph);
+    last_subgraph.GetHeap()
+}
+
+template<size_t c>
+void MSTTree<c>::ContractNode(const TreeNode& last_subgraph)
+{
+    // TODO:  DO I NEEED TO UPDATE VALUES?
+    const auto& vertices = last_subgraph.GetVertices();
+    if (vertices.size() <= 1)
+        return;
+
+    std::vector<size_t>                                          edges_to_contract{};
+    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    {
+        const auto subgraphs = edge.GetCurrentSubgraphs(m_graph);
+        if (std::all_of(subgraphs.cbegin(),
+                        subgraphs.cend(),
+                        [&](size_t vertex)
+                        {
+                            return std::find(vertices.cbegin(), vertices.cend(), vertex) != vertices.cend();
+                        }))
+            edges_to_contract.emplace_back(edge.GetIndex());
+    });
+
+    for (const auto edge : edges_to_contract)
+        m_graph.ContractEdge(edge);
 }
 
 template<size_t c>
 void MSTTree<c>::CreateClusters()
 {
-    std::set<size_t> vertices_inside_chain{};
-    for (const auto& node : m_active_path)
-        for (const auto& vertex : node.GetVertices())
-            vertices_inside_chain.insert(vertex);
+    std::map<size_t, std::set<std::reference_wrapper<const Graph::Details::Edge>>> out_vertex_to_internal{};
 
-    std::map<size_t, std::vector<size_t>>                        out_vertex_to_internal{};
     m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
     {
         auto [i, j] = edge.GetCurrentSubgraphs(m_graph);
-        if (vertices_inside_chain.find(i) != vertices_inside_chain.cend())
+        if (std::find(m_vertices_inside_path.cbegin(), m_vertices_inside_path.cend(), i) != m_vertices_inside_path.cend())
         {
-            out_vertex_to_internal[j].push_back(i);
+            out_vertex_to_internal[j].emplace(edge);
         }
-        else if (vertices_inside_chain.find(j) != vertices_inside_chain.cend())
+        else if (std::find(m_vertices_inside_path.cbegin(), m_vertices_inside_path.cend(), j) != m_vertices_inside_path.cend())
         {
-            out_vertex_to_internal[i].push_back(j);
+            out_vertex_to_internal[i].emplace(edge);
         }
+    });
+
+    for (auto& [out_vertex, edges] : out_vertex_to_internal)
+    {
+        const auto cheapest_edge_ref = edges.begin();
+        edges.erase(cheapest_edge_ref);
+
+        for (const auto& edge : edges)
+            m_graph.DisableEdge(edge.get().GetIndex());
+
+        // TODO
+        //GetHeap().insert(cheapest_edge_ref);
+    }
+}
+
+template<size_t c>
+void MSTTree<c>::CreateOneVertexNode(size_t vertex)
+{
+    vertex = m_graph.FindRootOfSubGraph(vertex);
+
+    m_vertices_inside_path.push_back(vertex);
+    auto& node = m_active_path.emplace(vertex);
+
+    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    {
+        auto [i, j] = edge.GetCurrentSubgraphs(m_graph);
+        if (i == vertex || j == vertex)
+            node.GetHeap().Insert(edge);
     });
 }
 
 template<size_t c>
 uint32_t MSTTree<c>::GetTargetSize(uint32_t node_height) const
 {
-    return m_target_sizes_per_height[node_height - 1];
+    return m_target_sizes_per_height[node_height];
 }
 
 template<size_t c>
 uint32_t MSTTree<c>::IndexToHeight(uint32_t index) const
 {
-    return m_max_height - index;
+    return m_max_height - index -1;
 }
 
 void FindMST(Graph::Graph& graph)
 {
-    MSTTree<1> tree{ graph };
+    MSTTree<2> tree{ graph };
 }
 }

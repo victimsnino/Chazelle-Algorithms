@@ -74,9 +74,10 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
 
 TEST(MST, Init)
 {
-    auto         matrix = GenerateMatrix(6, 5);
+    //auto matrix = GenerateMatrix(6, 5);
+    auto matrix = GenerateMatrix(1, 2);
     {
-        Graph::Graph g{ matrix };
+        Graph::Graph g{matrix};
         std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;
         uint32_t count = 0;
         while (g.GetVertexesCount() != 1)
@@ -87,6 +88,8 @@ TEST(MST, Init)
         std::cout << "Required Boruvka stages: " << count << std::endl;
     }
 
-    Graph::Graph g{ matrix };
-    MST::FindMST(g, 2);
+    Graph::Graph g{matrix};
+    //ToFile(g, "TEMP", true);
+    // d:\Coding\Study\Chazelle-Algorithms\_build_\MST\Test\temp.png
+    MST::FindMST(g);
 }
