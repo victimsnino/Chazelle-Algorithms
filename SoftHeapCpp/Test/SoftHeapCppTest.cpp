@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "SoftHeapC.h"
 
 #include <numeric>
 #include <random>
@@ -115,5 +116,43 @@ TEST(SoftHeapCpp, AsKthLargestElement)
 
         for (int i = 0; i < count; ++i)
             EXPECT_EQ(Utils::SoftHeapSelect<SoftHeapCpp<int>>(values, i), i);
+    }
+}
+
+TEST(SoftHeapCpp, ComapreWithSoftHeapC)
+{
+    auto             r = Utils::CalculateRByEps(1.0 / 3.0);
+    SoftHeapCpp<int> heap_cpp{ r };
+    SoftHeapC        heap_c{ static_cast<int>(r) };
+
+    for (auto count : { 3, 5, 10, 30, 40, 51, 73, 91, 132 })
+    {
+        for (int i = 0; i < count; ++i)
+        {
+            std::cout << i << std::endl;
+            heap_c.Insert(i);
+            heap_cpp.Insert(i);
+        }
+
+        for (int i = 0; i < count / 2; ++i)
+        {
+            auto c_val = heap_c.DeleteMin();
+            std::cout << "REm " << c_val << std::endl;
+            EXPECT_EQ(c_val, heap_cpp.DeleteMin()) << count << " " << i;
+        }
+
+        for (int i = 1; i < count/2; ++i)
+        {
+            std::cout << i << std::endl;
+            heap_c.Insert(count*i);
+            heap_cpp.Insert(count*i);
+        }
+
+        for (int i = 1; i < count / 2; ++i)
+        {
+            auto c_val = heap_c.DeleteMin();
+            std::cout << "REm " << c_val << std::endl;
+            EXPECT_EQ(c_val, heap_cpp.DeleteMin()) << count << " " << i;
+        }
     }
 }

@@ -255,7 +255,8 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
                 if (itr_to_fix_min_list != m_queues.begin())
                     --itr_to_fix_min_list;
             }
-            FixMinList(itr_to_fix_min_list);
+            if(!m_queues.empty())
+                FixMinList(itr_to_fix_min_list);
         }
         candidate_queue = m_queues.front().GetSuffixMin();
     }
