@@ -93,7 +93,10 @@ private:
 
         void Sift()
         {
-            SiftDown(m_childs.cbegin(), m_rank);
+            auto end = m_childs.cend();
+            auto count = SiftCount(m_childs.cbegin(), end, m_rank);
+            for (size_t i = 0; i < count; ++i)
+                SiftImpl();
         }
 
         ItemType PopValue()
@@ -102,19 +105,24 @@ private:
             m_values.pop_front();
             return value;
         }
+
     private:
-        void SiftDown(typename std::list<Node>::const_iterator current, size_t rank)
+        size_t SiftCount(typename std::list<Node>::const_iterator current,
+                         typename std::list<Node>::const_iterator& end,
+                         size_t                                   rank)
         {
-            if (std::distance(current, m_childs.cend()) <= 1)
+            if (auto distance = std::distance(current, end); distance <= 1)
             {
-                SiftImpl();
-                return;
+                if (distance == 1)
+                    --end;
+                return 1;
             }
 
-            SiftDown(std::next(current), current->GetRank());
+            auto count = SiftCount(std::next(current), end, current->GetRank());
 
-            if (rank > m_r && rank % 2 == 1)
-                SiftDown(std::next(current), current->GetRank());
+            if (count && rank > m_r && rank % 2 == 1)
+                count+=SiftCount(std::next(current), end,current->GetRank());
+            return count;
         }
 
         void SiftImpl()
@@ -122,18 +130,19 @@ private:
             if (m_childs.empty())
                 return;
 
-            auto last = std::move(m_childs.back());
-            m_childs.pop_back();
+            auto min_itr = std::ranges::min_element(m_childs, std::ranges::less{}, &Node::m_ckey);
+            auto min = std::move(*min_itr);
+            m_childs.erase(min_itr);
 
             m_values.insert(m_values.begin(),
-                std::make_move_iterator(last.m_values.begin()),
-                std::make_move_iterator(last.m_values.end()));
+                std::make_move_iterator(min.m_values.begin()),
+                std::make_move_iterator(min.m_values.end()));
 
             m_childs.insert(m_childs.end(),
-                std::make_move_iterator(last.m_childs.begin()),
-                std::make_move_iterator(last.m_childs.end()));
+                std::make_move_iterator(min.m_childs.begin()),
+                std::make_move_iterator(min.m_childs.end()));
 
-            m_ckey = std::move(last.m_ckey);
+            m_ckey = std::move(min.m_ckey);
         }
 
     private:

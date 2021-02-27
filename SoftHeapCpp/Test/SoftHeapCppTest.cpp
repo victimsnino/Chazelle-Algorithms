@@ -156,7 +156,7 @@ TEST(SoftHeapCpp, CompareWithSoftHeapCShuffle)
 {
     auto             r = Utils::CalculateRByEps(1.0 / 3.0);
 
-    for (auto count : {5, 10})
+    for (auto count : {5, 10, 33, 37, 45, 48})
     {
         SoftHeapCpp<int> heap_cpp{ r };
         SoftHeapC        heap_c{ static_cast<int>(r) };
@@ -177,16 +177,8 @@ TEST(SoftHeapCpp, CompareWithSoftHeapCShuffle)
         }
 
         for (int i = 0; i < count; ++i)
-            std::cout << heap_c.DeleteMin() << ", ";
-
-        std::cout << std::endl;
-        for (int i = 0; i < count; ++i)
-            std::cout << heap_cpp.DeleteMin() << ", ";
-        std::cout << "=======" << std::endl;
-        
-        /*for (int i = 0; i < count; ++i)
         {
             EXPECT_EQ(heap_c.DeleteMin(), heap_cpp.DeleteMin()) << count << " " << i;
-        }*/
+        }
     }
 }
