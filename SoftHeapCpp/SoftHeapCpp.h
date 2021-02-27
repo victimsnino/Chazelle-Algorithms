@@ -87,22 +87,7 @@ private:
 
         void Sift()
         {
-            if (m_childs.empty())
-                return;
-
-            auto last = std::move(m_childs.back());
-            m_childs.pop_back();
-
-            m_values.insert(m_values.begin(),
-                            std::make_move_iterator(last.m_values.begin()),
-                            std::make_move_iterator(last.m_values.end()));
-
-            m_childs.insert(m_childs.end(),
-                            std::make_move_iterator(last.m_childs.begin()),
-                            std::make_move_iterator(last.m_childs.end()));
-
-            m_ckey = std::move(last.m_ckey);
-
+            SiftDown(m_childs.cbegin(), m_rank);
         }
 
         ItemType PopValue()
@@ -110,6 +95,39 @@ private:
             auto value = std::move(m_values.front());
             m_values.pop_front();
             return value;
+        }
+    private:
+        void SiftDown(typename std::list<Node>::const_iterator current, size_t rank)
+        {
+            if (std::distance(current, m_childs.cend()) <= 1)
+            {
+                SiftImpl();
+                return;
+            }
+
+            SiftDown(std::next(current), current->GetRank());
+
+            if (rank > m_r && rank % 2 == 1)
+                SiftDown(std::next(current), current->GetRank());
+        }
+
+        void SiftImpl()
+        {
+            if (m_childs.empty())
+                return;
+
+            auto last = std::move(m_childs.back());
+            m_childs.pop_back();
+
+            m_values.insert(m_values.begin(),
+                std::make_move_iterator(last.m_values.begin()),
+                std::make_move_iterator(last.m_values.end()));
+
+            m_childs.insert(m_childs.end(),
+                std::make_move_iterator(last.m_childs.begin()),
+                std::make_move_iterator(last.m_childs.end()));
+
+            m_ckey = std::move(last.m_ckey);
         }
 
     private:
@@ -233,7 +251,9 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
             auto itr_to_fix_min_list = std::ranges::find(m_queues, candidate_queue, [](Head& head) { return &head; });
             if (candidate_queue->IsRootEmpty())
             {
-                itr_to_fix_min_list = --(m_queues.erase(itr_to_fix_min_list));
+                itr_to_fix_min_list = m_queues.erase(itr_to_fix_min_list);
+                if (itr_to_fix_min_list != m_queues.begin())
+                    --itr_to_fix_min_list;
             }
             FixMinList(itr_to_fix_min_list);
         }
