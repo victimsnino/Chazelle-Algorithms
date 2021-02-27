@@ -34,7 +34,6 @@ struct ilcell
     struct ilcell* next{};
 };
 
-
 struct node
 {
     int            ckey{}, rank{};

@@ -29,6 +29,14 @@ struct ComparableObject
             std::cout << "Move constructor " << m_v << std::endl;
     }
 
+    ComparableObject& operator=(ComparableObject&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        m_v = other.m_v;
+        return *this;
+    }
+
     ComparableObject(const ComparableObject& other) noexcept
         : m_v(other.m_v)
     {
@@ -42,6 +50,8 @@ struct ComparableObject
     friend bool operator>=(const ComparableObject& lhs, const ComparableObject& rhs) { return !(lhs < rhs); }
     friend bool operator==(const ComparableObject& lhs, const ComparableObject& rhs) { return lhs.m_v == rhs.m_v; }
     friend bool operator!=(const ComparableObject& lhs, const ComparableObject& rhs) { return !(lhs == rhs); }
+
+    friend std::ostream& operator<<(std::ostream& out, const ComparableObject& obj){return out << obj.m_v;}
 
     static bool s_debug_logs;
 private:

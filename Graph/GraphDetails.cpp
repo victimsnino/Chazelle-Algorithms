@@ -36,6 +36,27 @@ namespace Graph::Details
         , m_weight(weight)
         , m_index(index) { }
 
+    Edge::Edge(Edge&& other) noexcept
+        : m_i{other.m_i}
+        , m_j{other.m_j}
+        , m_weight{other.m_weight}
+        , m_index{other.m_index}
+        , m_is_contracted{other.m_is_contracted}
+        , m_is_disabled{other.m_is_disabled} {}
+
+    Edge& Edge::operator=(Edge&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        m_i             = other.m_i;
+        m_j             = other.m_j;
+        m_weight        = other.m_weight;
+        m_index         = other.m_index;
+        m_is_contracted = other.m_is_contracted;
+        m_is_disabled   = other.m_is_disabled;
+        return *this;
+    }
+
     std::array<size_t, 2> Edge::GetCurrentSubgraphs(Graph& graph) const
     {
         return { graph.FindRootOfSubGraph(m_i), graph.FindRootOfSubGraph(m_j)};

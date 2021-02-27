@@ -200,6 +200,7 @@ void MSTTree<c>::BuildTree()
 template<size_t c>
 bool MSTTree<c>::Extension()
 {
+    return false;
 }
 
 template<size_t c>
@@ -209,7 +210,7 @@ void MSTTree<c>::Retraction()
     m_active_path.pop();
 
     ContractNode(last_subgraph);
-    last_subgraph.GetHeap()
+    last_subgraph.GetHeap();
 }
 
 template<size_t c>

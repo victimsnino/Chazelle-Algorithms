@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.10)
 project(Chazelle-Algorithms LANGUAGES CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(GRAPHVIZ_DISABLE "Force disable graphviz" OFF)
 

@@ -107,7 +107,7 @@ TEST(Graph, Boruvka)
 
     g.BoruvkaPhase();
 
-    std::set<std::tuple<uint32_t, uint32_t>> contracted{{0, 3},
+    std::set<std::array<size_t, 2>> contracted{{0, 3},
                                                         {1, 2},
                                                         {1, 4},
                                                         {2, 5},
@@ -153,7 +153,7 @@ TEST(Graph, Boruvka_2)
 
     g.BoruvkaPhase();
 
-    std::set<std::tuple<uint32_t, uint32_t>> contracted{ {0, 3},
+    std::set<std::array<size_t, 2>> contracted{ {0, 3},
                                                         {0, 1},
                                                         {1, 2},
                                                         {1, 4},

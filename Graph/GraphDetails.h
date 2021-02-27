@@ -40,10 +40,17 @@ class Edge
 public:
     Edge(size_t i, size_t j, uint32_t weight, size_t index);
 
+    Edge(const Edge& other)            = default;
+    Edge& operator=(const Edge& other) = delete;
+
+    Edge(Edge&& other) noexcept;
+
+    Edge& operator=(Edge&& other) noexcept;
+
     std::array<size_t, 2> GetOriginalVertexes() const { return {m_i, m_j}; }
     std::array<size_t, 2> GetCurrentSubgraphs(Graph& graph) const;
 
-    size_t GetIndex() const { return m_index; }
+    size_t   GetIndex() const { return m_index; }
     uint32_t GetWeight() const { return m_weight; }
 
     void SetIsContracted() { m_is_contracted = true; }
@@ -55,12 +62,12 @@ public:
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
     //bool operator>(const Edge& rhs) const { return rhs < *this; }
 private:
-    const size_t   m_i;
-    const size_t   m_j;
-    const uint32_t m_weight;
-    const size_t   m_index;
-    bool           m_is_contracted{false};
-    bool           m_is_disabled{ false };
+    size_t   m_i;
+    size_t   m_j;
+    uint32_t m_weight;
+    size_t   m_index;
+    bool     m_is_contracted{false};
+    bool     m_is_disabled{false};
 };
 
 class MemberOfSubGraph

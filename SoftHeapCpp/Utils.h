@@ -31,11 +31,16 @@ public:
     ComparableObject(const CoreType* value)
         : m_value(value) {}
 
-    ComparableObject(const ComparableObject& other)            = delete;
-    ComparableObject(ComparableObject&& other)                 = delete;
-    ComparableObject& operator=(const ComparableObject& other) = delete;
-    ComparableObject& operator=(ComparableObject&& other)      = delete;
+    ComparableObject(ComparableObject&& other) noexcept
+        : m_value{other.m_value} {}
 
+    ComparableObject& operator=(ComparableObject&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        m_value = other.m_value;
+        return *this;
+    }
 
     bool operator==(const ComparableObject& rhs) const
     {

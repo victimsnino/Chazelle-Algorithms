@@ -26,7 +26,7 @@ TEST(SoftHeapC, WithSomeR)
     SoftHeapC           heap(0);
     constexpr const int count = 9;
 
-    for (int i = 1; i < count; ++i)
+    for (int i = 0; i < count; ++i)
         heap.Insert(i);
 
     // 0 -> 1 && 2 = 2,1 -> 3 && 4 = 4,3

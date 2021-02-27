@@ -29,7 +29,7 @@
 
 namespace Utils
 {
-inline size_t CalculateRByEps(double eps)
+inline  size_t CalculateRByEps(double eps)
 {
     return static_cast<size_t>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
 }
