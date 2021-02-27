@@ -119,40 +119,74 @@ TEST(SoftHeapCpp, AsKthLargestElement)
     }
 }
 
-TEST(SoftHeapCpp, ComapreWithSoftHeapC)
+TEST(SoftHeapCpp, ComapareWithSoftHeapC)
 {
     auto             r = Utils::CalculateRByEps(1.0 / 3.0);
-    SoftHeapCpp<int> heap_cpp{ r };
-    SoftHeapC        heap_c{ static_cast<int>(r) };
 
     for (auto count : { 3, 5, 10, 30, 40, 51, 73, 91, 132 })
     {
+        SoftHeapCpp<int> heap_cpp{ r };
+        SoftHeapC        heap_c{ static_cast<int>(r) };
+
         for (int i = 0; i < count; ++i)
         {
-            std::cout << i << std::endl;
             heap_c.Insert(i);
             heap_cpp.Insert(i);
         }
 
         for (int i = 0; i < count / 2; ++i)
         {
-            auto c_val = heap_c.DeleteMin();
-            std::cout << "REm " << c_val << std::endl;
-            EXPECT_EQ(c_val, heap_cpp.DeleteMin()) << count << " " << i;
+            EXPECT_EQ(heap_c.DeleteMin(), heap_cpp.DeleteMin()) << count << " " << i;
         }
 
         for (int i = 1; i < count/2; ++i)
         {
-            std::cout << i << std::endl;
             heap_c.Insert(count*i);
             heap_cpp.Insert(count*i);
         }
 
         for (int i = 1; i < count / 2; ++i)
         {
-            auto c_val = heap_c.DeleteMin();
-            std::cout << "REm " << c_val << std::endl;
-            EXPECT_EQ(c_val, heap_cpp.DeleteMin()) << count << " " << i;
+            EXPECT_EQ(heap_c.DeleteMin(), heap_cpp.DeleteMin()) << count << " " << i;
         }
+    }
+}
+
+TEST(SoftHeapCpp, CompareWithSoftHeapCShuffle)
+{
+    auto             r = Utils::CalculateRByEps(1.0 / 3.0);
+
+    for (auto count : {5, 10})
+    {
+        SoftHeapCpp<int> heap_cpp{ r };
+        SoftHeapC        heap_c{ static_cast<int>(r) };
+
+        std::vector<int> values;
+        values.resize(count);
+        std::iota(values.begin(), values.end(), 0);
+
+        std::random_device rd;
+        std::mt19937       g(rd());
+        std::ranges::shuffle(values, g);
+
+
+        for (auto val : values)
+        {
+            heap_c.Insert(val);
+            heap_cpp.Insert(val);
+        }
+
+        for (int i = 0; i < count; ++i)
+            std::cout << heap_c.DeleteMin() << ", ";
+
+        std::cout << std::endl;
+        for (int i = 0; i < count; ++i)
+            std::cout << heap_cpp.DeleteMin() << ", ";
+        std::cout << "=======" << std::endl;
+        
+        /*for (int i = 0; i < count; ++i)
+        {
+            EXPECT_EQ(heap_c.DeleteMin(), heap_cpp.DeleteMin()) << count << " " << i;
+        }*/
     }
 }

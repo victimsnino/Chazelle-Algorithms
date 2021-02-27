@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "Utils.h"
+
 #include <algorithm>
 #include <functional>
 #include <list>
@@ -71,10 +73,14 @@ private:
         }
 
         /*==================== GETTERS ======================*/
-        const ItemType&   GetCkey() const { return m_ckey; }
-        size_t            GetRank() const { return m_rank; }
-        size_t            GetChildsCount() const { return m_childs.size(); }
-        bool              IsEmpty() const { return m_values.empty(); }
+        Utils::ComparableObject<ItemType> GetCkey() const
+        {
+            return Utils::ComparableObject<ItemType>{(m_values.empty() && m_childs.empty()) ? nullptr : &m_ckey};
+        }
+
+        size_t GetRank() const { return m_rank; }
+        size_t GetChildsCount() const { return m_childs.size(); }
+        bool   IsEmpty() const { return m_values.empty(); }
 
         std::list<Node>&& GetChilds() { return std::move(m_childs); }
 
@@ -164,9 +170,9 @@ private:
         }
 
         /*==================== GETTERS ======================*/
-        size_t          GetRank() const { return m_rank; }
-        Head*           GetSuffixMin() const { return m_suffix_min; }
-        const ItemType& GetCkey() const { return m_root.GetCkey(); }
+        size_t                            GetRank() const { return m_rank; }
+        Head*                             GetSuffixMin() const { return m_suffix_min; }
+        Utils::ComparableObject<ItemType> GetCkey() const { return m_root.GetCkey(); }
 
         bool IsRootEmpty() const { return m_root.IsEmpty(); }
         bool IsNeedRemeldChilds() const { return m_root.GetChildsCount() < m_rank / 2; }
