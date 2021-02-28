@@ -20,302 +20,267 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// This source is the original source from the paper with small modifications
+
 #pragma once
 
-#include "Utils.h"
+#include <cmath>
+#include <cstdlib>
 
-#include <algorithm>
-#include <functional>
-#include <list>
-#include <memory>
-#include <ranges>
-#include <stdexcept>
+struct Head;
+struct Node;
+
+#define INFTY 100000
 
 template<typename ItemType>
 class SoftHeapCpp
 {
 public:
-    SoftHeapCpp(std::size_t r)
-        : m_r(r) {}
+    SoftHeapCpp(size_t r);
 
-    void Insert(ItemType value);
+    void Insert(ItemType new_key);
     ItemType DeleteMin();
 
 private:
+    struct Ilcell
+    {
+        ItemType       key{};
+        struct Ilcell* next{};
+    };
+
     struct Node
     {
-        /*==================== CONSTRUCTORS =================*/
-        Node(ItemType&& item, size_t r)
-            : m_ckey{ std::move(item) }
-            , m_values{ m_ckey }
-            , m_r(r) {}
-
-        Node(const Node& other) = delete;
-        Node& operator=(const Node& other) = delete;
-
-        Node(Node&& other) noexcept
-            : m_rank{ other.m_rank }
-            , m_ckey{ std::move(other.m_ckey) }
-            , m_values{ std::move(other.m_values) }
-            , m_childs{ std::move(other.m_childs) }
-            , m_r{ other.m_r } {}
-
-        Node& operator=(Node&& other) noexcept
-        {
-            if (this == &other)
-                return *this;
-            m_values = std::move(other.m_values);
-            m_ckey = std::move(other.m_ckey);
-            m_childs = std::move(other.m_childs);
-            m_rank = other.m_rank;
-            m_r = other.m_r;
-            return *this;
-        }
-
-        /*==================== GETTERS ======================*/
-        Utils::ComparableObject<ItemType> GetCkey() const
-        {
-            return Utils::ComparableObject<ItemType>{(m_values.empty() && m_childs.empty()) ? nullptr : &m_ckey};
-        }
-
-        size_t GetRank() const { return m_rank; }
-        size_t GetChildsCount() const { return m_childs.size(); }
-        bool   IsEmpty() const { return m_values.empty(); }
-
-        std::list<Node>&& GetChilds() { return std::move(m_childs); }
-
-        /*==================== MODIFIERS ====================*/
-        void  Meld(Node&& node)
-        {
-            m_childs.emplace_front(std::move(node));
-            ++m_rank;
-        }
-
-        void Sift()
-        {
-            auto end = m_childs.cend();
-            auto count = SiftCount(m_childs.cbegin(), end, m_rank);
-            for (size_t i = 0; i < count; ++i)
-                SiftImpl();
-        }
-
-        ItemType PopValue()
-        {
-            auto value = std::move(m_values.front());
-            m_values.pop_front();
-            return value;
-        }
-
-    private:
-        size_t SiftCount(typename std::list<Node>::const_iterator current,
-                         typename std::list<Node>::const_iterator& end,
-                         size_t                                   rank)
-        {
-            if (auto distance = std::distance(current, end); distance <= 1)
-            {
-                if (distance == 1)
-                    --end;
-                return 1;
-            }
-
-            auto count = SiftCount(std::next(current), end, current->GetRank());
-
-            if (count && rank > m_r && rank % 2 == 1)
-                count+=SiftCount(std::next(current), end,current->GetRank());
-            return count;
-        }
-
-        void SiftImpl()
-        {
-            if (m_childs.empty())
-                return;
-
-            auto min_itr = std::ranges::min_element(m_childs, std::ranges::less{}, &Node::m_ckey);
-            auto min = std::move(*min_itr);
-            m_childs.erase(min_itr);
-
-            m_values.insert(m_values.begin(),
-                std::make_move_iterator(min.m_values.begin()),
-                std::make_move_iterator(min.m_values.end()));
-
-            m_childs.insert(m_childs.end(),
-                std::make_move_iterator(min.m_childs.begin()),
-                std::make_move_iterator(min.m_childs.end()));
-
-            m_ckey = std::move(min.m_ckey);
-        }
-
-    private:
-        size_t              m_rank = 0;
-        ItemType            m_ckey;
-        std::list<ItemType> m_values;
-        std::list<Node>     m_childs{}; // sorted is descending by ranks
-        size_t              m_r = 0;
+        ItemType       ckey{};
+        int            rank{};
+        struct Node* next{}, * child{};
+        struct Ilcell* il{}, * il_tail{};
     };
 
     struct Head
     {
-        /*==================== CONSTRUCTORS =================*/
-        Head(Node&& node)
-            : m_rank{ node.GetRank() }
-            , m_root(std::move(node)){}
-
-        Head(const Head& other)            = delete;
-        Head& operator=(const Head& other) = delete;
-
-        Head(Head&& other) noexcept
-            : m_rank{other.m_rank}
-            , m_root{std::move(other.m_root)}
-            , m_suffix_min{other.m_suffix_min} {}
-
-        Head& operator=(Head&& other) noexcept
-        {
-            if (this == &other)
-                return *this;
-            m_root       = std::move(other.m_root);
-            m_suffix_min = other.m_suffix_min;
-            m_rank       = other.m_rank;
-            return *this;
-        }
-
-        /*==================== GETTERS ======================*/
-        size_t                            GetRank() const { return m_rank; }
-        Head*                             GetSuffixMin() const { return m_suffix_min; }
-        Utils::ComparableObject<ItemType> GetCkey() const { return m_root.GetCkey(); }
-
-        bool IsRootEmpty() const { return m_root.IsEmpty(); }
-        bool IsNeedRemeldChilds() const { return m_root.GetChildsCount() < m_rank / 2; }
-
-        /*==================== SETTERS ======================*/
-        void  SetSuffixMin(Head* const suffix_mix) { m_suffix_min = suffix_mix; }
-
-        /*==================== MODIFIERS ====================*/
-        [[nodiscard]] Node&& Meld(Node&& new_root)
-        {
-            if (new_root.GetCkey() < m_root.GetCkey())
-                std::swap(new_root, m_root);
-
-            m_root.Meld(std::move(new_root));
-            m_rank = m_root.GetRank();
-            return std::move(m_root);
-        }
-
-        void Sift()
-        {
-            m_root.Sift();
-        }
-
-        std::list<Node>&& GetChildsAndDestroy()
-        {
-            return std::move(m_root.GetChilds());
-        }
-
-        ItemType PopValue()
-        {
-            return m_root.PopValue();
-        }
-
-    private:
-        size_t m_rank;
-        Node   m_root;
-        Head*  m_suffix_min{};
+        struct Node* queue{};
+        struct Head* next{}, * prev{}, * suffix_min{};
+        int          rank{};
     };
 
-    void Meld(Node&& new_node);
-    void FixMinList(typename std::list<Head>::iterator end);
+    void  Meld(Node* q);
+    void  FixMinlist(Head* h);
+    Node* Sift(Node* v);
 private:
-    const std::size_t m_r;
-    std::list<Head>   m_queues{};
+    Head*  m_header{};
+    Head*  m_tail{};
+    size_t m_r{};
 };
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>::Insert(ItemType value)
+SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
+    : m_r(r)
 {
-    Meld(Node{std::move(value), m_r});
+    m_header = new Head();
+    m_tail = new Head();
+
+    m_tail->rank = INFTY;
+    m_header->next = m_tail;
+    m_tail->prev = m_header;
+}
+
+template<typename ItemType>
+void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
+{
+    Node* q;
+    Ilcell* l;
+    l = (Ilcell*)malloc(sizeof(Ilcell));
+    l->key = new_key;
+    l->next = NULL;
+    q = new Node();
+    q->rank = 0;
+    q->ckey = std::move(new_key);
+    q->il = l;
+    q->il_tail = l;
+
+    Meld(q);
 }
 
 template<typename ItemType>
 ItemType SoftHeapCpp<ItemType>::DeleteMin()
 {
-    if (m_queues.empty())
-        throw  std::out_of_range{"No available queues"};
-
-    auto candidate_queue = m_queues.front().GetSuffixMin();
-    while (candidate_queue->IsRootEmpty())
+    Node* tmp;
+    int childcount;
+    Head* h = m_header->next->suffix_min;
+    while (h->queue->il == NULL)
     {
-        if (candidate_queue->IsNeedRemeldChilds())
+        tmp = h->queue;
+        childcount = 0;
+        while (tmp->next != NULL)
         {
-            auto itr        = std::ranges::find(m_queues, candidate_queue, [](Head& head) { return &head; });
-            auto temp_queue = std::move(*candidate_queue);
+            tmp = tmp->next;
+            childcount++;
+        }
 
-            if (auto itr_to_fix = m_queues.erase(itr); itr_to_fix != m_queues.begin())
-                FixMinList(--itr_to_fix);
-
-            auto&& childs = temp_queue.GetChildsAndDestroy();
-            std::for_each(std::make_move_iterator(childs.begin()),
-                          std::make_move_iterator(childs.end()),
-                          [&](Node&& node)
-                          {
-                              Meld(std::move(node));
-                          });
+        // remeld childs
+        if (childcount < h->rank / 2)
+        {
+            h->prev->next = h->next;
+            h->next->prev = h->prev;
+            FixMinlist(h->prev);
+            tmp = h->queue;
+            while (tmp->next != NULL)
+            {
+                Meld(tmp->child);
+                tmp = tmp->next;
+            }
         }
         else
         {
-            candidate_queue->Sift();
-
-            auto itr_to_fix_min_list = std::ranges::find(m_queues, candidate_queue, [](Head& head) { return &head; });
-            if (candidate_queue->IsRootEmpty())
+            h->queue = Sift(h->queue);
+            if (h->queue->ckey == INFTY)
             {
-                itr_to_fix_min_list = m_queues.erase(itr_to_fix_min_list);
-                if (itr_to_fix_min_list != m_queues.begin())
-                    --itr_to_fix_min_list;
+                h->prev->next = h->next;
+                h->next->prev = h->prev;
+                h = h->prev;
             }
-            if(!m_queues.empty())
-                FixMinList(itr_to_fix_min_list);
+            FixMinlist(h);
         }
-        candidate_queue = m_queues.front().GetSuffixMin();
-    }
+        h = m_header->next->suffix_min;
+    } /* end of outer while loop */
 
-    return candidate_queue->PopValue();
+    // Actually remove
+    auto min = h->queue->il->key;
+    h->queue->il = h->queue->il->next;
+    if (h->queue->il == NULL)
+        h->queue->il_tail = NULL;
+    return min;
 }
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>::Meld(Node&& new_node)
+void SoftHeapCpp<ItemType>::Meld(Node* q)
 {
-    while (true)
+    Head* tohead = m_header->next;
+    while (q->rank > tohead->rank)
+        tohead = tohead->next;
+
+    Head* prevhead = tohead->prev;
+
+    Node* top, * bottom;
+    while (q->rank == tohead->rank)
     {
-        auto new_rank = new_node.GetRank();
-
-        auto next_queue_itr = std::ranges::lower_bound(m_queues, new_rank, std::ranges::less{}, &Head::GetRank);
-
-        // We can insert it now
-        if (next_queue_itr == m_queues.end() || next_queue_itr->GetRank() != new_rank)
+        if (tohead->queue->ckey > q->ckey)
         {
-            FixMinList(m_queues.emplace(next_queue_itr, std::move(new_node)));
-            break;
+            top = q;
+            bottom = tohead->queue;
         }
+        else
+        {
+            top = tohead->queue;
+            bottom = q;
+        }
+        q = new Node();
+        q->ckey = top->ckey;
+        q->rank = top->rank + 1;
+        q->child = bottom;
+        q->next = top;
+        q->il = top->il;
+        q->il_tail = top->il_tail;
+        tohead = tohead->next;
+    }
 
-        new_node = std::move(next_queue_itr->Meld(std::move(new_node)));
+    Head* h;
+    if (prevhead == tohead->prev)
+        h = new Head();
+    else // actually we've moved out queue from this one...
+        h = prevhead->next;
+    h->queue = q;
+    h->rank = q->rank;
+    h->prev = prevhead;
+    h->next = tohead;
+    prevhead->next = h;
+    tohead->prev = h;
 
-        // Now we need to extract it and insert in the correct place
-        m_queues.erase(next_queue_itr);
+    FixMinlist(h);
+}
+
+template<typename ItemType>
+void SoftHeapCpp<ItemType>::FixMinlist(Head* h)
+{
+    Head* tmpmin;
+    if (h->next == m_tail)
+        tmpmin = h;
+    else
+        tmpmin = h->next->suffix_min;
+    while (h != m_header)
+    {
+        if (h->queue->ckey < tmpmin->queue->ckey)
+            tmpmin = h;
+        h->suffix_min = tmpmin;
+        h = h->prev;
     }
 }
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>:: FixMinList(typename std::list<Head>::iterator end)
+typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::Sift(Node* v)
 {
-    Head* current_min_suffix = &*end;
-    if (++end != m_queues.end())
-        current_min_suffix = end->GetSuffixMin();
+    Node* tmp;
+    v->il = NULL;
+    v->il_tail = NULL;
+    if (v->next == NULL && v->child == NULL)
+    {
+        v->ckey = INFTY;
+        return v;
+    }
+    v->next = Sift(v->next);
 
-    std::for_each(std::make_reverse_iterator(end),
-                  m_queues.rend(),
-                  [&](Head& head)
-                  {
-                      if (head.GetCkey() < current_min_suffix->GetCkey())
-                          current_min_suffix = &head;
+    // It is possible that v->next has INFTY ckey. Swap it in this case 
+    if (v->next->ckey > v->child->ckey)
+    {
+        tmp = v->child;
+        v->child = v->next;
+        v->next = tmp;
+    }
 
-                      head.SetSuffixMin(current_min_suffix);
-                  });
+    // Move item list from v->next to v
+    v->il = v->next->il;
+    v->il_tail = v->next->il_tail;
+    v->ckey = v->next->ckey;
+
+    // Sometimes we can do it twice due branching
+    if (v->rank > m_r &&
+        (v->rank % 2 == 1 || v->child->rank < v->rank - 1))
+    {
+        v->next = Sift(v->next);
+
+        // Do it again
+        if (v->next->ckey > v->child->ckey)
+        {
+            tmp = v->child;
+            v->child = v->next;
+            v->next = tmp;
+        }
+
+        // Concatenate lists if not empty
+        if (v->next->ckey != INFTY &&
+            v->next->il != NULL)
+        {
+            v->next->il_tail->next = v->il;
+            v->il = v->next->il;
+            if (v->il_tail == NULL)
+                v->il_tail = v->next->il_tail;
+            v->ckey = v->next->ckey;
+        }
+    } /*  end of second sift */
+
+    // Clean Up
+    if (v->child->ckey == INFTY)
+    {
+        if (v->next->ckey == INFTY)
+        {
+            v->child = NULL;
+            v->next = NULL;
+        }
+        else
+        {
+            v->child = v->next->child;
+            v->next = v->next->next;
+        }
+    }
+    return v;
 }

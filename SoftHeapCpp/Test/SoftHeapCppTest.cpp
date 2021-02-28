@@ -9,6 +9,7 @@
 
 struct ComparableObject
 {
+    ComparableObject() = default;
     ComparableObject(int v)
         : m_v(v)
     {
@@ -43,6 +44,14 @@ struct ComparableObject
     {
         if (s_debug_logs)
             std::cout << "Copy constructor " << m_v << std::endl;
+    }
+
+    ComparableObject& operator=(const ComparableObject& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        m_v = other.m_v;
+        return *this;
     }
 
     friend bool operator<(const ComparableObject& lhs, const ComparableObject& rhs) { return lhs.m_v < rhs.m_v; }

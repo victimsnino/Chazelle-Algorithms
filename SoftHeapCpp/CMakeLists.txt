@@ -1,14 +1,16 @@
 set(TARGET SoftHeapCpp)
 
-add_library(${TARGET} 
-    SoftHeapCpp.h
-    SoftHeapCpp.cpp
+add_library(${TARGET} INTERFACE )
 
-    Utils.h
+target_include_directories(${TARGET}
+INTERFACE
+    .
 )
 
-target_include_directories(${TARGET} PUBLIC .)
+if (MSVC)
+    add_custom_target(${TARGET}_ SOURCES SoftHeapCpp.h Utils.h)
+    SET_TARGET_PROPERTIES (${TARGET}_ PROPERTIES FOLDER SoftHeapCpp)
+endif()
 
-SET_TARGET_PROPERTIES (${TARGET} PROPERTIES FOLDER SoftHeapCpp)
 
 add_subdirectory(Test)
