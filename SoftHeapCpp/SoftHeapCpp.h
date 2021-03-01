@@ -43,6 +43,7 @@ public:
     void     Insert(ItemType new_key);
     ItemType DeleteMin();
 
+    std::list<ItemType> ExtractCorruptedItems();
 private:
     struct Node
     {
@@ -78,6 +79,29 @@ private:
                 func(this);
                 m_next->ForEachNodeWithChildOnLevel(std::move(func));
             }
+        }
+
+        void ExtractCorruptedItems(std::list<ItemType>& result)
+        {
+            if (m_values || !m_ckey)
+            {
+                for (auto it = m_values->begin(); it != m_values->end(); )
+                {
+                    if (*it < *m_ckey)
+                    {
+                        auto value_to_extract = it++;
+                        result.splice(result.end(), *m_values, value_to_extract);
+                        continue;
+                    }
+                    ++it;
+                }
+            }
+
+            if (m_next)
+                m_next->ExtractCorruptedItems(result);
+
+            if (m_child)
+                m_child->ExtractCorruptedItems(result);
         }
 
         ItemType PopValue()
@@ -185,6 +209,22 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
     } /* end of outer while loop */
 
     return h->GetQueue()->PopValue();
+}
+
+template<typename ItemType>
+std::list<ItemType> SoftHeapCpp<ItemType>::ExtractCorruptedItems()
+{
+    std::list<ItemType> result{};
+    auto                h = m_header->GetNext();
+
+    while (h != m_tail)
+    {
+        h->GetQueue()->ExtractCorruptedItems(result);
+        h = h->GetNext();
+    }
+
+    result.unique();
+    return result;
 }
 
 template<typename ItemType>
