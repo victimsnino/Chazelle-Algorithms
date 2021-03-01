@@ -31,28 +31,6 @@ public:
     ComparableObject(const CoreType* value)
         : m_value(value) {}
 
-    ComparableObject(ComparableObject&& other) noexcept
-        : m_value{other.m_value} {}
-
-    ComparableObject& operator=(ComparableObject&& other) noexcept
-    {
-        if (this == &other)
-            return *this;
-        m_value = other.m_value;
-        return *this;
-    }
-
-    bool operator==(const ComparableObject& rhs) const
-    {
-        if (m_value == rhs.m_value)
-            return true;
-
-        if (!m_value || !rhs.m_value)
-            return false;
-
-        return *m_value == *rhs.m_value;
-    }
-
     bool operator<(const ComparableObject& rhs) const
     {
         if (!m_value) // aka infinity < const_value
@@ -64,11 +42,8 @@ public:
         return *m_value < *rhs.m_value;
     }
 
-    bool operator!=(const ComparableObject& rhs) const { return !(*this == rhs); }
-
-    bool operator<=(const ComparableObject& rhs) const { return !(rhs < *this); }
+   
     bool operator>(const ComparableObject& rhs) const { return rhs < *this; }
-    bool operator>=(const ComparableObject& rhs) const { return !(*this < rhs); }
 private:
     const CoreType* m_value;
 };

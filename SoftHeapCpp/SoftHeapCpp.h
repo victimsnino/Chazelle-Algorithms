@@ -24,13 +24,15 @@
 
 #pragma once
 
-#include <cmath>
-#include <cstdlib>
+#include "Utils.h"
+
+#include <list>
+#include <memory>
+#include <cassert>
+#include <functional>
 
 struct Head;
 struct Node;
-
-#define INFTY 100000
 
 template<typename ItemType>
 class SoftHeapCpp
@@ -42,34 +44,70 @@ public:
     ItemType DeleteMin();
 
 private:
-    struct Ilcell
-    {
-        ItemType       key{};
-        struct Ilcell* next{};
-    };
-
     struct Node
     {
-        ItemType       ckey{};
-        int            rank{};
-        struct Node* next{}, * child{};
-        struct Ilcell* il{}, * il_tail{};
+        Node(ItemType item)
+            : m_ckey{std::make_shared<ItemType>(item)}
+            , m_rank{0}
+        {
+            m_values = std::make_shared<std::list<ItemType>>();
+            m_values->push_front(std::move(item));
+        }
+
+        Node(std::unique_ptr<Node> top, std::unique_ptr<Node> bottom)
+            : m_ckey{ top->m_ckey }
+            , m_rank{ top->m_rank + 1 }
+            , m_next{ std::move(top) }
+            , m_child{ std::move(bottom) }
+            , m_values{ m_next->m_values } { }
+
+        size_t                                          GetRank() const { return m_rank; }
+        [[nodiscard]] Utils::ComparableObject<ItemType> GetCkey() const { return {m_ckey.get()}; }
+        bool                                            IsInfntyCkey() const { return !m_ckey; }
+        [[nodiscard]] std::unique_ptr<Node>             ExtractChild() { return std::move(m_child); }
+
+
+        bool        IsNoValues() const { return !m_values || m_values->empty(); }
+
+        void Sift(size_t r);
+
+        void ForEachNodeWithChildOnLevel(std::function<void(Node* node)> func)
+        {
+            if (m_next)
+            {
+                func(this);
+                m_next->ForEachNodeWithChildOnLevel(std::move(func));
+            }
+        }
+
+        ItemType PopValue()
+        {
+            assert(!!m_values && !m_values->empty());
+            auto value = std::move(m_values->front());
+            m_values->pop_front();
+            return value;
+        }
+    private:
+        std::shared_ptr<ItemType>            m_ckey;
+        const size_t                         m_rank;
+        std::unique_ptr<Node>                m_next{};
+        std::unique_ptr<Node>                m_child{};
+        std::shared_ptr<std::list<ItemType>> m_values{};
     };
 
     struct Head
     {
-        struct Node* queue{};
-        struct Head* next{}, * prev{}, * suffix_min{};
-        int          rank{};
+        std::unique_ptr<Node> queue{};
+        struct Head *         next{}, *prev{}, *suffix_min{};
+        size_t                rank{};
     };
 
-    void  Meld(Node* q);
+    void  Meld(std::unique_ptr<Node> q);
     void  FixMinlist(Head* h);
-    Node* Sift(Node* v);
 private:
-    Head*  m_header{};
-    Head*  m_tail{};
-    size_t m_r{};
+    Head*        m_header{};
+    Head*        m_tail{};
+    const size_t m_r;
 };
 
 template<typename ItemType>
@@ -79,7 +117,7 @@ SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
     m_header = new Head();
     m_tail = new Head();
 
-    m_tail->rank = INFTY;
+    m_tail->rank = std::numeric_limits<size_t>::max();
     m_header->next = m_tail;
     m_tail->prev = m_header;
 }
@@ -87,53 +125,39 @@ SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
 template<typename ItemType>
 void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
 {
-    Node* q;
-    Ilcell* l;
-    l = (Ilcell*)malloc(sizeof(Ilcell));
-    l->key = new_key;
-    l->next = NULL;
-    q = new Node();
-    q->rank = 0;
-    q->ckey = std::move(new_key);
-    q->il = l;
-    q->il_tail = l;
-
-    Meld(q);
+    Meld(std::make_unique<Node>(std::move(new_key)));
 }
 
 template<typename ItemType>
 ItemType SoftHeapCpp<ItemType>::DeleteMin()
 {
-    Node* tmp;
-    int childcount;
+    assert(m_header->next);
+
     Head* h = m_header->next->suffix_min;
-    while (h->queue->il == NULL)
+    assert(h);
+
+    while (h->queue->IsNoValues())
     {
-        tmp = h->queue;
-        childcount = 0;
-        while (tmp->next != NULL)
-        {
-            tmp = tmp->next;
-            childcount++;
-        }
+        
+        size_t child_count = 0;
+        h->queue->ForEachNodeWithChildOnLevel([&](Node* node) {child_count += 1; });
 
         // remeld childs
-        if (childcount < h->rank / 2)
+        if (child_count < h->rank / 2)
         {
             h->prev->next = h->next;
             h->next->prev = h->prev;
             FixMinlist(h->prev);
-            tmp = h->queue;
-            while (tmp->next != NULL)
+
+            h->queue->ForEachNodeWithChildOnLevel([&](Node* node)
             {
-                Meld(tmp->child);
-                tmp = tmp->next;
-            }
+                Meld(node->ExtractChild());
+            });
         }
         else
         {
-            h->queue = Sift(h->queue);
-            if (h->queue->ckey == INFTY)
+            h->queue->Sift(m_r);
+            if (h->queue->IsInfntyCkey())
             {
                 h->prev->next = h->next;
                 h->next->prev = h->prev;
@@ -144,43 +168,33 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
         h = m_header->next->suffix_min;
     } /* end of outer while loop */
 
-    // Actually remove
-    auto min = h->queue->il->key;
-    h->queue->il = h->queue->il->next;
-    if (h->queue->il == NULL)
-        h->queue->il_tail = NULL;
-    return min;
+    return h->queue->PopValue();
 }
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>::Meld(Node* q)
+void SoftHeapCpp<ItemType>::Meld(std::unique_ptr<Node> q)
 {
     Head* tohead = m_header->next;
-    while (q->rank > tohead->rank)
+    while (q->GetRank() > tohead->rank)
         tohead = tohead->next;
 
     Head* prevhead = tohead->prev;
 
-    Node* top, * bottom;
-    while (q->rank == tohead->rank)
+    while (q->GetRank() == tohead->rank)
     {
-        if (tohead->queue->ckey > q->ckey)
+        std::unique_ptr<Node> top;
+        std::unique_ptr<Node> bottom;
+        if (tohead->queue->GetCkey() > q->GetCkey())
         {
-            top = q;
-            bottom = tohead->queue;
+            top    = std::move(q);
+            bottom = std::move(tohead->queue);
         }
         else
         {
-            top = tohead->queue;
-            bottom = q;
+            top    = std::move(tohead->queue);
+            bottom = std::move(q);
         }
-        q = new Node();
-        q->ckey = top->ckey;
-        q->rank = top->rank + 1;
-        q->child = bottom;
-        q->next = top;
-        q->il = top->il;
-        q->il_tail = top->il_tail;
+        q      = std::make_unique<Node>(std::move(top), std::move(bottom));
         tohead = tohead->next;
     }
 
@@ -189,12 +203,12 @@ void SoftHeapCpp<ItemType>::Meld(Node* q)
         h = new Head();
     else // actually we've moved out queue from this one...
         h = prevhead->next;
-    h->queue = q;
-    h->rank = q->rank;
-    h->prev = prevhead;
-    h->next = tohead;
+    h->queue       = std::move(q);
+    h->rank        = h->queue->GetRank();
+    h->prev        = prevhead;
+    h->next        = tohead;
     prevhead->next = h;
-    tohead->prev = h;
+    tohead->prev   = h;
 
     FixMinlist(h);
 }
@@ -209,7 +223,7 @@ void SoftHeapCpp<ItemType>::FixMinlist(Head* h)
         tmpmin = h->next->suffix_min;
     while (h != m_header)
     {
-        if (h->queue->ckey < tmpmin->queue->ckey)
+        if (h->queue->GetCkey() < tmpmin->queue->GetCkey())
             tmpmin = h;
         h->suffix_min = tmpmin;
         h = h->prev;
@@ -217,70 +231,56 @@ void SoftHeapCpp<ItemType>::FixMinlist(Head* h)
 }
 
 template<typename ItemType>
-typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::Sift(Node* v)
+void SoftHeapCpp<ItemType>::Node::Sift(const size_t r)
 {
-    Node* tmp;
-    v->il = NULL;
-    v->il_tail = NULL;
-    if (v->next == NULL && v->child == NULL)
+    m_values.reset();
+    if (!m_next && !m_child)
     {
-        v->ckey = INFTY;
-        return v;
-    }
-    v->next = Sift(v->next);
-
-    // It is possible that v->next has INFTY ckey. Swap it in this case 
-    if (v->next->ckey > v->child->ckey)
-    {
-        tmp = v->child;
-        v->child = v->next;
-        v->next = tmp;
+        m_ckey.reset();
+        return;
     }
 
-    // Move item list from v->next to v
-    v->il = v->next->il;
-    v->il_tail = v->next->il_tail;
-    v->ckey = v->next->ckey;
+    m_next->Sift(r);
+
+    if (m_next->GetCkey() > m_child->GetCkey())
+        std::swap(m_child, m_next);
+
+    m_values = m_next->m_values;
+    m_ckey   = m_next->m_ckey;
 
     // Sometimes we can do it twice due branching
-    if (v->rank > m_r &&
-        (v->rank % 2 == 1 || v->child->rank < v->rank - 1))
+    if (GetRank() > r &&
+        (GetRank() % 2 == 1 || m_child->GetRank() < GetRank() - 1))
     {
-        v->next = Sift(v->next);
+        m_next->Sift(r);
 
-        // Do it again
-        if (v->next->ckey > v->child->ckey)
-        {
-            tmp = v->child;
-            v->child = v->next;
-            v->next = tmp;
-        }
+        if (m_next->GetCkey() > m_child->GetCkey())
+            std::swap(m_child, m_next);
 
         // Concatenate lists if not empty
-        if (v->next->ckey != INFTY &&
-            v->next->il != NULL)
+        if (!m_next->IsInfntyCkey() && !m_next->m_values->empty())
         {
-            v->next->il_tail->next = v->il;
-            v->il = v->next->il;
-            if (v->il_tail == NULL)
-                v->il_tail = v->next->il_tail;
-            v->ckey = v->next->ckey;
+            m_values->insert(m_values->begin(),
+                             std::make_move_iterator(m_next->m_values->begin()),
+                             std::make_move_iterator(m_next->m_values->end()));
+            m_next->m_values->clear();
+            m_next->m_values.reset();
+            m_ckey = std::move(m_next->m_ckey);
         }
     } /*  end of second sift */
 
     // Clean Up
-    if (v->child->ckey == INFTY)
+    if (!m_child->IsInfntyCkey())
+        return;
+
+    if (m_next->IsInfntyCkey())
     {
-        if (v->next->ckey == INFTY)
-        {
-            v->child = NULL;
-            v->next = NULL;
-        }
-        else
-        {
-            v->child = v->next->child;
-            v->next = v->next->next;
-        }
+        m_child.reset();
+        m_next.reset();
     }
-    return v;
+    else
+    {
+        m_child = std::move(m_next->m_child);
+        m_next  = std::move(m_next->m_next);
+    }
 }
