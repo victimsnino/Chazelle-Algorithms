@@ -165,7 +165,7 @@ TEST(SoftHeapCpp, CompareWithSoftHeapCShuffle)
 {
     auto             r = Utils::CalculateRByEps(1.0 / 3.0);
 
-    for (auto count : {5, 10, 33, 37, 45, 48})
+    for (auto count : {5, 10, 33, 37, 45, 48, 354, 1024})
     {
         SoftHeapCpp<int> heap_cpp{ r };
         SoftHeapC        heap_c{ static_cast<int>(r) };

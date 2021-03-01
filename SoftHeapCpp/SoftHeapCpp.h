@@ -98,29 +98,45 @@ private:
 
     struct Head
     {
-        std::unique_ptr<Node> queue{};
-        struct Head *         next{}, *prev{}, *suffix_min{};
-        size_t                rank{};
+        Head(size_t rank, std::unique_ptr<Node> queue = {})
+            : m_queue{std::move(queue)}
+            , m_rank{rank} {}
+
+        std::unique_ptr<Node> ExtractQueue() { return std::move(m_queue); }
+
+        const std::unique_ptr<Node>& GetQueue() const { return m_queue; }
+        const std::shared_ptr<Head>& GetNext() const { return m_next; }
+        const std::shared_ptr<Head>& GetPrev() const { return m_prev; }
+        const std::shared_ptr<Head>& GetSuffixMin() const { return m_suffix_min; }
+        size_t                       GetRank() const { return m_rank; }
+
+        void SetNext(const std::shared_ptr<Head>& next) { m_next = next; }
+        void SetPrev(const std::shared_ptr<Head>& prev) { m_prev = prev; }
+        void SetSuffixMin(const std::shared_ptr<Head>& suffix_min) { m_suffix_min = suffix_min; }
+    private:
+        std::unique_ptr<Node> m_queue{};
+        std::shared_ptr<Head> m_next{};
+        std::shared_ptr<Head> m_prev{};
+        std::shared_ptr<Head> m_suffix_min{};
+        const size_t          m_rank{};
     };
 
     void Meld(std::unique_ptr<Node> q);
-    void FixMinlist(Head* h);
+    void FixMinlist(std::shared_ptr<Head> h);
 private:
-    Head*        m_header{};
-    Head*        m_tail{};
-    const size_t m_r;
+    std::shared_ptr<Head> m_header{};
+    std::shared_ptr<Head> m_tail{};
+    const size_t          m_r;
 };
 
 template<typename ItemType>
 SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
-    : m_r(r)
+    : m_header{std::make_shared<Head>(0)}
+    , m_tail{std::make_shared<Head>(std::numeric_limits<size_t>::max())}
+    , m_r(r)
 {
-    m_header = new Head();
-    m_tail   = new Head();
-
-    m_tail->rank   = std::numeric_limits<size_t>::max();
-    m_header->next = m_tail;
-    m_tail->prev   = m_header;
+    m_header->SetNext(m_tail);
+    m_tail->SetPrev(m_header);
 }
 
 template<typename ItemType>
@@ -132,101 +148,95 @@ void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
 template<typename ItemType>
 ItemType SoftHeapCpp<ItemType>::DeleteMin()
 {
-    assert(m_header->next);
+    assert(m_header->GetNext());
 
-    Head* h = m_header->next->suffix_min;
+    auto h = m_header->GetNext()->GetSuffixMin();
     assert(h);
 
-    while (h->queue->IsNoValues())
+    while (h->GetQueue()->IsNoValues())
     {
-        size_t                                          child_count = 0;
-        h->queue->ForEachNodeWithChildOnLevel([&](Node* node) { child_count += 1; });
+        size_t                                               child_count = 0;
+        h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node) { child_count += 1; });
 
         // remeld childs
-        if (child_count < h->rank / 2)
+        if (child_count < h->GetRank() / 2)
         {
-            h->prev->next = h->next;
-            h->next->prev = h->prev;
-            FixMinlist(h->prev);
+            h->GetPrev()->SetNext(h->GetNext());
+            h->GetNext()->SetPrev(h->GetPrev());
+            FixMinlist(h->GetPrev());
 
-            h->queue->ForEachNodeWithChildOnLevel([&](Node* node)
+            h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node)
             {
                 Meld(node->ExtractChild());
             });
         }
         else
         {
-            h->queue->Sift(m_r);
-            if (h->queue->IsInfntyCkey())
+            h->GetQueue()->Sift(m_r);
+            if (h->GetQueue()->IsInfntyCkey())
             {
-                h->prev->next = h->next;
-                h->next->prev = h->prev;
-                h             = h->prev;
+                h->GetPrev()->SetNext(h->GetNext());
+                h->GetNext()->SetPrev(h->GetPrev());
+                h = h->GetPrev();
             }
             FixMinlist(h);
         }
-        h = m_header->next->suffix_min;
+        h = m_header->GetNext()->GetSuffixMin();
     } /* end of outer while loop */
 
-    return h->queue->PopValue();
+    return h->GetQueue()->PopValue();
 }
 
 template<typename ItemType>
 void SoftHeapCpp<ItemType>::Meld(std::unique_ptr<Node> q)
 {
-    Head* tohead = m_header->next;
-    while (q->GetRank() > tohead->rank)
-        tohead = tohead->next;
+    auto tohead = m_header->GetNext();
+    while (q->GetRank() > tohead->GetRank())
+        tohead = tohead->GetNext();
 
-    Head* prevhead = tohead->prev;
+    auto prevhead = tohead->GetPrev();
 
-    while (q->GetRank() == tohead->rank)
+    while (q->GetRank() == tohead->GetRank())
     {
         std::unique_ptr<Node> top;
         std::unique_ptr<Node> bottom;
-        if (tohead->queue->GetCkey() > q->GetCkey())
+        if (tohead->GetQueue()->GetCkey() > q->GetCkey())
         {
             top    = std::move(q);
-            bottom = std::move(tohead->queue);
+            bottom = std::move(tohead->ExtractQueue());
         }
         else
         {
-            top    = std::move(tohead->queue);
+            top    = std::move(tohead->ExtractQueue());
             bottom = std::move(q);
         }
         q      = std::make_unique<Node>(std::move(top), std::move(bottom));
-        tohead = tohead->next;
+        tohead = tohead->GetNext();
     }
 
-    Head* h;
-    if (prevhead == tohead->prev)
-        h = new Head();
-    else // actually we've moved out queue from this one...
-        h = prevhead->next;
-    h->queue       = std::move(q);
-    h->rank        = h->queue->GetRank();
-    h->prev        = prevhead;
-    h->next        = tohead;
-    prevhead->next = h;
-    tohead->prev   = h;
+    auto h = std::make_shared<Head>(q->GetRank(), std::move(q));
+    h->SetPrev(prevhead);
+    h->SetNext(tohead);
+    prevhead->SetNext(h);
+    tohead->SetPrev(h);
 
     FixMinlist(h);
 }
 
 template<typename ItemType>
-void SoftHeapCpp<ItemType>::FixMinlist(Head* h)
+void SoftHeapCpp<ItemType>::FixMinlist(std::shared_ptr<Head> h)
 {
-    Head* tmpmin;
-    if (h->next == m_tail)
+    std::shared_ptr<Head> tmpmin;
+    if (h->GetNext() == m_tail)
         tmpmin = h;
     else
-        tmpmin = h->next->suffix_min;
+        tmpmin = h->GetNext()->GetSuffixMin();
     while (h != m_header)
     {
-        if (h->queue->GetCkey() < tmpmin->queue->GetCkey())
+        if (h->GetQueue()->GetCkey() < tmpmin->GetQueue()->GetCkey())
             tmpmin = h;
-        h->suffix_min = tmpmin;
-        h             = h->prev;
+        h->SetSuffixMin(tmpmin);
+        h = h->GetPrev();
     }
 }
 
