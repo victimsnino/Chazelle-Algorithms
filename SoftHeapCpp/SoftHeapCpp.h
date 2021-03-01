@@ -40,7 +40,7 @@ class SoftHeapCpp
 public:
     SoftHeapCpp(size_t r);
 
-    void Insert(ItemType new_key);
+    void     Insert(ItemType new_key);
     ItemType DeleteMin();
 
 private:
@@ -55,11 +55,11 @@ private:
         }
 
         Node(std::unique_ptr<Node> top, std::unique_ptr<Node> bottom)
-            : m_ckey{ top->m_ckey }
-            , m_rank{ top->m_rank + 1 }
-            , m_next{ std::move(top) }
-            , m_child{ std::move(bottom) }
-            , m_values{ m_next->m_values } { }
+            : m_ckey{top->m_ckey}
+            , m_rank{top->m_rank + 1}
+            , m_next{std::move(top)}
+            , m_child{std::move(bottom)}
+            , m_values{m_next->m_values} { }
 
         size_t                                          GetRank() const { return m_rank; }
         [[nodiscard]] Utils::ComparableObject<ItemType> GetCkey() const { return {m_ckey.get()}; }
@@ -67,7 +67,7 @@ private:
         [[nodiscard]] std::unique_ptr<Node>             ExtractChild() { return std::move(m_child); }
 
 
-        bool        IsNoValues() const { return !m_values || m_values->empty(); }
+        bool IsNoValues() const { return !m_values || m_values->empty(); }
 
         void Sift(size_t r);
 
@@ -87,6 +87,7 @@ private:
             m_values->pop_front();
             return value;
         }
+
     private:
         std::shared_ptr<ItemType>            m_ckey;
         const size_t                         m_rank;
@@ -102,8 +103,8 @@ private:
         size_t                rank{};
     };
 
-    void  Meld(std::unique_ptr<Node> q);
-    void  FixMinlist(Head* h);
+    void Meld(std::unique_ptr<Node> q);
+    void FixMinlist(Head* h);
 private:
     Head*        m_header{};
     Head*        m_tail{};
@@ -115,11 +116,11 @@ SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
     : m_r(r)
 {
     m_header = new Head();
-    m_tail = new Head();
+    m_tail   = new Head();
 
-    m_tail->rank = std::numeric_limits<size_t>::max();
+    m_tail->rank   = std::numeric_limits<size_t>::max();
     m_header->next = m_tail;
-    m_tail->prev = m_header;
+    m_tail->prev   = m_header;
 }
 
 template<typename ItemType>
@@ -138,9 +139,8 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
 
     while (h->queue->IsNoValues())
     {
-        
-        size_t child_count = 0;
-        h->queue->ForEachNodeWithChildOnLevel([&](Node* node) {child_count += 1; });
+        size_t                                          child_count = 0;
+        h->queue->ForEachNodeWithChildOnLevel([&](Node* node) { child_count += 1; });
 
         // remeld childs
         if (child_count < h->rank / 2)
@@ -161,7 +161,7 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
             {
                 h->prev->next = h->next;
                 h->next->prev = h->prev;
-                h = h->prev;
+                h             = h->prev;
             }
             FixMinlist(h);
         }
@@ -226,7 +226,7 @@ void SoftHeapCpp<ItemType>::FixMinlist(Head* h)
         if (h->queue->GetCkey() < tmpmin->queue->GetCkey())
             tmpmin = h;
         h->suffix_min = tmpmin;
-        h = h->prev;
+        h             = h->prev;
     }
 }
 
@@ -265,7 +265,7 @@ void SoftHeapCpp<ItemType>::Node::Sift(const size_t r)
                              std::make_move_iterator(m_next->m_values->end()));
             m_next->m_values->clear();
             m_next->m_values.reset();
-            m_ckey = std::move(m_next->m_ckey);
+            m_ckey = m_next->m_ckey;
         }
     } /*  end of second sift */
 
