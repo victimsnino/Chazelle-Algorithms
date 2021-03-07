@@ -156,13 +156,6 @@ private:
     const size_t          m_r;
 };
 
-template<typename ItemType, size_t r>
-class SoftHeapCpp_r : public SoftHeapCpp<ItemType>
-{
-public:
-    SoftHeapCpp_r() : SoftHeapCpp<ItemType>{r} {}
-};
-
 template<typename ItemType>
 SoftHeapCpp<ItemType>::SoftHeapCpp(size_t r)
     : m_header{std::make_shared<Head>(0)}

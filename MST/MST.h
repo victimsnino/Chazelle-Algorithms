@@ -24,8 +24,6 @@
 
 #include "Graph.h"
 
-#include <vector>
-
 namespace MST
 {
     void FindMST(Graph::Graph& graph);

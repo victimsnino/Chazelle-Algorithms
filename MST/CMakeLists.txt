@@ -3,6 +3,8 @@ set(TARGET MST)
 add_library(${TARGET} 
     MST.h
     MST.cpp
+    MSTTree.cpp
+    MSTTree.h
 )
 
 target_include_directories(${TARGET} PUBLIC .)
