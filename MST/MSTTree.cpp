@@ -40,7 +40,7 @@ MSTTree::MSTTree(Graph::Graph& graph, size_t c)
 {
     std::cout << "d " << m_max_height << " t " << m_t << std::endl;
 
-    // TODO
+    // TODO : Enable Boruvka phase later
     //if (!BoruvkaPhase(c)) 
     //    return;
 
