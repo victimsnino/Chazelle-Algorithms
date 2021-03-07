@@ -21,56 +21,13 @@
 // SOFTWARE.
 
 #include "MSTTree.h"
+#include "MSTUtils.h"
 
 #include <Common.h>
-
 
 #include <iostream>
 #include <ranges>
 #include <stdexcept>
-
-static constexpr uint32_t S(uint32_t i, uint32_t j)
-{
-    if (i == 0 || j == 0)
-        throw std::out_of_range{"i and j must be > 0"};
-
-    if (i == 1)
-        return 2 * j;
-    if (j == 1)
-        return 2;
-    return S(i, j - 1) * S(i - 1, S(i, j - 1));
-}
-
-static_assert(S(1, 5) == 2 * 5);
-static_assert(S(100500, 1) == 2);
-
-static uint32_t FindMaxHeight(const Graph::Graph& graph, uint32_t c)
-{
-    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
-    const double edges_count    = static_cast<double>(graph.GetEdgesCount());
-    return c * static_cast<uint32_t>(std::ceil(std::pow(edges_count / vertexes_count, 1.0 / 3.0)));
-}
-
-static uint32_t FindParamT(const Graph::Graph& graph, uint32_t d)
-{
-    if (d == 1)
-        return 1;
-
-    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
-
-    uint32_t result = 1;
-    while (vertexes_count > std::pow(S(result, d), 3))
-        ++result;
-
-    return result;
-}
-
-static uint32_t CalculateTargetSize(uint32_t t, uint32_t node_height)
-{
-    if (node_height == 1)
-        return std::pow(S(t, 1u), 3u);
-    return std::pow(S(t - 1, S(t, node_height - 1)), 3u);
-}
 
 
 namespace MST
@@ -158,7 +115,7 @@ void MSTTree::Retraction()
     auto k = m_active_path.size();
 
     std::list<Edge> valid_items{};
-    for (auto& heap : {&last_subgraph.GetHeap(), &GetHeap(k - 1, k)})
+    for (const auto& heap : {&last_subgraph.GetHeap(), &GetHeap(k - 1, k)})
     {
         auto extracted = heap->ExtractItems();
         for (const auto& edge : extracted.corrupted)
@@ -167,11 +124,13 @@ void MSTTree::Retraction()
         valid_items.splice(valid_items.end(), extracted.items);
     }
 
-    const auto ret = std::ranges::unique(m_vertices_inside_path,
-                                         std::ranges::equal_to{},
-                                         std::bind(&Graph::Graph::FindRootOfSubGraph, &m_graph, std::placeholders::_1));
+    std::ranges::transform(m_vertices_inside_path,
+                           m_vertices_inside_path.begin(),
+                           [&](size_t i) { return m_graph.FindRootOfSubGraph(i); });
 
-    m_vertices_inside_path.erase(ret.begin(), ret.end());
+    const auto end = std::unique(m_vertices_inside_path.begin(), m_vertices_inside_path.end());
+
+    m_vertices_inside_path.erase(end, m_vertices_inside_path.end());
     CreateClusters(k, std::move(valid_items));
 }
 
@@ -234,7 +193,7 @@ void MSTTree::CreateClusters(size_t k, std::list<Edge>&& valid_items)
 }
 
 
-void MSTTree::InsertToHeapForEdge(const Edge&    edge,
+void MSTTree::InsertToHeapForEdge(Edge&          edge,
                                   const Cluster& his_cluster,
                                   size_t         k)
 {
@@ -248,8 +207,11 @@ void MSTTree::InsertToHeapForEdge(const Edge&    edge,
         && Utils::IsContains(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}))
     {
         assert(m_active_path.size() == k);
-        m_active_path.top().GetHeap(); // H(k-1)
+        m_active_path.top().GetHeap().Insert(edge); // H(k-1)
+        edge.SaveLastHeapIndex(k - 1);
+        return;
     }
+
     assert(i == k && !j.has_value());
 
     auto index_to_insert = std::ranges::find_if(indexes_view,
@@ -260,7 +222,8 @@ void MSTTree::InsertToHeapForEdge(const Edge&    edge,
     if (index_to_insert == std::cend(indexes_view))
         throw std::out_of_range{"Cant'f find suitable heap"};
 
-    GetHeap((*index_to_insert)[0].value() ,k);
+    GetHeap((*index_to_insert)[0].value(), k).Insert(edge);
+    edge.SaveLastHeapIndex((*index_to_insert)[0].value(), k);
 }
 
 

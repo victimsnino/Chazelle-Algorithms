@@ -28,14 +28,16 @@
 #include <cstdint>
 #include <map>
 #include <set>
+#include <set>
+#include <set>
 #include <stack>
 #include <vector>
 
 
 using Edge = Graph::Details::Edge;
-using Cluster = std::set<std::reference_wrapper<const Edge>, decltype([](const std::reference_wrapper<const Edge>& left,
-                                                                         const std::reference_wrapper<const Edge>&
-                                                                         right)
+using Cluster = std::set<std::reference_wrapper<Edge>, decltype([](const std::reference_wrapper<Edge>& left,
+                                                                   const std::reference_wrapper<Edge>&
+                                                                   right)
 {
     return left.get() < right.get();
 })>;
@@ -93,9 +95,9 @@ private:
     void ContractNode(const TreeNode& last_subgraph);
 
     void InsertEdgeToLastNodeHeap(Edge& edge);
-    void InsertToHeapForEdge(const Edge&    edge,
-                             const Cluster& his_cluster,
-                             size_t         k);
+    void InsertToHeapForEdge(::Graph::Details::Edge& edge,
+                             const Cluster&          his_cluster,
+                             size_t                  k);
 
     uint32_t GetTargetSize(uint32_t node_height) const;
     uint32_t IndexToHeight(uint32_t index) const;
