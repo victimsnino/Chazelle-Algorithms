@@ -50,7 +50,7 @@ MSTTreeBase::MSTTreeBase(Graph::Graph& graph, size_t c)
 {
     // Now we want to push only one leaf... skip rest part of path
     for (size_t i = 0; i < GetMaxHeight(); ++i)
-        m_active_path.push({m_r, i});
+        m_active_path.emplace(m_r, i);
 
     CreateOneVertexNode(0);
 }
@@ -122,7 +122,7 @@ void MSTTreeBase::CreateOneVertexNode(size_t vertex)
     vertex = UpdateNodeIndex(vertex);
 
     m_vertices_inside_path.push_back(vertex);
-    auto& node = m_active_path.emplace(vertex, m_active_path.size());
+    auto& node = m_active_path.emplace(vertex, m_r, m_active_path.size());
 
     m_graph.ForEachAvailableEdge([&](Graph::Details::Edge& edge)
     {

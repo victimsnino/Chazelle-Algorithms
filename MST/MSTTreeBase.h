@@ -78,7 +78,7 @@ private:
     void UpdateActivePathIndexes();
 
     /*======================================= GETTERS ===================================== */
-    size_t GetMaxHeight() const { return m_vertices_inside_path.size() - 1; }
+    size_t GetMaxHeight() const { return m_target_sizes_per_height.size() - 1; }
     size_t UpdateNodeIndex(size_t i) const { return m_graph.FindRootOfSubGraph(i); }
     size_t GetTargetSize(size_t node_index) const;
 private:

@@ -103,12 +103,12 @@ void MSTTree::MoveItemsToSuitableHeapsByClusters(size_t k, std::list<Details::Ed
     for (auto& [out_vertex, edges] : out_vertex_to_internal_for_heaps)
     {
         const auto cheapest_edge_ref = edges.begin();
-        edges.erase(cheapest_edge_ref);
+        for (const auto& edge : edges | std::views::drop(1))
+            m_base.GetGraph().DisableEdge(edge->GetIndex());
 
-        for (const auto& edge : edges)
-            m_base.GetGraph().DisableEdge(edge.get().GetIndex());
-
-        InsertToHeapForEdge(cheapest_edge_ref->get(), out_vertex_to_internal[out_vertex], k);
+        InsertToHeapForEdge(cheapest_edge_ref->GetEdge(),
+                            out_vertex_to_internal[out_vertex],
+                            k);
     }
 }
 
@@ -120,24 +120,33 @@ void MSTTree::InsertToHeapForEdge(Graph::Details::Edge& edge,
 
     assert(i.has_value());
 
-    auto indexes_view = his_cluster | std::views::transform(&Graph::Details::Edge::GetLastHeapIndex);
+    auto indexes_view = his_cluster |
+            std::views::transform(&Details::EdgePtrWrapper::GetEdge) |
+            std::views::filter([&](const Graph::Details::Edge& tmp)
+            {
+                return tmp != edge;
+            }) |
+            std::views::transform(&Graph::Details::Edge::GetLastHeapIndex);
 
     if (i == k - 1 && j == k || 
-        i == k && !j.has_value() && Utils::IsContains(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}))
+        i == k && !j.has_value() &&
+        (std::ranges::count(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}) != 0 ||
+            his_cluster.size() <= 1))
     {
         m_base.GetLastNodeHeap().Insert(edge); // H(k-1)
         return;
     }
 
-    auto index_to_insert = std::ranges::find_if(indexes_view,
-                                                [&](const std::array<std::optional<size_t>, 2>& indexes)
-                                                {
-                                                    return indexes[1] == k;
-                                                });
-    if (index_to_insert == std::cend(indexes_view))
-        throw std::out_of_range{"Cant'f find suitable heap"};
+    for (const auto& indexes : indexes_view)
+    {
+        if (indexes[1] != k)
+            continue;
 
-    m_base.GetHeap((*index_to_insert)[0].value(), k).Insert(edge);
+        m_base.GetHeap(indexes[0].value(), k).Insert(edge);
+        return;
+    }
+
+    throw std::out_of_range{"Cant'f find suitable heap"};
 }
 
 std::function<void(Graph::Details::Edge&)> MSTTree::CreateClustersFunctor(std::map<size_t, Cluster>& out)

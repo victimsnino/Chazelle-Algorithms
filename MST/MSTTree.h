@@ -32,13 +32,7 @@
 
 namespace MST
 {
-using Cluster = std::set<std::reference_wrapper<Graph::Details::Edge>, decltype([](
-                         const std::reference_wrapper<Graph::Details::Edge>& left,
-                         const std::reference_wrapper<Graph::Details::Edge>&
-                         right)
-                             {
-                                 return left.get() < right.get();
-                             })>;
+using Cluster = std::set<Details::EdgePtrWrapper>;
 
 class MSTTree
 {
