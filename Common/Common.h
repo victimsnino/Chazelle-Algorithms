@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include <gcem.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -34,7 +32,7 @@ namespace Utils
 {
 constexpr size_t CalculateRByEps(double eps)
 {
-    return static_cast<size_t>(2.0 + 2.0 * gcem::ceil(gcem::log(1.0 / eps)));
+    return static_cast<size_t>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
 }
 
 template<typename SoftHeap>
