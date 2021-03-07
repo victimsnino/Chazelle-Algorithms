@@ -26,10 +26,10 @@
 
 #include "Utils.h"
 
-#include <list>
-#include <memory>
 #include <cassert>
 #include <functional>
+#include <list>
+#include <memory>
 
 struct Head;
 struct Node;
@@ -43,7 +43,13 @@ public:
     void     Insert(ItemType new_key);
     ItemType DeleteMin();
 
-    std::list<ItemType> ExtractCorruptedItems();
+    struct ExtractedItems
+    {
+        std::list<ItemType> corrupted{};
+        std::list<ItemType> items{};
+    };
+
+    ExtractedItems ExtractItems();
 private:
     struct Node
     {
@@ -81,19 +87,16 @@ private:
             }
         }
 
-        void ExtractCorruptedItems(std::list<ItemType>& result)
+        void ExtractCorruptedItems(ExtractedItems& result)
         {
             if (m_values || !m_ckey)
             {
-                for (auto it = m_values->begin(); it != m_values->end(); )
+                for (auto it = m_values->begin(); it != m_values->end();)
                 {
-                    if (*it < *m_ckey)
-                    {
-                        auto value_to_extract = it++;
-                        result.splice(result.end(), *m_values, value_to_extract);
-                        continue;
-                    }
-                    ++it;
+                    auto& list_to_insert = (*it < *m_ckey) ? result.corrupted : result.items;
+
+                    auto value_to_extract = it++;
+                    list_to_insert.splice(list_to_insert.end(), *m_values, value_to_extract);
                 }
             }
 
@@ -154,7 +157,7 @@ private:
 };
 
 template<typename ItemType>
-SoftHeapCpp<ItemType>::SoftHeapCpp<ItemType>(size_t r)
+SoftHeapCpp<ItemType>::SoftHeapCpp(size_t r)
     : m_header{std::make_shared<Head>(0)}
     , m_tail{std::make_shared<Head>(std::numeric_limits<size_t>::max())}
     , m_r(r)
@@ -212,10 +215,10 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
 }
 
 template<typename ItemType>
-std::list<ItemType> SoftHeapCpp<ItemType>::ExtractCorruptedItems()
+typename SoftHeapCpp<ItemType>::ExtractedItems SoftHeapCpp<ItemType>::ExtractItems()
 {
-    std::list<ItemType> result{};
-    auto                h = m_header->GetNext();
+    ExtractedItems result{};
+    auto           h = m_header->GetNext();
 
     while (h != m_tail)
     {
@@ -223,7 +226,8 @@ std::list<ItemType> SoftHeapCpp<ItemType>::ExtractCorruptedItems()
         h = h->GetNext();
     }
 
-    result.unique();
+    result.corrupted.unique();
+    result.items.unique();
     return result;
 }
 

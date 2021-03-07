@@ -118,6 +118,11 @@ size_t Graph::FindRootOfSubGraph(size_t i)
     return member_of_subgraph.GetParent();
 }
 
+void Graph::ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func)
+{
+    std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
+}
+
 void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const
 {
     std::for_each(m_edges_view.begin(), m_edges_view.end(), func);

@@ -24,11 +24,11 @@
 
 #include "Common.h"
 
-
 #include <Graph.h>
 #include <SoftHeapCpp.h>
 
 #include <iostream>
+#include <ranges>
 #include <stack>
 #include <stdexcept>
 
@@ -77,6 +77,9 @@ static uint32_t CalculateTargetSize(uint32_t t, uint32_t node_height)
 
 namespace MST
 {
+using Edge = Graph::Details::Edge;
+using Cluster = std::set<std::reference_wrapper<const Edge>>;
+
 template<size_t c>
 class MSTTree
 {
@@ -96,8 +99,8 @@ private:
         size_t                     GetCountOfVertices() const { return m_vertices.size(); }
         const std::vector<size_t>& GetVertices() const { return m_vertices; }
     private:
-        std::vector<size_t>                      m_vertices{};
-        SoftHeapCpp<Graph::Details::Edge> m_heap{Utils::CalculateRByEps(1 / static_cast<double>(c))};
+        std::vector<size_t> m_vertices{};
+        SoftHeapCpp<Edge>   m_heap{Utils::CalculateRByEps(1 / static_cast<double>(c))};
     };
 
 private:
@@ -114,21 +117,27 @@ private:
     bool Extension();
     void Retraction();
 
-    void CreateClusters();
+    void CreateClusters(size_t k, std::list<Edge>&& valid_items);
 
     void CreateOneVertexNode(size_t vertex);
     void ContractNode(const TreeNode& last_subgraph);
+
+    void               InsertEdgeToLastNodeHeap(Edge& edge);
+    SoftHeapCpp<Edge>& InsertToHeapForEdge(const Edge&    edge,
+                                           const Cluster& his_cluster,
+                                           size_t         k);
 
     uint32_t GetTargetSize(uint32_t node_height) const;
     uint32_t IndexToHeight(uint32_t index) const;
 
 private:
-    Graph::Graph&         m_graph;
-    const uint32_t        m_max_height;
-    const uint32_t        m_t;
-    std::vector<uint32_t> m_target_sizes_per_height{};
-    std::stack<TreeNode>  m_active_path{};
-    std::vector<size_t>   m_vertices_inside_path{};
+    Graph::Graph&                                         m_graph;
+    const uint32_t                                        m_max_height;
+    const uint32_t                                        m_t;
+    std::vector<uint32_t>                                 m_target_sizes_per_height{};
+    std::stack<TreeNode>                                  m_active_path{};
+    std::vector<size_t>                                   m_vertices_inside_path{};
+    std::map<size_t, std::map<size_t, SoftHeapCpp<Edge>>> m_heaps{};
 };
 
 template<size_t c>
@@ -185,7 +194,7 @@ void MSTTree<c>::BuildTree()
     while (true)
     {
         if (m_active_path.size() >= 2 &&
-            m_active_path.top().GetCountOfVertices() >= GetTargetSize(IndexToHeight(m_active_path.size()-1)))
+            m_active_path.top().GetCountOfVertices() >= GetTargetSize(IndexToHeight(m_active_path.size() - 1)))
         {
             Retraction();
         }
@@ -206,31 +215,44 @@ bool MSTTree<c>::Extension()
 template<size_t c>
 void MSTTree<c>::Retraction()
 {
-    auto&& last_subgraph = std::move(m_active_path.top());
+    auto last_subgraph = std::move(m_active_path.top());
     m_active_path.pop();
 
     ContractNode(last_subgraph);
-    last_subgraph.GetHeap();
+
+    auto k = m_active_path.size();
+
+    std::list<Edge> valid_items{};
+    for (auto& heap : { &last_subgraph.GetHeap(), &m_heaps[k - 1][k] })
+    {
+        auto extracted = heap->ExtractItems();
+        for (const auto& edge : extracted.corrupted)
+            m_graph.DisableEdge(edge.GetIndex());
+
+        valid_items.splice(valid_items.end(), extracted.items);
+    }
+
+    const auto ret = std::ranges::unique(m_vertices_inside_path,
+                                         std::ranges::equal_to{},
+                                         std::bind(&Graph::Graph::FindRootOfSubGraph, &m_graph, std::placeholders::_1));
+
+    m_vertices_inside_path.erase(ret.begin(), ret.end());
+    CreateClusters(k, std::move(valid_items));
 }
 
 template<size_t c>
 void MSTTree<c>::ContractNode(const TreeNode& last_subgraph)
 {
-    // TODO:  DO I NEEED TO UPDATE VALUES?
+    // TODO:  DO I NEEED TO UPDATE VALUES OF NODES?
     const auto& vertices = last_subgraph.GetVertices();
     if (vertices.size() <= 1)
         return;
 
-    std::vector<size_t>                                          edges_to_contract{};
-    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    std::vector<size_t> edges_to_contract{};
+
+    m_graph.ForEachAvailableEdge([&](const Edge& edge)
     {
-        const auto subgraphs = edge.GetCurrentSubgraphs(m_graph);
-        if (std::all_of(subgraphs.cbegin(),
-                        subgraphs.cend(),
-                        [&](size_t vertex)
-                        {
-                            return std::find(vertices.cbegin(), vertices.cend(), vertex) != vertices.cend();
-                        }))
+        if (std::ranges::all_of(edge.GetCurrentSubgraphs(m_graph), Utils::IsContainsIn(vertices)))
             edges_to_contract.emplace_back(edge.GetIndex());
     });
 
@@ -239,22 +261,30 @@ void MSTTree<c>::ContractNode(const TreeNode& last_subgraph)
 }
 
 template<size_t c>
-void MSTTree<c>::CreateClusters()
+void MSTTree<c>::InsertEdgeToLastNodeHeap(Edge& edge)
 {
-    std::map<size_t, std::set<std::reference_wrapper<const Graph::Details::Edge>>> out_vertex_to_internal{};
+    m_active_path.top().GetHeap().Insert(edge);
+    edge.SaveLastHeapIndex(m_active_path.size() - 1);
+}
 
-    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
-    {
-        auto [i, j] = edge.GetCurrentSubgraphs(m_graph);
-        if (std::find(m_vertices_inside_path.cbegin(), m_vertices_inside_path.cend(), i) != m_vertices_inside_path.cend())
-        {
-            out_vertex_to_internal[j].emplace(edge);
-        }
-        else if (std::find(m_vertices_inside_path.cbegin(), m_vertices_inside_path.cend(), j) != m_vertices_inside_path.cend())
-        {
-            out_vertex_to_internal[i].emplace(edge);
-        }
-    });
+template<size_t c>
+void MSTTree<c>::CreateClusters(size_t k, std::list<Edge>&& valid_items)
+{
+    std::map<size_t, Cluster> out_vertex_to_internal{};
+
+    std::ranges::for_each(valid_items,
+                          [&](Edge& edge)
+                          {
+                              auto subgraphs = edge.GetCurrentSubgraphs(m_graph);
+                              if (std::ranges::all_of(subgraphs, Utils::IsContainsIn(m_vertices_inside_path)))
+                                  return;
+
+                              auto [i, j] = subgraphs;
+                              if (Utils::IsContains(m_vertices_inside_path, i))
+                                  out_vertex_to_internal[j].emplace(edge);
+                              else if (Utils::IsContains(m_vertices_inside_path, j))
+                                  out_vertex_to_internal[i].emplace(edge);
+                          });
 
     for (auto& [out_vertex, edges] : out_vertex_to_internal)
     {
@@ -264,9 +294,37 @@ void MSTTree<c>::CreateClusters()
         for (const auto& edge : edges)
             m_graph.DisableEdge(edge.get().GetIndex());
 
-        // TODO
-        //GetHeap().insert(cheapest_edge_ref);
+        InsertToHeapForEdge(cheapest_edge_ref->get(), edges, k);
     }
+}
+
+template<size_t c>
+SoftHeapCpp<Edge>& MSTTree<c>::InsertToHeapForEdge(const Edge&    edge,
+                                                   const Cluster& his_cluster,
+                                                   size_t         k)
+{
+    auto [i, j] = edge.GetLastHeapIndex();
+
+    assert(i.has_value());
+
+    auto indexes_view = std::views::transform(his_cluster, &Edge::GetLastHeapIndex);
+    if (i == k - 1 && j == k || i == k && !j.has_value() 
+        && Utils::IsContains(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}))
+    {
+        assert(m_active_path.size() == k);
+        return m_active_path.top().GetHeap(); // H(k-1)
+    }
+    assert(i == k && !j.has_value());
+
+    auto index_to_insert = std::ranges::find_if(indexes_view,
+                                                [&](const std::array<std::optional<size_t>, 2>& indexes)
+                                                {
+                                                    return indexes[1] == k;
+                                                });
+    if (index_to_insert == std::cend(indexes_view))
+        throw std::out_of_range{"Cant'f find suitable heap"};
+
+    return m_heaps[(*index_to_insert)[0].value()][k];
 }
 
 template<size_t c>
@@ -277,11 +335,10 @@ void MSTTree<c>::CreateOneVertexNode(size_t vertex)
     m_vertices_inside_path.push_back(vertex);
     auto& node = m_active_path.emplace(vertex);
 
-    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    m_graph.ForEachAvailableEdge([&](Edge& edge)
     {
-        auto [i, j] = edge.GetCurrentSubgraphs(m_graph);
-        if (i == vertex || j == vertex)
-            node.GetHeap().Insert(edge);
+        if (Utils::IsContains(edge.GetCurrentSubgraphs(m_graph), vertex))
+            InsertEdgeToLastNodeHeap(edge);
     });
 }
 
@@ -294,11 +351,11 @@ uint32_t MSTTree<c>::GetTargetSize(uint32_t node_height) const
 template<size_t c>
 uint32_t MSTTree<c>::IndexToHeight(uint32_t index) const
 {
-    return m_max_height - index -1;
+    return m_max_height - index - 1;
 }
 
 void FindMST(Graph::Graph& graph)
 {
-    MSTTree<2> tree{ graph };
+    MSTTree<2> tree{graph};
 }
 }

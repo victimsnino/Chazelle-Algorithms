@@ -6,6 +6,7 @@
 #include <SoftHeapCpp.h>
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 struct ComparableObject
 {
@@ -197,12 +198,13 @@ TEST(SoftHeapCpp, ExtractCorruptedItems)
     SoftHeapCpp<int>    heap(0);
     constexpr const int count = 9;
 
-    for (int i = 1; i < count; ++i)
+    for (int i = 1; i <= count; ++i)
         heap.Insert(i);
 
     heap.DeleteMin();
     heap.DeleteMin();
 
-    auto values = heap.ExtractCorruptedItems();
-    EXPECT_EQ(values.front(), 2);
+    auto values = heap.ExtractItems();
+    EXPECT_THAT(values.corrupted, testing::ElementsAre(2));
+    EXPECT_THAT(values.items, testing::SizeIs(count - 3));
 }

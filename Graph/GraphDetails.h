@@ -25,6 +25,7 @@
 #include <array>
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -59,15 +60,20 @@ public:
     void SetIsDisabled() { m_is_disabled = true; }
     bool IsDisabled() const { return m_is_disabled; }
 
+    void SaveLastHeapIndex(size_t i, std::optional<size_t> j = {});
+    std::array<std::optional<size_t>, 2> GetLastHeapIndex() const { return m_last_heap_index; }
+
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
+    bool operator==(const Edge& rhs) const { return m_index == rhs.m_index; }
     //bool operator>(const Edge& rhs) const { return rhs < *this; }
 private:
-    size_t   m_i;
-    size_t   m_j;
-    uint32_t m_weight;
-    size_t   m_index;
-    bool     m_is_contracted{false};
-    bool     m_is_disabled{false};
+    size_t                               m_i;
+    size_t                               m_j;
+    uint32_t                             m_weight;
+    size_t                               m_index;
+    bool                                 m_is_contracted{false};
+    bool                                 m_is_disabled{false};
+    std::array<std::optional<size_t>, 2> m_last_heap_index{};
 };
 
 class MemberOfSubGraph

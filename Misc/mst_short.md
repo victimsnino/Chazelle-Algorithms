@@ -66,8 +66,8 @@ for j in range()???:
             exist edge(_, v) in H(i,j)
         else: #if in_any_heap_i_j:
             assert(v in Czi)
-            for l in range(i+1, j):
-                v not in Czl # (probably or guaranteed?)
+            for l in range(0, j):
+                v not in Czl
 
 ```
 

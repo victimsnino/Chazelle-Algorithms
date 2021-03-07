@@ -53,6 +53,7 @@ public:
 
     size_t FindRootOfSubGraph(size_t i);
 
+    void ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func);
     void ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const;
 
 private:
