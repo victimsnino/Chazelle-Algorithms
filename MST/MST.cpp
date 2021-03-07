@@ -78,7 +78,12 @@ static uint32_t CalculateTargetSize(uint32_t t, uint32_t node_height)
 namespace MST
 {
 using Edge = Graph::Details::Edge;
-using Cluster = std::set<std::reference_wrapper<const Edge>>;
+using Cluster = std::set<std::reference_wrapper<const Edge>, decltype([](const std::reference_wrapper<const Edge>& left,
+                                                                         const std::reference_wrapper<const Edge>&
+                                                                         right)
+{
+    return left.get() < right.get();
+})>;
 
 template<size_t c>
 class MSTTree
@@ -87,6 +92,8 @@ public:
     MSTTree(Graph::Graph& graph);
 
 private:
+    using SoftHeap = SoftHeapCpp_r<Edge, Utils::CalculateRByEps(1 / static_cast<double>(c))>;
+
     class TreeNode
     {
     public:
@@ -100,7 +107,7 @@ private:
         const std::vector<size_t>& GetVertices() const { return m_vertices; }
     private:
         std::vector<size_t> m_vertices{};
-        SoftHeapCpp<Edge>   m_heap{Utils::CalculateRByEps(1 / static_cast<double>(c))};
+        SoftHeap            m_heap{};
     };
 
 private:
@@ -131,13 +138,13 @@ private:
     uint32_t IndexToHeight(uint32_t index) const;
 
 private:
-    Graph::Graph&                                         m_graph;
-    const uint32_t                                        m_max_height;
-    const uint32_t                                        m_t;
-    std::vector<uint32_t>                                 m_target_sizes_per_height{};
-    std::stack<TreeNode>                                  m_active_path{};
-    std::vector<size_t>                                   m_vertices_inside_path{};
-    std::map<size_t, std::map<size_t, SoftHeapCpp<Edge>>> m_heaps{};
+    Graph::Graph&                                m_graph;
+    const uint32_t                               m_max_height;
+    const uint32_t                               m_t;
+    std::vector<uint32_t>                        m_target_sizes_per_height{};
+    std::stack<TreeNode>                         m_active_path{};
+    std::vector<size_t>                          m_vertices_inside_path{};
+    std::map<size_t, std::map<size_t, SoftHeap>> m_heaps{};
 };
 
 template<size_t c>
