@@ -21,50 +21,45 @@
 // SOFTWARE.
 
 #pragma once
-
-#include "MSTTreeBase.h"
-
-#include <Graph.h>
+#include <GraphDetails.h>
 #include <SoftHeapCpp.h>
 
-#include <set>
+#include <array>
+#include <optional>
 
 
-namespace MST
+namespace MST::Details
 {
-using Cluster = std::set<std::reference_wrapper<Graph::Details::Edge>, decltype([](
-                         const std::reference_wrapper<Graph::Details::Edge>& left,
-                         const std::reference_wrapper<Graph::Details::Edge>&
-                         right)
-                             {
-                                 return left.get() < right.get();
-                             })>;
-
-class MSTTree
+class EdgePtrWrapper
 {
 public:
-    MSTTree(Graph::Graph& graph, size_t c);
+    EdgePtrWrapper(Graph::Details::Edge& edge)
+        : m_edge{&edge} {}
+
+    Graph::Details::Edge& GetEdge() const { return *m_edge; }
+    Graph::Details::Edge* operator->() const { return m_edge; }
+
+    bool operator<(const EdgePtrWrapper& rhs) const { return *m_edge < *rhs.m_edge; }
+    bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
+private:
+    Graph::Details::Edge* const m_edge;
+};
+
+class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
+{
+public:
+    MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
+
+    void           Insert(EdgePtrWrapper new_key) override;
+    EdgePtrWrapper DeleteMin() override;
+    void           Meld(MSTSoftHeapDecorator& other);
+
+
+    using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
+    using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;
 
 private:
-    // Step 1,2: Boruvka
-    bool BoruvkaPhase(size_t c) const;
-
-    // Step 3: Building tree T
-    void BuildTree();
-
-private:
-    bool Extension();
-    void Retraction();
-
-    std::function<void(Graph::Details::Edge&)> CreateClustersFunctor(std::map<size_t, Cluster>& out);
-    void MoveItemsToSuitableHeapsByClusters(size_t k, ::std::list<Details::EdgePtrWrapper>&& valid_items);
-
-    void InsertToHeapForEdge(Graph::Details::Edge& edge,
-                             const Cluster&        his_cluster,
-                             size_t                k);
-
-
-private:
-    Details::MSTTreeBase m_base;
+    const std::array<std::optional<size_t>, 2> m_label;
+    std::list<EdgePtrWrapper>                  m_items{};
 };
 }

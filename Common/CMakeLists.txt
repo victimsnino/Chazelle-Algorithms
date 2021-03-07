@@ -7,8 +7,6 @@ INTERFACE
     .
 )
 
-target_link_libraries(${TARGET} INTERFACE gcem)
-
 if (MSVC)
     add_custom_target(${TARGET}_ SOURCES Common.h)
 endif()

@@ -33,26 +33,18 @@
 namespace MST
 {
 MSTTree::MSTTree(Graph::Graph& graph, size_t c)
-    : m_graph(graph)
-    , m_max_height(FindMaxHeight(graph, c))
-    , m_t(FindParamT(graph, m_max_height) + 1) // TODO
-    , m_r(Utils::CalculateRByEps(1 / static_cast<double>(c)))
+    : m_base{graph, c}
 {
-    std::cout << "d " << m_max_height << " t " << m_t << std::endl;
-
-    // TODO : Enable Boruvka phase later
-    //if (!BoruvkaPhase(c)) 
-    //    return;
-
-    InitiateTree();
+    if (!BoruvkaPhase(c)) 
+        return;
 
     BuildTree();
 }
 
-
 bool MSTTree::BoruvkaPhase(size_t c) const
 {
-    size_t count = m_t == 1 ? std::numeric_limits<uint32_t>::max() : c;
+    // TODO: ENable borubka Phase later
+   /* size_t count = FindParamT(graph, FindMaxHeight(m_base.GetGraph(), c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     while (count > 0 && m_graph.GetVertexesCount() > 1)
     {
@@ -61,32 +53,15 @@ bool MSTTree::BoruvkaPhase(size_t c) const
     }
 
     if (m_graph.GetVertexesCount() == 1)
-        return false;
+        return false;*/
     return true;
 }
-
-
-void MSTTree::InitiateTree()
-{
-    // Leafs
-    m_target_sizes_per_height.push_back(1);
-
-    for (uint32_t i = 1; i <= m_max_height; ++i)
-        m_target_sizes_per_height.push_back(CalculateTargetSize(m_t, i));
-
-    for (size_t i = 0; i < m_max_height; ++i)
-        m_active_path.push({m_r});
-
-    CreateOneVertexNode(0);
-}
-
 
 void MSTTree::BuildTree()
 {
     while (true)
     {
-        if (m_active_path.size() >= 2 &&
-            m_active_path.top().GetCountOfVertices() >= GetTargetSize(IndexToHeight(m_active_path.size() - 1)))
+        if (m_base.IsCanRetraction())
         {
             Retraction();
         }
@@ -98,121 +73,61 @@ void MSTTree::BuildTree()
     }
 }
 
-
 bool MSTTree::Extension()
 {
     return false;
 }
 
-
 void MSTTree::Retraction()
 {
-    auto last_subgraph = std::move(m_active_path.top());
-    m_active_path.pop();
+    const size_t k                  = m_base.GetIndexOfLastInPath();
+    auto         [corrupted, items] = m_base.ContractLastAddToNextAndExtractEdgesFromHeap();
 
-    ContractNode(last_subgraph);
+    for (const auto& edge : corrupted)
+        m_base.GetGraph().DisableEdge(edge->GetIndex());
 
-    auto k = m_active_path.size();
-
-    std::list<Edge> valid_items{};
-    for (const auto& heap : {&last_subgraph.GetHeap(), &GetHeap(k - 1, k)})
-    {
-        auto extracted = heap->ExtractItems();
-        for (const auto& edge : extracted.corrupted)
-            m_graph.DisableEdge(edge.GetIndex());
-
-        valid_items.splice(valid_items.end(), extracted.items);
-    }
-
-    std::ranges::transform(m_vertices_inside_path,
-                           m_vertices_inside_path.begin(),
-                           [&](size_t i) { return m_graph.FindRootOfSubGraph(i); });
-
-    const auto end = std::unique(m_vertices_inside_path.begin(), m_vertices_inside_path.end());
-
-    m_vertices_inside_path.erase(end, m_vertices_inside_path.end());
-    CreateClusters(k, std::move(valid_items));
+    MoveItemsToSuitableHeapsByClusters(k, std::move(items));
+    for (size_t i = 0; i < k - 1; ++i)
+        m_base.MeldHeapsFromTo({ i, k }, { i, k - 1 });
 }
 
-
-void MSTTree::ContractNode(const TreeNode& last_subgraph)
+void MSTTree::MoveItemsToSuitableHeapsByClusters(size_t k, std::list<Details::EdgePtrWrapper>&& valid_items)
 {
-    // TODO:  DO I NEEED TO UPDATE VALUES OF NODES?
-    const auto& vertices = last_subgraph.GetVertices();
-    if (vertices.size() <= 1)
-        return;
+    std::map<size_t, Cluster> out_vertex_to_internal_for_heaps{};
+    std::ranges::for_each(valid_items | std::views::transform(&Details::EdgePtrWrapper::GetEdge),
+                              CreateClustersFunctor(out_vertex_to_internal_for_heaps));
 
-    std::vector<size_t> edges_to_contract{};
-
-    m_graph.ForEachAvailableEdge([&](const Edge& edge)
-    {
-        if (std::ranges::all_of(edge.GetCurrentSubgraphs(m_graph), Utils::IsContainsIn(vertices)))
-            edges_to_contract.emplace_back(edge.GetIndex());
-    });
-
-    for (const auto edge : edges_to_contract)
-        m_graph.ContractEdge(edge);
-}
-
-
-void MSTTree::InsertEdgeToLastNodeHeap(Edge& edge)
-{
-    m_active_path.top().GetHeap().Insert(edge);
-    edge.SaveLastHeapIndex(m_active_path.size() - 1);
-}
-
-
-void MSTTree::CreateClusters(size_t k, std::list<Edge>&& valid_items)
-{
     std::map<size_t, Cluster> out_vertex_to_internal{};
+    m_base.GetGraph().ForEachAvailableEdge(CreateClustersFunctor(out_vertex_to_internal));
 
-    std::ranges::for_each(valid_items,
-                          [&](Edge& edge)
-                          {
-                              auto subgraphs = edge.GetCurrentSubgraphs(m_graph);
-                              if (std::ranges::all_of(subgraphs, Utils::IsContainsIn(m_vertices_inside_path)))
-                                  return;
-
-                              auto [i, j] = subgraphs;
-                              if (Utils::IsContains(m_vertices_inside_path, i))
-                                  out_vertex_to_internal[j].emplace(edge);
-                              else if (Utils::IsContains(m_vertices_inside_path, j))
-                                  out_vertex_to_internal[i].emplace(edge);
-                          });
-
-    for (auto& [out_vertex, edges] : out_vertex_to_internal)
+    for (auto& [out_vertex, edges] : out_vertex_to_internal_for_heaps)
     {
         const auto cheapest_edge_ref = edges.begin();
         edges.erase(cheapest_edge_ref);
 
         for (const auto& edge : edges)
-            m_graph.DisableEdge(edge.get().GetIndex());
+            m_base.GetGraph().DisableEdge(edge.get().GetIndex());
 
-        InsertToHeapForEdge(cheapest_edge_ref->get(), edges, k);
+        InsertToHeapForEdge(cheapest_edge_ref->get(), out_vertex_to_internal[out_vertex], k);
     }
 }
 
-
-void MSTTree::InsertToHeapForEdge(Edge&          edge,
-                                  const Cluster& his_cluster,
-                                  size_t         k)
+void MSTTree::InsertToHeapForEdge(Graph::Details::Edge& edge,
+                                  const Cluster&        his_cluster,
+                                  size_t                k)
 {
     auto [i, j] = edge.GetLastHeapIndex();
 
     assert(i.has_value());
 
-    auto indexes_view = his_cluster | std::views::transform(&Edge::GetLastHeapIndex);
+    auto indexes_view = his_cluster | std::views::transform(&Graph::Details::Edge::GetLastHeapIndex);
 
-    if (i == k - 1 && j == k || i == k && !j.has_value()
-        && Utils::IsContains(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}))
+    if (i == k - 1 && j == k || 
+        i == k && !j.has_value() && Utils::IsContains(indexes_view, std::array<std::optional<size_t>, 2>{k - 1, k}))
     {
-        assert(m_active_path.size() == k);
-        m_active_path.top().GetHeap().Insert(edge); // H(k-1)
-        edge.SaveLastHeapIndex(k - 1);
+        m_base.GetLastNodeHeap().Insert(edge); // H(k-1)
         return;
     }
-
-    assert(i == k && !j.has_value());
 
     auto index_to_insert = std::ranges::find_if(indexes_view,
                                                 [&](const std::array<std::optional<size_t>, 2>& indexes)
@@ -222,40 +137,22 @@ void MSTTree::InsertToHeapForEdge(Edge&          edge,
     if (index_to_insert == std::cend(indexes_view))
         throw std::out_of_range{"Cant'f find suitable heap"};
 
-    GetHeap((*index_to_insert)[0].value(), k).Insert(edge);
-    edge.SaveLastHeapIndex((*index_to_insert)[0].value(), k);
+    m_base.GetHeap((*index_to_insert)[0].value(), k).Insert(edge);
 }
 
-
-void MSTTree::CreateOneVertexNode(size_t vertex)
+std::function<void(Graph::Details::Edge&)> MSTTree::CreateClustersFunctor(std::map<size_t, Cluster>& out)
 {
-    vertex = m_graph.FindRootOfSubGraph(vertex);
-
-    m_vertices_inside_path.push_back(vertex);
-    auto& node = m_active_path.emplace(vertex);
-
-    m_graph.ForEachAvailableEdge([&](Edge& edge)
+    return [&](Graph::Details::Edge& edge)
     {
-        if (Utils::IsContains(edge.GetCurrentSubgraphs(m_graph), vertex))
-            InsertEdgeToLastNodeHeap(edge);
-    });
-}
+        auto subgraphs = edge.GetCurrentSubgraphs(m_base.GetGraph());
+        if (std::ranges::all_of(subgraphs, Utils::IsContainsIn(m_base.GetVerticesInsidePath())))
+            return;
 
-
-uint32_t MSTTree::GetTargetSize(uint32_t node_height) const
-{
-    return m_target_sizes_per_height[node_height];
-}
-
-
-uint32_t MSTTree::IndexToHeight(uint32_t index) const
-{
-    return m_max_height - index - 1;
-}
-
-MSTTree::SoftHeap& MSTTree::GetHeap(size_t i, size_t j)
-{
-    auto& heaps = m_heaps[i];
-    return heaps.emplace(j, m_r).first->second;
+        auto [i, j] = subgraphs;
+        if (Utils::IsContains(m_base.GetVerticesInsidePath(), i))
+            out[j].emplace(edge);
+        else if (Utils::IsContains(m_base.GetVerticesInsidePath(), j))
+            out[i].emplace(edge);
+    };
 }
 }

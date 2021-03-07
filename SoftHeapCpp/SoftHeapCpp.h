@@ -39,9 +39,12 @@ class SoftHeapCpp
 {
 public:
     SoftHeapCpp(size_t r);
+    virtual          ~SoftHeapCpp() = default;
 
-    void     Insert(ItemType new_key);
-    ItemType DeleteMin();
+    virtual void     Insert(ItemType new_key);
+    virtual ItemType DeleteMin();
+
+    virtual void Meld(SoftHeapCpp& other);
 
     struct ExtractedItems
     {
@@ -49,7 +52,7 @@ public:
         std::list<ItemType> items{};
     };
 
-    ExtractedItems ExtractItems();
+    virtual ExtractedItems ExtractItems();
 private:
     struct Node
     {
@@ -212,6 +215,18 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
     } /* end of outer while loop */
 
     return h->GetQueue()->PopValue();
+}
+
+template<typename ItemType>
+void SoftHeapCpp<ItemType>::Meld(SoftHeapCpp& other)
+{
+    auto           h = other.m_header->GetNext();
+
+    while (h != other.m_tail)
+    {
+        Meld(h->ExtractQueue());
+        h = h->GetNext();
+    }
 }
 
 template<typename ItemType>

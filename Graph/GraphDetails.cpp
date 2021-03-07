@@ -62,9 +62,9 @@ namespace Graph::Details
         return { graph.FindRootOfSubGraph(m_i), graph.FindRootOfSubGraph(m_j)};
     }
 
-    void Edge::SaveLastHeapIndex(size_t i, std::optional<size_t> j)
+    void Edge::SetLastHeapIndex(std::array<std::optional<size_t>, 2> label)
     {
-        m_last_heap_index = { i, j };
+        m_last_heap_index = label;
     }
 
     MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)

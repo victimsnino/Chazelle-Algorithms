@@ -30,7 +30,7 @@
 
 namespace Utils
 {
-constexpr size_t CalculateRByEps(double eps)
+inline size_t CalculateRByEps(double eps)
 {
     return static_cast<size_t>(2.0 + 2.0 * std::ceil(std::log(1.0 / eps)));
 }
@@ -75,7 +75,7 @@ int SoftHeapSelect(std::vector<int> a, int k)
 template <typename Rng, typename T>
 bool IsContains(Rng&& rng, T&& value)
 {
-    return std::ranges::find(std::as_const(rng), std::forward<T>(value)) != std::cend(rng);
+    return std::ranges::find(rng, std::forward<T>(value)) != std::cend(rng);
 }
 
 template <template <typename, typename> class Rng, typename T, typename Alloc = std::allocator<T>>

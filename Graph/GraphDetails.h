@@ -60,7 +60,7 @@ public:
     void SetIsDisabled() { m_is_disabled = true; }
     bool IsDisabled() const { return m_is_disabled; }
 
-    void SaveLastHeapIndex(size_t i, std::optional<size_t> j = {});
+    void                                 SetLastHeapIndex(std::array<std::optional<size_t>, 2> label);
     std::array<std::optional<size_t>, 2> GetLastHeapIndex() const { return m_last_heap_index; }
 
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
