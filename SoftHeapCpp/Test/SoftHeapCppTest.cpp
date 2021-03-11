@@ -208,3 +208,41 @@ TEST(SoftHeapCpp, ExtractCorruptedItems)
     EXPECT_THAT(values.corrupted, testing::ElementsAre(2));
     EXPECT_THAT(values.items, testing::SizeIs(count - 3));
 }
+
+TEST(SoftHeapCpp, FindMinEmpty)
+{
+    SoftHeapCpp<int> heap(0);
+    heap.Insert(1);
+
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(heap.DeleteMin(), 1);
+
+    EXPECT_EQ(heap.FindMin(), nullptr);
+}
+
+TEST(SoftHeapCpp, FindMin)
+{
+    SoftHeapCpp<int>    heap(0);
+    constexpr const int count = 9;
+
+    for (int i = 1; i <= count; ++i)
+        heap.Insert(i);
+
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(*heap.FindMin(), 1);
+    EXPECT_EQ(heap.DeleteMin(), 1);
+
+    EXPECT_EQ(*heap.FindMin(), 3);
+    EXPECT_EQ(*heap.FindMin(), 3);
+    EXPECT_EQ(*heap.FindMin(), 3);
+    EXPECT_EQ(heap.DeleteMin(), 3);
+
+    EXPECT_EQ(*heap.FindMin(), 2);
+    EXPECT_EQ(*heap.FindMin(), 2);
+    EXPECT_EQ(*heap.FindMin(), 2);
+    EXPECT_EQ(heap.DeleteMin(), 2);
+
+}

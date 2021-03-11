@@ -39,12 +39,7 @@ class SoftHeapCpp
 {
 public:
     SoftHeapCpp(size_t r);
-    virtual          ~SoftHeapCpp() = default;
-
-    virtual void     Insert(ItemType new_key);
-    virtual ItemType DeleteMin();
-
-    virtual void Meld(SoftHeapCpp& other);
+    virtual ~SoftHeapCpp() = default;
 
     struct ExtractedItems
     {
@@ -52,7 +47,13 @@ public:
         std::list<ItemType> items{};
     };
 
+    virtual void     Insert(ItemType new_key);
+    virtual ItemType DeleteMin();
+
+    virtual void           Meld(SoftHeapCpp& other);
     virtual ExtractedItems ExtractItems();
+
+    const ItemType* FindMin();
 private:
     struct Node
     {
@@ -110,6 +111,12 @@ private:
                 m_child->ExtractCorruptedItems(result);
         }
 
+        const ItemType& FrontValue()
+        {
+            assert(!!m_values && !m_values->empty());
+            return m_values->front();
+        }
+
         ItemType PopValue()
         {
             assert(!!m_values && !m_values->empty());
@@ -151,8 +158,9 @@ private:
         const size_t          m_rank{};
     };
 
-    void Meld(std::unique_ptr<Node> q);
-    void FixMinlist(std::shared_ptr<Head> h);
+    Node* FindMinNode();
+    void  Meld(std::unique_ptr<Node> q);
+    void  FixMinlist(std::shared_ptr<Head> h);
 private:
     std::shared_ptr<Head> m_header{};
     std::shared_ptr<Head> m_tail{};
@@ -176,51 +184,24 @@ void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
 }
 
 template<typename ItemType>
+const ItemType* SoftHeapCpp<ItemType>::FindMin()
+{
+    const auto& node = FindMinNode();
+    return !node || node->IsNoValues() ? nullptr : &node->FrontValue();
+}
+
+template<typename ItemType>
 ItemType SoftHeapCpp<ItemType>::DeleteMin()
 {
-    assert(m_header->GetNext());
-
-    auto h = m_header->GetNext()->GetSuffixMin();
-    assert(h);
-
-    while (h->GetQueue()->IsNoValues())
-    {
-        size_t                                               child_count = 0;
-        h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node) { child_count += 1; });
-
-        // remeld childs
-        if (child_count < h->GetRank() / 2)
-        {
-            h->GetPrev()->SetNext(h->GetNext());
-            h->GetNext()->SetPrev(h->GetPrev());
-            FixMinlist(h->GetPrev());
-
-            h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node)
-            {
-                Meld(node->ExtractChild());
-            });
-        }
-        else
-        {
-            h->GetQueue()->Sift(m_r);
-            if (h->GetQueue()->IsInfntyCkey())
-            {
-                h->GetPrev()->SetNext(h->GetNext());
-                h->GetNext()->SetPrev(h->GetPrev());
-                h = h->GetPrev();
-            }
-            FixMinlist(h);
-        }
-        h = m_header->GetNext()->GetSuffixMin();
-    } /* end of outer while loop */
-
-    return h->GetQueue()->PopValue();
+    auto node = FindMinNode();
+    assert(node);
+    return node->PopValue();
 }
 
 template<typename ItemType>
 void SoftHeapCpp<ItemType>::Meld(SoftHeapCpp& other)
 {
-    auto           h = other.m_header->GetNext();
+    auto h = other.m_header->GetNext();
 
     while (h != other.m_tail)
     {
@@ -244,6 +225,47 @@ typename SoftHeapCpp<ItemType>::ExtractedItems SoftHeapCpp<ItemType>::ExtractIte
     result.corrupted.unique();
     result.items.unique();
     return result;
+}
+
+template<typename ItemType>
+typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::FindMinNode()
+{
+    assert(m_header->GetNext());
+
+    std::shared_ptr<Head> h = m_header->GetNext()->GetSuffixMin();
+
+    while (h && h->GetQueue()->IsNoValues())
+    {
+        size_t                                               child_count = 0;
+        h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node) { child_count += 1; });
+
+        // remeld childs
+        if (child_count < h->GetRank() / 2)
+        {
+            h->GetPrev()->SetNext(h->GetNext());
+            h->GetNext()->SetPrev(h->GetPrev());
+            FixMinlist(h->GetPrev());
+
+            h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node)
+                {
+                    Meld(node->ExtractChild());
+                });
+        }
+        else
+        {
+            h->GetQueue()->Sift(m_r);
+            if (h->GetQueue()->IsInfntyCkey())
+            {
+                h->GetPrev()->SetNext(h->GetNext());
+                h->GetNext()->SetPrev(h->GetPrev());
+                h = h->GetPrev();
+            }
+            FixMinlist(h);
+        }
+        h = m_header->GetNext()->GetSuffixMin();
+    } /* end of outer while loop */
+
+    return h ? h->GetQueue().get() : nullptr;
 }
 
 template<typename ItemType>
