@@ -57,6 +57,7 @@ public:
 
     using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
     using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;
+    using SoftHeapCpp<EdgePtrWrapper>::FindMin;
 
 private:
     const std::array<std::optional<size_t>, 2> m_label;

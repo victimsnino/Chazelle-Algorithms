@@ -62,6 +62,8 @@ public:
     std::vector<Heap>&         GetCrossHeaps() { return m_cross_heaps; }
     const std::vector<size_t>& GetVertices() const { return m_vertices; }
     size_t                     GetLabel() const { return m_label; }
+
+    Heap* FindMin();
 private:
     void BuildCrossHeaps(size_t r);
 
@@ -80,7 +82,7 @@ public:
     MSTTreeBase(Graph::Graph& graph, size_t c);
 
     TreeNode ContractLastNode();
-    std::optional<EdgePtrWrapper> FindMinAllHeaps() const;
+    SoftHeap* FindMinAllHeaps() const;
 
     /*======================================= GETTERS ===================================== */
     Graph::Graph& GetGraph() const { return m_graph; }

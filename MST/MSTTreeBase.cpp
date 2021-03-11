@@ -43,6 +43,22 @@ static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, s
 
 namespace MST::Details
 {
+TreeNode::Heap* TreeNode::FindMin()
+{
+    auto min_value = m_heap.FindMin();
+    auto min_heap  = &m_heap;
+    for (auto& heap : m_cross_heaps)
+    {
+        if (auto new_value = heap.FindMin(); !min_value || *new_value < *min_value)
+        {
+            min_value = new_value;
+            min_heap  = &heap;
+        }
+    }
+
+    return min_value ? min_heap : nullptr;
+}
+
 void TreeNode::BuildCrossHeaps(size_t r)
 {
     for (size_t i = 0; i < m_label; ++i)
@@ -73,9 +89,22 @@ TreeNode MSTTreeBase::ContractLastNode()
     return last_subgraph;
 }
 
-std::optional<EdgePtrWrapper> MSTTreeBase::FindMinAllHeaps() const
+MSTTreeBase::SoftHeap* MSTTreeBase::FindMinAllHeaps() const
 {
-    
+    auto transformed = m_active_path | std::views::transform(&TreeNode::FindMin);
+    const auto itr = std::ranges::min_element(transformed,
+                                              [](TreeNode::Heap* left, TreeNode::Heap* right) -> bool
+                                              {
+                                                  if (!left)
+                                                      return true;
+
+                                                  if (!right)
+                                                      return false;
+
+                                                  return left->FindMin() < right->FindMin();
+                                              });
+
+    return itr == transformed.end() ? nullptr : *itr;
 }
 
 
