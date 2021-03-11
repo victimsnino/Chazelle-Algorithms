@@ -56,21 +56,26 @@ MSTTreeBase::MSTTreeBase(Graph::Graph& graph, size_t c)
 {
     // Now we want to push only one leaf... skip rest part of path
     for (size_t i = 0; i < GetMaxHeight(); ++i)
-        m_active_path.emplace(m_r, i);
+        m_active_path.emplace_back(m_r, i);
 
     CreateOneVertexNode(0);
 }
 
 TreeNode MSTTreeBase::ContractLastNode()
 {
-    auto last_subgraph = std::move(m_active_path.top());
-    m_active_path.pop();
+    auto last_subgraph = std::move(m_active_path.back());
+    m_active_path.pop_back();
 
     ContractNode(last_subgraph);
 
     UpdateActivePathIndexes();
 
     return last_subgraph;
+}
+
+std::optional<EdgePtrWrapper> MSTTreeBase::FindMinAllHeaps() const
+{
+    
 }
 
 
@@ -108,7 +113,7 @@ void MSTTreeBase::CreateOneVertexNode(size_t vertex)
     vertex = UpdateNodeIndex(vertex);
 
     m_vertices_inside_path.push_back(vertex);
-    auto& node = m_active_path.emplace(vertex, m_r, m_active_path.size());
+    auto& node = m_active_path.emplace_back(vertex, m_r, m_active_path.size());
 
     m_graph.ForEachAvailableEdge([&](Graph::Details::Edge& edge)
     {
@@ -117,9 +122,9 @@ void MSTTreeBase::CreateOneVertexNode(size_t vertex)
     });
 }
 
-bool MSTTreeBase::IsCanRetraction() const
+bool MSTTreeBase::IsNeedRetraction() const
 {
     return m_active_path.size() >= 2 &&
-            m_active_path.top().GetVertices().size() >= GetTargetSize(m_active_path.size() - 1);
+            m_active_path.back().GetVertices().size() >= GetTargetSize(m_active_path.size() - 1);
 }
 } // namespace MST::Details

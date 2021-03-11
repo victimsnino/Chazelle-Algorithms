@@ -80,12 +80,13 @@ public:
     MSTTreeBase(Graph::Graph& graph, size_t c);
 
     TreeNode ContractLastNode();
+    std::optional<EdgePtrWrapper> FindMinAllHeaps() const;
 
     /*======================================= GETTERS ===================================== */
     Graph::Graph& GetGraph() const { return m_graph; }
-    TreeNode&     GetLastNode() { return m_active_path.top(); }
+    TreeNode&     GetLastNode() { return m_active_path.back(); }
 
-    bool                       IsCanRetraction() const;
+    bool                       IsNeedRetraction() const;
     size_t                     UpdateNodeIndex(size_t i) const { return m_graph.FindRootOfSubGraph(i); }
     const std::vector<size_t>& GetVerticesInsidePath() const { return m_vertices_inside_path; }
 private:
@@ -103,7 +104,7 @@ private:
     const size_t              m_r;
     const std::vector<size_t> m_target_sizes_per_height;
 
-    std::stack<TreeNode> m_active_path;
-    std::vector<size_t>  m_vertices_inside_path{};
+    std::vector<TreeNode> m_active_path;
+    std::vector<size_t>   m_vertices_inside_path{};
 };
 }

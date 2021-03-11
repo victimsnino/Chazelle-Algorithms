@@ -61,7 +61,7 @@ void MSTTree::BuildTree()
 {
     while (true)
     {
-        if (m_base.IsCanRetraction())
+        if (m_base.IsNeedRetraction())
         {
             Retraction();
         }
@@ -104,7 +104,7 @@ void MSTTree::Retraction()
 }
 
 void MSTTree::MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHeapDecorator>& cross_heaps,
-                                                 std::list<Details::EdgePtrWrapper>&&              valid_items)
+                                                 std::list<Details::EdgePtrWrapper>&&        valid_items)
 {
     std::map<size_t, Cluster> out_vertex_to_internals{};
     std::ranges::for_each(valid_items,
