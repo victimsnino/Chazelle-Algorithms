@@ -50,10 +50,10 @@ class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
 public:
     MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
 
-    void           Insert(EdgePtrWrapper new_key) override;
-    EdgePtrWrapper DeleteMin() override;
-    void           Meld(MSTSoftHeapDecorator& other);
-
+    void                             Insert(EdgePtrWrapper new_key) override;
+    EdgePtrWrapper                   DeleteMin() override;
+    void                             Meld(MSTSoftHeapDecorator& other);
+    const std::list<EdgePtrWrapper>& GetItemsInside() const { return m_items; }
 
     using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
     using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;

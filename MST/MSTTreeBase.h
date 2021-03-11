@@ -33,44 +33,61 @@ namespace MST::Details
 class TreeNode
 {
 public:
+    using Heap = MSTSoftHeapDecorator;
+
     TreeNode(size_t r, size_t label)
-        : m_heap{r, label} {}
+        : m_label{label}
+        , m_heap{r, label}
+    {
+        BuildCrossHeaps(r);
+    }
 
     TreeNode(size_t vertex, size_t r, size_t label)
-        : m_heap{r, label}
+        : m_label{label}
+        , m_heap{r, label}
     {
+        BuildCrossHeaps(r);
         AddVertex(vertex);
     }
 
-    void                  AddVertex(size_t vertex) { m_vertices.push_back(vertex); }
-    MSTSoftHeapDecorator& GetHeap() { return m_heap; }
+    void              AddVertex(size_t vertex) { m_vertices.push_back(vertex); }
 
+    Heap& GetCrossHeapFrom(size_t i)
+    {
+        assert(i < m_cross_heaps.size());
+        return m_cross_heaps[i];
+    }
+
+    Heap&                      GetHeap() { return m_heap; }
+    std::vector<Heap>&         GetCrossHeaps() { return m_cross_heaps; }
     const std::vector<size_t>& GetVertices() const { return m_vertices; }
+    size_t                     GetLabel() const { return m_label; }
+private:
+    void BuildCrossHeaps(size_t r);
 
 private:
-    std::vector<size_t>  m_vertices{};
-    MSTSoftHeapDecorator m_heap;
+    const size_t        m_label;
+    std::vector<size_t> m_vertices{};
+
+    Heap              m_heap;
+    std::vector<Heap> m_cross_heaps;
 };
 
 class MSTTreeBase
 {
 public:
-    using SoftHeap = MSTSoftHeapDecorator;
-
+    using SoftHeap = TreeNode::Heap;
     MSTTreeBase(Graph::Graph& graph, size_t c);
 
-    SoftHeap::ExtractedItems ContractLastAddToNextAndExtractEdgesFromHeap();
-    void                     MeldHeapsFromTo(std::array<size_t, 2> from, std::array<size_t, 2> to);
+    TreeNode ContractLastNode();
 
     /*======================================= GETTERS ===================================== */
+    Graph::Graph& GetGraph() const { return m_graph; }
+    TreeNode&     GetLastNode() { return m_active_path.top(); }
+
     bool                       IsCanRetraction() const;
-    Graph::Graph&              GetGraph() const { return m_graph; }
-    size_t                     GetIndexOfLastInPath() const { return m_active_path.size() - 1; }
+    size_t                     UpdateNodeIndex(size_t i) const { return m_graph.FindRootOfSubGraph(i); }
     const std::vector<size_t>& GetVerticesInsidePath() const { return m_vertices_inside_path; }
-
-    SoftHeap& GetLastNodeHeap();
-    SoftHeap& GetHeap(size_t i, size_t j);
-
 private:
     /* ===================================== MODIFIERS =====================================*/
     void CreateOneVertexNode(size_t vertex);
@@ -79,8 +96,8 @@ private:
 
     /*======================================= GETTERS ===================================== */
     size_t GetMaxHeight() const { return m_target_sizes_per_height.size() - 1; }
-    size_t UpdateNodeIndex(size_t i) const { return m_graph.FindRootOfSubGraph(i); }
-    size_t GetTargetSize(size_t node_index) const;
+    size_t GetTargetSize(size_t node_index) const { return m_target_sizes_per_height[GetMaxHeight() - node_index]; }
+
 private:
     Graph::Graph&             m_graph;
     const size_t              m_r;
@@ -88,7 +105,5 @@ private:
 
     std::stack<TreeNode> m_active_path;
     std::vector<size_t>  m_vertices_inside_path{};
-
-    std::map<size_t, std::map<size_t, SoftHeap>> m_cross_heaps{};
 };
 }

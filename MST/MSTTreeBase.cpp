@@ -43,6 +43,12 @@ static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, s
 
 namespace MST::Details
 {
+void TreeNode::BuildCrossHeaps(size_t r)
+{
+    for (size_t i = 0; i < m_label; ++i)
+        m_cross_heaps.emplace_back(r, i, m_label);
+}
+
 MSTTreeBase::MSTTreeBase(Graph::Graph& graph, size_t c)
     : m_graph(graph)
     , m_r(Utils::CalculateRByEps(1 / static_cast<double>(c)))
@@ -55,38 +61,18 @@ MSTTreeBase::MSTTreeBase(Graph::Graph& graph, size_t c)
     CreateOneVertexNode(0);
 }
 
-MSTTreeBase::SoftHeap::ExtractedItems MSTTreeBase::ContractLastAddToNextAndExtractEdgesFromHeap()
+TreeNode MSTTreeBase::ContractLastNode()
 {
-    auto k = GetIndexOfLastInPath();
-
     auto last_subgraph = std::move(m_active_path.top());
     m_active_path.pop();
 
     ContractNode(last_subgraph);
 
-    m_active_path.top().AddVertex(UpdateNodeIndex(last_subgraph.GetVertices()[0]));
-
     UpdateActivePathIndexes();
 
-    auto extracted      = last_subgraph.GetHeap().ExtractItems();
-    auto heap_extracted = GetHeap(k - 1, k).ExtractItems();
-
-    m_cross_heaps[k - 1].erase(k);
-
-    extracted.items.splice(extracted.items.end(), heap_extracted.items);
-    extracted.corrupted.splice(extracted.corrupted.end(), heap_extracted.corrupted);
-
-    return extracted;
+    return last_subgraph;
 }
 
-void MSTTreeBase::MeldHeapsFromTo(std::array<size_t, 2> from, std::array<size_t, 2> to)
-{
-    auto heaps_from = m_cross_heaps[from[0]];
-    if (heaps_from.find(from[1]) == heaps_from.cend())
-        return;
-
-    GetHeap(to[0], to[1]).Meld(GetHeap(from[0], from[1]));
-}
 
 void MSTTreeBase::ContractNode(const TreeNode& node)
 {
@@ -131,25 +117,9 @@ void MSTTreeBase::CreateOneVertexNode(size_t vertex)
     });
 }
 
-size_t MSTTreeBase::GetTargetSize(size_t node_index) const
-{
-    return m_target_sizes_per_height[GetMaxHeight() - node_index];
-}
-
-MSTTreeBase::SoftHeap& MSTTreeBase::GetLastNodeHeap()
-{
-    return m_active_path.top().GetHeap();
-}
-
 bool MSTTreeBase::IsCanRetraction() const
 {
     return m_active_path.size() >= 2 &&
             m_active_path.top().GetVertices().size() >= GetTargetSize(m_active_path.size() - 1);
-}
-
-MSTTreeBase::SoftHeap& MSTTreeBase::GetHeap(size_t i, size_t j)
-{
-    auto& heaps = m_cross_heaps[i];
-    return heaps.try_emplace(j, m_r, i, j ).first->second;
 }
 } // namespace MST::Details

@@ -50,12 +50,12 @@ private:
     bool Extension();
     void Retraction();
 
-    std::function<void(Graph::Details::Edge&)> CreateClustersFunctor(std::map<size_t, Cluster>& out);
-    void MoveItemsToSuitableHeapsByClusters(size_t k, ::std::list<Details::EdgePtrWrapper>&& valid_items);
+    void MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHeapDecorator>& cross_heaps,
+                                            std::list<Details::EdgePtrWrapper>&&              valid_items);
 
-    void InsertToHeapForEdge(Graph::Details::Edge& edge,
-                             const Cluster&        his_cluster,
-                             size_t                k);
+    void InsertToHeapForEdge(Graph::Details::Edge&                       edge,
+                             bool                                        is_his_cluster_empty,
+                             std::vector<Details::MSTSoftHeapDecorator>& cross_heaps);
 
 
 private:
