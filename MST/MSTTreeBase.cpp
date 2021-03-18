@@ -26,6 +26,11 @@
 
 #include <Common.h>
 
+#include <ranges>
+
+namespace rg = std::ranges;
+namespace rgv = std::ranges::views;
+
 static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, size_t c)
 {
     const auto max_height = MST::FindMaxHeight(graph, c);
@@ -43,132 +48,34 @@ static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, s
 
 namespace MST::Details
 {
-TreeNode::Heap* TreeNode::FindMin()
+MSTStack::MSTStack(Graph::Graph& graph, size_t c)
+    : m_graph{graph}
+    , m_r{Utils::CalculateRByEps(1 / static_cast<double>(c))}
+    , m_sizes_per_height{InitTargetSizesPerHeight(graph, c)}
 {
-    auto min_value = m_heap.FindMin();
-    auto min_heap  = &m_heap;
-    for (auto& heap : m_cross_heaps)
-    {
-        if (const auto new_value = heap.FindMin(); !min_value || new_value && *new_value < *min_value)
-        {
-            min_value = new_value;
-            min_heap  = &heap;
-        }
-    }
-
-    return min_value ? min_heap : nullptr;
+    PushNode(graph.FindRootOfSubGraph(0));
 }
 
-void TreeNode::BuildCrossHeaps(size_t r)
+void MSTStack::PushNode(size_t vertex)
 {
-    for (size_t i = 0; i < m_label; ++i)
-        m_cross_heaps.emplace_back(r, i, m_label);
-}
+    auto index = GetSize();
+    if (index == 0)
+        index = GetMaxHeight();
 
-MSTTreeBase::MSTTreeBase(Graph::Graph& graph, size_t c)
-    : m_graph(graph)
-    , m_r(Utils::CalculateRByEps(1 / static_cast<double>(c)))
-    , m_target_sizes_per_height(InitTargetSizesPerHeight(graph, c))
-{
-    // Now we want to push only one leaf... skip rest part of path
-    for (size_t i = 0; i < GetMaxHeight(); ++i)
-        m_active_path.emplace_back(m_r, i);
-
-    CreateOneVertexNode(0);
-}
-
-TreeNode MSTTreeBase::ContractLastNode()
-{
-    auto last_subgraph = std::move(m_active_path.back());
-    m_active_path.pop_back();
-
-    ContractNode(last_subgraph);
-
-    UpdateActivePathIndexes();
-
-    return last_subgraph;
-}
-
-MSTTreeBase::SoftHeap* MSTTreeBase::FindMinAllHeaps()
-{
-    auto itr = std::min_element(m_active_path.begin(),
-                                m_active_path.end(),
-                                [&](TreeNode& left, TreeNode& right) -> bool
-                                {
-                                    auto left_heap  = left.FindMin();
-                                    auto right_heap = right.FindMin();
-                                    if (!left_heap)
-                                        return false;
-
-                                    if (!right_heap)
-                                        return true;
-
-                                    return left_heap->FindMin() < right_heap->FindMin();
-                                });
-
-    return itr == m_active_path.end() ? nullptr : itr->FindMin();
-}
-
-void MSTTreeBase::AddNodeByEdge(EdgePtrWrapper&& edge)
-{
-    auto[i,j] = edge->GetCurrentSubgraphs(m_graph);
-    GetLastNode().SetMinLink(&edge.GetEdge());
-
-    if (Utils::IsContains(m_vertices_inside_path, i))
-        CreateOneVertexNode(j);
-    else
-        CreateOneVertexNode(i);
-
-    // TODO: Remove old border edges and appropriate creation of new border edges
-}
-
-
-void MSTTreeBase::ContractNode(const TreeNode& node)
-{
-    // TODO:  DO I NEEED TO UPDATE VALUES OF NODES?
-    const auto& vertices = node.GetVertices();
-    if (vertices.size() <= 1)
-        return;
-
-    std::vector<size_t> edges_to_contract{};
+    m_vertices_inside.push_front(vertex);
+    auto& new_node = m_nodes.emplace_back(m_vertices_inside.cbegin(),
+                                          index,
+                                          m_sizes_per_height[GetMaxHeight() - index]);
 
     m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
     {
-        if (std::ranges::all_of(edge.GetCurrentSubgraphs(m_graph), Utils::IsContainsIn(vertices)))
-            edges_to_contract.emplace_back(edge.GetIndex());
+        const auto view = m_vertices_inside | rgv::filter(Utils::IsInRange(edge.GetCurrentSubgraphs(m_graph))) |
+                Utils::to_vector;
+
+        if (view.empty() || view.size() == 2)
+            return;
+
+        new_node.GetHeap().Insert(EdgePtrWrapper{edge});
     });
-
-    for (const auto edge : edges_to_contract)
-        m_graph.ContractEdge(edge);
-}
-
-void MSTTreeBase::UpdateActivePathIndexes()
-{
-    std::ranges::transform(m_vertices_inside_path,
-                           m_vertices_inside_path.begin(),
-                           [&](size_t i) { return m_graph.FindRootOfSubGraph(i); });
-
-    m_vertices_inside_path.erase(std::unique(m_vertices_inside_path.begin(), m_vertices_inside_path.end()),
-                                 m_vertices_inside_path.end());
-}
-
-void MSTTreeBase::CreateOneVertexNode(size_t vertex)
-{
-    vertex = UpdateNodeIndex(vertex);
-
-    m_vertices_inside_path.push_back(vertex);
-    auto& node = m_active_path.emplace_back(vertex, m_r, m_active_path.size());
-
-    m_graph.ForEachAvailableEdge([&](Graph::Details::Edge& edge)
-    {
-        if (Utils::IsContains(edge.GetCurrentSubgraphs(m_graph), vertex))
-            node.GetHeap().Insert(edge);
-    });
-}
-
-bool MSTTreeBase::IsNeedRetraction() const
-{
-    return m_active_path.size() >= 2 &&
-            m_active_path.back().GetVertices().size() >= GetTargetSize(m_active_path.size() - 1);
 }
 } // namespace MST::Details

@@ -30,19 +30,25 @@
 
 namespace MST::Details
 {
+using Label = std::array<std::optional<size_t>, 2>;
+
 class EdgePtrWrapper
 {
 public:
-    EdgePtrWrapper(Graph::Details::Edge& edge)
+    EdgePtrWrapper(const Graph::Details::Edge& edge)
         : m_edge{&edge} {}
 
-    Graph::Details::Edge& GetEdge() const { return *m_edge; }
-    Graph::Details::Edge* operator->() const { return m_edge; }
+    const Graph::Details::Edge& GetEdge() const { return *m_edge; }
+    const Graph::Details::Edge* operator->() const { return m_edge; }
+
+    void  SetLastHeapIndex(Label label) { m_last_heap_index = label; }
+    Label GetLastHeapIndex() const { return m_last_heap_index; }
 
     bool operator<(const EdgePtrWrapper& rhs) const { return *m_edge < *rhs.m_edge; }
     bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
 private:
-    Graph::Details::Edge* const m_edge;
+    const Graph::Details::Edge* const m_edge;
+    Label                             m_last_heap_index{};
 };
 
 class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
@@ -60,7 +66,7 @@ public:
     using SoftHeapCpp<EdgePtrWrapper>::FindMin;
 
 private:
-    const std::array<std::optional<size_t>, 2> m_label;
-    std::list<EdgePtrWrapper>                  m_items{};
+    const Label               m_label;
+    std::list<EdgePtrWrapper> m_items{};
 };
 }

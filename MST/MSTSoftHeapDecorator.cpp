@@ -34,7 +34,7 @@ MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, size_t label_i, std::option
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
-    new_key->SetLastHeapIndex(m_label);
+    new_key.SetLastHeapIndex(m_label);
 
     m_items.push_back(new_key);
     SoftHeapCpp<EdgePtrWrapper>::Insert(new_key);
@@ -52,7 +52,7 @@ void MSTSoftHeapDecorator::Meld(MSTSoftHeapDecorator& other)
     std::ranges::for_each(other.m_items,
                           [&](EdgePtrWrapper& wrapper)
                           {
-                              wrapper->SetLastHeapIndex(m_label);
+                              wrapper.SetLastHeapIndex(m_label);
                           });
 
     m_items.splice(m_items.end(), other.m_items);

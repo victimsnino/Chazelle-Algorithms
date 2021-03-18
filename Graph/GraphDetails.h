@@ -60,8 +60,9 @@ public:
     void SetIsDisabled() { m_is_disabled = true; }
     bool IsDisabled() const { return m_is_disabled; }
 
-    void                                 SetLastHeapIndex(std::array<std::optional<size_t>, 2> label);
-    std::array<std::optional<size_t>, 2> GetLastHeapIndex() const { return m_last_heap_index; }
+    // TODO: Enable or remove
+    //void                                 SetLastHeapIndex(std::array<std::optional<size_t>, 2> label);
+    //std::array<std::optional<size_t>, 2> GetLastHeapIndex() const { return m_last_heap_index; }
 
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
     bool operator==(const Edge& rhs) const { return m_index == rhs.m_index; }
@@ -73,7 +74,8 @@ private:
     size_t                               m_index;
     bool                                 m_is_contracted{false};
     bool                                 m_is_disabled{false};
-    std::array<std::optional<size_t>, 2> m_last_heap_index{};
+    // TODO: Enable or remove
+    //std::array<std::optional<size_t>, 2> m_last_heap_index{};
 };
 
 class MemberOfSubGraph

@@ -73,4 +73,4 @@ uint32_t CalculateTargetSize(uint32_t t, uint32_t node_height)
         return std::pow(S(t, 1u), 3u);
     return std::pow(S(t - 1, S(t, node_height - 1)), 3u);
 }
-}
+} // namespace MST

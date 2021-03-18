@@ -40,7 +40,7 @@ int SoftHeapSelect(std::vector<int> a, int k)
 {
     if (a.size() <= 3)
     {
-        std::nth_element(a.begin(), a.begin() +k, a.end());
+        std::ranges::nth_element(a, a.begin() + k);
         return a[k];
     }
 
@@ -72,16 +72,38 @@ int SoftHeapSelect(std::vector<int> a, int k)
 }
 
 
-template <typename Rng, typename T>
-bool IsContains(Rng&& rng, T&& value)
+template<typename Rng, typename T>
+bool IsRangeContains(const Rng& rng, const T& value)
 {
-    return std::ranges::find(rng, std::forward<T>(value)) != std::cend(rng);
+    return std::ranges::find(rng, value) != std::cend(rng);
 }
 
-template <template <typename, typename> class Rng, typename T, typename Alloc = std::allocator<T>>
-std::function<bool(const T&)> IsContainsIn(const Rng<T, Alloc>& rng)
+template<typename Rng, typename T = typename Rng::value_type>
+std::function<bool(const T&)> IsInRange(const Rng& rng)
 {
-    return [&](const T& value) {return IsContains(rng, value); };
+    return [&](const T& val) { return IsRangeContains(rng, val); };
+}
+template<std::ranges::range R>
+constexpr auto ToVector(R&& r)
+{
+    using elem_t = std::decay_t<std::ranges::range_value_t<R>>;
+    return std::vector<elem_t>{r.begin(), r.end()};
 }
 
+struct ToVectorFn
+{
+    template<typename Rng>
+    auto operator()(Rng&& rng) const
+    {
+        return ToVector(std::forward<Rng>(rng));
+    }
+
+    template<typename Rng>
+    friend auto operator|(Rng&& rng, ToVectorFn const&)
+    {
+        return ToVector(std::forward<Rng>(rng));
+    }
+};
+
+constexpr ToVectorFn to_vector{};
 } // namespace Utils

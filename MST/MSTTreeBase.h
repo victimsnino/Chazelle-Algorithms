@@ -21,99 +21,66 @@
 // SOFTWARE.
 
 #pragma once
+
 #include "MSTSoftHeapDecorator.h"
 
 #include <Graph.h>
 
-#include <stack>
 #include <vector>
 
 namespace MST::Details
 {
-class TreeNode
+class SubGraph
 {
 public:
-    using Heap = MSTSoftHeapDecorator;
+    SubGraph(std::list<size_t>::const_iterator vertex_itr, size_t index, size_t target_size, size_t r)
+        : m_index{index}
+        , m_target_size{target_size}
+        , m_vertices_begin{vertex_itr}
+        , m_vertices_end{std::next(m_vertices_begin)}
+        , m_heap{r, index} {}
 
-    TreeNode(size_t r, size_t label)
-        : m_label{label}
-        , m_heap{r, label}
+    size_t GetIndex() const
     {
-        BuildCrossHeaps(r);
+        return m_index;
     }
 
-    TreeNode(size_t vertex, size_t r, size_t label)
-        : m_label{label}
-        , m_heap{r, label}
-    {
-        BuildCrossHeaps(r);
-        AddVertex(vertex);
-    }
-
-    void              AddVertex(size_t vertex) { m_vertices.push_back(vertex); }
-
-    Heap& GetCrossHeapFrom(size_t i)
-    {
-        assert(i < m_cross_heaps.size());
-        return m_cross_heaps[i];
-    }
-
-    void SetMinLink(Graph::Details::Edge* edge)
-    {
-        m_min_link = edge;
-    }
-
-    Heap&                      GetHeap() { return m_heap; }
-    std::vector<Heap>&         GetCrossHeaps() { return m_cross_heaps; }
-    const std::vector<size_t>& GetVertices() const { return m_vertices; }
-    size_t                     GetLabel() const { return m_label; }
-
-    Heap* FindMin();
-private:
-    void BuildCrossHeaps(size_t r);
+    MSTSoftHeapDecorator& GetHeap() { return m_heap; }
 
 private:
-    const size_t          m_label; // level of the node
-    std::vector<size_t>   m_vertices{};
-    Graph::Details::Edge* m_min_link{};
+    const size_t m_index; // aka k
+    const size_t m_target_size;
 
-    Heap              m_heap;
-    std::vector<Heap> m_cross_heaps; // To nodes before this one
+    const std::list<size_t>::const_iterator m_vertices_begin;
+    const std::list<size_t>::const_iterator m_vertices_end;
+
+    MSTSoftHeapDecorator m_heap;
+
+    std::optional<EdgePtrWrapper> m_chain_link_to_next{};
+    std::vector<EdgePtrWrapper>   m_min_links_to_next_nodes{};
 };
 
-class MSTTreeBase
+class MSTStack
 {
 public:
-    using SoftHeap = TreeNode::Heap;
-    MSTTreeBase(Graph::Graph& graph, size_t c);
+    MSTStack(Graph::Graph& graph, size_t c);
 
-    TreeNode ContractLastNode();
-    SoftHeap* FindMinAllHeaps();
-    void AddNodeByEdge(EdgePtrWrapper&& edge);
-
-    /*======================================= GETTERS ===================================== */
-    Graph::Graph& GetGraph() const { return m_graph; }
-    TreeNode&     GetLastNode() { return m_active_path.back(); }
-
-    bool                       IsNeedRetraction() const;
-    size_t                     UpdateNodeIndex(size_t i) const { return m_graph.FindRootOfSubGraph(i); }
-    const std::vector<size_t>& GetVerticesInsidePath() const { return m_vertices_inside_path; }
-private:
-    /* ===================================== MODIFIERS =====================================*/
-    void CreateOneVertexNode(size_t vertex);
-    void ContractNode(const TreeNode& node);
-    void UpdateActivePathIndexes();
-
-    /*======================================= GETTERS ===================================== */
-    size_t GetMaxHeight() const { return m_target_sizes_per_height.size() - 1; }
-    size_t GetTargetSize(size_t node_index) const { return m_target_sizes_per_height[GetMaxHeight() - node_index]; }
+    //void Push();
+    //Node Pop();
 
 private:
-    Graph::Graph&             m_graph;
+    void PushNode(size_t vertex);
+
+    size_t GetSize() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
+    size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
+
+private:
+    Graph::Graph&       m_graph;
+    std::list<SubGraph> m_nodes{};
+    std::list<size_t>   m_vertices_inside{};
+
+
     const size_t              m_r;
-    const std::vector<size_t> m_target_sizes_per_height;
-
-    std::vector<TreeNode> m_active_path;
-    std::vector<size_t>   m_vertices_inside_path{};
+    const std::vector<size_t> m_sizes_per_height;
 };
 }
