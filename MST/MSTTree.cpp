@@ -75,6 +75,13 @@ void MSTTree::BuildTree()
 
 bool MSTTree::Extension()
 {
+    auto heap_with_min_value = m_base.FindMinAllHeaps();
+    if (!heap_with_min_value)
+        return false;
+
+    // Fusion();
+
+
     return false;
 }
 
@@ -129,13 +136,13 @@ void MSTTree::MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHea
         for (const auto& edge : dropped_view)
             m_base.GetGraph().DisableEdge(edge->GetIndex());
 
-        InsertToHeapForEdge(cheapest_edge_ref->GetEdge(), dropped_view.empty(), cross_heaps);
+        InsertEdgeToCorrectHeap(cheapest_edge_ref->GetEdge(), dropped_view.empty(), cross_heaps);
     }
 }
 
-void MSTTree::InsertToHeapForEdge(Graph::Details::Edge&                             edge,
-                                  bool                                              is_his_cluster_empty,
-                                  std::vector<Details::MSTSoftHeapDecorator>& cross_heaps)
+void MSTTree::InsertEdgeToCorrectHeap(Graph::Details::Edge&                       edge,
+                                      bool                                        is_his_cluster_empty,
+                                      std::vector<Details::MSTSoftHeapDecorator>& cross_heaps)
 {
     auto [i, j]   = edge.GetLastHeapIndex();
     auto [v1, v2] = edge.GetCurrentSubgraphs(m_base.GetGraph());
@@ -147,11 +154,11 @@ void MSTTree::InsertToHeapForEdge(Graph::Details::Edge&                         
     };
     assert(i.has_value());
     assert(i == m_base.GetLastNode().GetLabel() && j == m_base.GetLastNode().GetLabel() + 1
-        || !j.has_value() && i == m_base.GetLastNode().GetLabel() + 1);
+           || !j.has_value() && i == m_base.GetLastNode().GetLabel() + 1);
 
     if (!j.has_value() // from the internal heap, not cross, so it is from H(k)
-        && std::ranges::find_if(cross_heaps[i.value() - 1].GetItemsInside(), 
-            is_contains_same_vertex_fn) != cross_heaps[i.value() - 1].GetItemsInside().end()
+        && std::ranges::find_if(cross_heaps[i.value() - 1].GetItemsInside(),
+                                is_contains_same_vertex_fn) != cross_heaps[i.value() - 1].GetItemsInside().end()
         || i.value() + 1 == j // H(k-1, k)
         || is_his_cluster_empty)
     {

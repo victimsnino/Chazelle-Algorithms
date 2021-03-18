@@ -49,7 +49,7 @@ TreeNode::Heap* TreeNode::FindMin()
     auto min_heap  = &m_heap;
     for (auto& heap : m_cross_heaps)
     {
-        if (auto new_value = heap.FindMin(); !min_value || *new_value < *min_value)
+        if (const auto new_value = heap.FindMin(); !min_value || *new_value < *min_value)
         {
             min_value = new_value;
             min_heap  = &heap;
@@ -92,14 +92,14 @@ TreeNode MSTTreeBase::ContractLastNode()
 MSTTreeBase::SoftHeap* MSTTreeBase::FindMinAllHeaps() const
 {
     auto transformed = m_active_path | std::views::transform(&TreeNode::FindMin);
-    const auto itr = std::ranges::min_element(transformed,
-                                              [](TreeNode::Heap* left, TreeNode::Heap* right) -> bool
+    const auto itr = std::min_element(transformed.begin(), transformed.end(), 
+                                              [](MSTSoftHeapDecorator* left, MSTSoftHeapDecorator* right) -> bool
                                               {
                                                   if (!left)
-                                                      return true;
+                                                      return false;
 
                                                   if (!right)
-                                                      return false;
+                                                      return true;
 
                                                   return left->FindMin() < right->FindMin();
                                               });

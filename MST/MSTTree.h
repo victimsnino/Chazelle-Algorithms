@@ -51,11 +51,11 @@ private:
     void Retraction();
 
     void MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHeapDecorator>& cross_heaps,
-                                            std::list<Details::EdgePtrWrapper>&&              valid_items);
+                                            std::list<Details::EdgePtrWrapper>&&        valid_items);
 
-    void InsertToHeapForEdge(Graph::Details::Edge&                       edge,
-                             bool                                        is_his_cluster_empty,
-                             std::vector<Details::MSTSoftHeapDecorator>& cross_heaps);
+    void InsertEdgeToCorrectHeap(Graph::Details::Edge&                       edge,
+                                 bool                                        is_his_cluster_empty,
+                                 std::vector<Details::MSTSoftHeapDecorator>& cross_heaps);
 
 
 private:

@@ -68,11 +68,11 @@ private:
     void BuildCrossHeaps(size_t r);
 
 private:
-    const size_t        m_label;
+    const size_t        m_label; // level of the node
     std::vector<size_t> m_vertices{};
 
     Heap              m_heap;
-    std::vector<Heap> m_cross_heaps;
+    std::vector<Heap> m_cross_heaps; // To nodes before this one
 };
 
 class MSTTreeBase
