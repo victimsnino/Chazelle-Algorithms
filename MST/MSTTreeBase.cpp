@@ -49,7 +49,7 @@ TreeNode::Heap* TreeNode::FindMin()
     auto min_heap  = &m_heap;
     for (auto& heap : m_cross_heaps)
     {
-        if (const auto new_value = heap.FindMin(); !min_value || *new_value < *min_value)
+        if (const auto new_value = heap.FindMin(); !min_value || new_value && *new_value < *min_value)
         {
             min_value = new_value;
             min_heap  = &heap;
@@ -89,22 +89,37 @@ TreeNode MSTTreeBase::ContractLastNode()
     return last_subgraph;
 }
 
-MSTTreeBase::SoftHeap* MSTTreeBase::FindMinAllHeaps() const
+MSTTreeBase::SoftHeap* MSTTreeBase::FindMinAllHeaps()
 {
-    auto transformed = m_active_path | std::views::transform(&TreeNode::FindMin);
-    const auto itr = std::min_element(transformed.begin(), transformed.end(), 
-                                              [](MSTSoftHeapDecorator* left, MSTSoftHeapDecorator* right) -> bool
-                                              {
-                                                  if (!left)
-                                                      return false;
+    auto itr = std::min_element(m_active_path.begin(),
+                                m_active_path.end(),
+                                [&](TreeNode& left, TreeNode& right) -> bool
+                                {
+                                    auto left_heap  = left.FindMin();
+                                    auto right_heap = right.FindMin();
+                                    if (!left_heap)
+                                        return false;
 
-                                                  if (!right)
-                                                      return true;
+                                    if (!right_heap)
+                                        return true;
 
-                                                  return left->FindMin() < right->FindMin();
-                                              });
+                                    return left_heap->FindMin() < right_heap->FindMin();
+                                });
 
-    return itr == transformed.end() ? nullptr : *itr;
+    return itr == m_active_path.end() ? nullptr : itr->FindMin();
+}
+
+void MSTTreeBase::AddNodeByEdge(EdgePtrWrapper&& edge)
+{
+    auto[i,j] = edge->GetCurrentSubgraphs(m_graph);
+    GetLastNode().SetMinLink(&edge.GetEdge());
+
+    if (Utils::IsContains(m_vertices_inside_path, i))
+        CreateOneVertexNode(j);
+    else
+        CreateOneVertexNode(i);
+
+    // TODO: Remove old border edges and appropriate creation of new border edges
 }
 
 

@@ -58,6 +58,11 @@ public:
         return m_cross_heaps[i];
     }
 
+    void SetMinLink(Graph::Details::Edge* edge)
+    {
+        m_min_link = edge;
+    }
+
     Heap&                      GetHeap() { return m_heap; }
     std::vector<Heap>&         GetCrossHeaps() { return m_cross_heaps; }
     const std::vector<size_t>& GetVertices() const { return m_vertices; }
@@ -68,8 +73,9 @@ private:
     void BuildCrossHeaps(size_t r);
 
 private:
-    const size_t        m_label; // level of the node
-    std::vector<size_t> m_vertices{};
+    const size_t          m_label; // level of the node
+    std::vector<size_t>   m_vertices{};
+    Graph::Details::Edge* m_min_link{};
 
     Heap              m_heap;
     std::vector<Heap> m_cross_heaps; // To nodes before this one
@@ -82,7 +88,8 @@ public:
     MSTTreeBase(Graph::Graph& graph, size_t c);
 
     TreeNode ContractLastNode();
-    SoftHeap* FindMinAllHeaps() const;
+    SoftHeap* FindMinAllHeaps();
+    void AddNodeByEdge(EdgePtrWrapper&& edge);
 
     /*======================================= GETTERS ===================================== */
     Graph::Graph& GetGraph() const { return m_graph; }

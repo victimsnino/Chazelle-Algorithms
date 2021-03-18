@@ -81,8 +81,10 @@ bool MSTTree::Extension()
 
     // Fusion();
 
+    auto edge = heap_with_min_value->DeleteMin();
+    m_base.AddNodeByEdge(std::move(edge));
 
-    return false;
+    return true;
 }
 
 void MSTTree::Retraction()

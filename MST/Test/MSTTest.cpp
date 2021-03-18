@@ -89,7 +89,8 @@ TEST(MST, Init)
     }
 
     Graph::Graph g{matrix};
-    //ToFile(g, "TEMP", true);
+    ToFile(g, "TEMP-Pre", true);
     // d:\Coding\Study\Chazelle-Algorithms\_build_\MST\Test\temp.png
     MST::FindMST(g);
+    ToFile(g, "TEMP", true, true);
 }
