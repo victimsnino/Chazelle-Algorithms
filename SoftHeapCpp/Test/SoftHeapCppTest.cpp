@@ -55,6 +55,8 @@ struct ComparableObject
         return *this;
     }
 
+    //operator int() const {return m_v;}
+
     friend bool operator<(const ComparableObject& lhs, const ComparableObject& rhs) { return lhs.m_v < rhs.m_v; }
     friend bool operator<=(const ComparableObject& lhs, const ComparableObject& rhs) { return !(rhs < lhs); }
     friend bool operator>(const ComparableObject& lhs, const ComparableObject& rhs) { return rhs < lhs; }
@@ -81,7 +83,7 @@ TEST(SoftHeapCpp, AsSimpleHeap)
 
     for (size_t i = 0; i < count; ++i)
     {
-        EXPECT_EQ(i, heap.DeleteMin());
+        EXPECT_EQ(ComparableObject(i), heap.DeleteMin());
     }
 }
 
@@ -245,4 +247,31 @@ TEST(SoftHeapCpp, FindMin)
     EXPECT_EQ(*heap.FindMin(), 2);
     EXPECT_EQ(heap.DeleteMin(), 2);
 
+}
+
+TEST(SoftHeapCpp, Delete)
+{
+    SoftHeapCpp<int>    heap(0);
+    constexpr const int count = 9;
+
+    std::list<int> values{};
+    for (int i = 1; i <= count; ++i)
+    {
+        heap.Insert(i);
+        values.push_back(i);
+    }
+
+    const auto to_delete = {1, 3, 6};
+    for (auto value : to_delete)
+    {
+        heap.Delete(value);
+        values.remove(value);
+    }
+
+    while(auto ptr = heap.FindMin())
+    {
+        auto value = heap.DeleteMin();
+        EXPECT_THAT(to_delete, testing::Not(testing::Contains(value)));
+        EXPECT_THAT(values, testing::Contains(value));
+    }
 }
