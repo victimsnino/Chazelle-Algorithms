@@ -22,6 +22,8 @@
 
 #include "MSTTree.h"
 
+#include "MSTUtils.h"
+
 #include <Graph.h>
 
 
@@ -29,5 +31,56 @@ namespace MST
 {
 MSTTree::MSTTree(Graph::Graph& graph, size_t c)
     : m_graph{graph}
-    , m_stack{m_graph, c} { }
+    , m_stack{m_graph, c}
+{
+    while(true)
+    {
+        if (m_stack.top().IsMeetTargetSize())
+        {
+            if (!Retraction())
+                return;
+        }
+        else
+        {
+            if (!Extension())
+                return;
+        }
+    }
+}
+
+bool MSTTree::Retraction()
+{
+    auto& last_node = m_stack.top();
+    if (last_node.GetIndex() == 0)
+        return false;
+
+    auto data = m_stack.Pop();
+    for (auto& corrupted : data.corrupted)
+        m_graph.DisableEdge(corrupted->GetIndex());
+
+    return true;
+}
+
+bool MSTTree::Extension()
+{
+
+    return false;
+}
+
+MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)
+{
+    // TODO: ENable boruvka Phase later
+    //size_t count = FindParamT(graph, FindMaxHeight(graph, c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
+
+    //while (count > 0 && graph.GetVertexesCount() > 1)
+    //{
+    //    graph.BoruvkaPhase();
+    //    --count;
+    //}
+
+    //if (graph.GetVertexesCount() == 1)
+    //    return false;
+    //return true;
+    return MSTTree{graph, c};
+}
 } // namespace MST

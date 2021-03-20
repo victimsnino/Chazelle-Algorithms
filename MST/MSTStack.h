@@ -23,6 +23,7 @@
 #pragma once
 
 #include "MSTSoftHeapDecorator.h"
+#include "MSTStackSubgraph.h"
 
 #include <Graph.h>
 
@@ -30,56 +31,22 @@
 
 namespace MST::Details
 {
-class SubGraph
-{
-public:
-    SubGraph(std::list<size_t>::const_iterator vertex_itr, size_t index, size_t target_size, size_t r)
-        : m_index{index}
-        , m_target_size{target_size}
-        , m_vertices_begin{vertex_itr}
-        , m_vertices_end{std::next(m_vertices_begin)}
-        , m_heap{r, index} {}
-
-    size_t GetIndex() const
-    {
-        return m_index;
-    }
-
-    void                      PushToHeap(EdgePtrWrapper edge) { m_heap.Insert(edge); }
-    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
-
-    void AddToMinLinks(EdgePtrWrapper edge) { m_min_links_to_next_nodes.emplace_back(edge); }
-
-    std::list<size_t> GetVertices() const { return std::list<size_t>{m_vertices_begin, m_vertices_end}; }
-
-private:
-    const size_t m_index; // aka k
-    const size_t m_target_size;
-
-    const std::list<size_t>::const_iterator m_vertices_begin;
-    const std::list<size_t>::const_iterator m_vertices_end;
-
-    MSTSoftHeapDecorator m_heap;
-
-    std::optional<EdgePtrWrapper> m_chain_link_to_next{};
-    std::vector<EdgePtrWrapper>   m_min_links_to_next_nodes{};
-};
-
 class MSTStack
 {
 public:
     MSTStack(Graph::Graph& graph, size_t c);
 
     //void Push(size_t vertex);
-    //Node Pop();
+    SoftHeapCpp<EdgePtrWrapper>::ExtractedItems Pop();
 
+    const SubGraph& top() const { assert(!m_nodes.empty()); return m_nodes.back();}
+    size_t size() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
 private:
     void PushNode(size_t vertex);
 
     void AddNewBorderEdgesAfterPush();
     void DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
 
-    size_t GetSize() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
 
 private:

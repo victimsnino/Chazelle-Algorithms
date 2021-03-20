@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #pragma once
-#include "MSTTreeBase.h"
+#include "MSTStack.h"
 
 #include <Graph.h>
 
@@ -30,8 +30,12 @@ namespace MST
 {
 class MSTTree
 {
-public:
     MSTTree(Graph::Graph& graph, size_t c);
+
+    bool Retraction();
+    bool Extension();
+public:
+    static MSTTree Create(Graph::Graph& graph, size_t c);
 
 private:
     Graph::Graph&     m_graph;
