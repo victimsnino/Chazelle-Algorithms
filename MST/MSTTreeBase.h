@@ -76,8 +76,8 @@ public:
 private:
     void PushNode(size_t vertex);
 
-    void AddNewBorderEdges();
-    void DeleteOldBorderEdges();
+    void AddNewBorderEdgesAfterPush();
+    void DeleteOldBorderEdgesAfterPush();
 
     size_t GetSize() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }

@@ -73,11 +73,11 @@ void MSTStack::PushNode(size_t vertex)
                                           m_sizes_per_height[GetMaxHeight() - index],
                                           m_r);
 
-    AddNewBorderEdges();
-    DeleteOldBorderEdges();
+    AddNewBorderEdgesAfterPush();
+    DeleteOldBorderEdgesAfterPush();
 }
 
-void MSTStack::AddNewBorderEdges()
+void MSTStack::AddNewBorderEdgesAfterPush()
 {
     auto& new_node = m_nodes.back();
 
@@ -99,7 +99,7 @@ void MSTStack::AddNewBorderEdges()
     });
 }
 
-void MSTStack::DeleteOldBorderEdges()
+void MSTStack::DeleteOldBorderEdgesAfterPush()
 {
     auto& new_node = m_nodes.back();
     assert(new_node.GetVertices().size() == 1);
@@ -109,14 +109,21 @@ void MSTStack::DeleteOldBorderEdges()
         return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertices().front());
     };
 
-    for (auto& node : rgv::reverse(m_nodes) | rgv::drop(1))
-    {
-        const auto old_border_edges = node.DeleteAndReturnIf(condition);
-        if (old_border_edges.empty())
-            continue;
+    std::for_each_n(m_nodes.cbegin(),
+                    m_nodes.size() - 1,
+                    [&](SubGraph& node)
+                    {
+                        const auto old_border_edges = node.DeleteAndReturnIf(condition);
+                        if (old_border_edges.empty())
+                            return;
 
-        auto min = rg::min_element(old_border_edges, rg::less{}, [](const EdgePtrWrapper& ptr) { return ptr.GetWorkingCost(); });
-        node.AddToMinLinks(*min);
-    }
+                        const auto min = rg::min_element(old_border_edges,
+                                                         rg::less{},
+                                                         [](const EdgePtrWrapper& ptr)
+                                                         {
+                                                             return ptr.GetWorkingCost();
+                                                         });
+                        node.AddToMinLinks(*min);
+                    });
 }
 } // namespace MST::Details
