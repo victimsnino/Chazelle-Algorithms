@@ -248,30 +248,3 @@ TEST(SoftHeapCpp, FindMin)
     EXPECT_EQ(heap.DeleteMin(), 2);
 
 }
-
-TEST(SoftHeapCpp, Delete)
-{
-    SoftHeapCpp<int>    heap(0);
-    constexpr const int count = 9;
-
-    std::list<int> values{};
-    for (int i = 1; i <= count; ++i)
-    {
-        heap.Insert(i);
-        values.push_back(i);
-    }
-
-    const auto to_delete = {1, 3, 6};
-    for (auto value : to_delete)
-    {
-        heap.Delete(value);
-        values.remove(value);
-    }
-
-    while(auto ptr = heap.FindMin())
-    {
-        auto value = heap.DeleteMin();
-        EXPECT_THAT(to_delete, testing::Not(testing::Contains(value)));
-        EXPECT_THAT(values, testing::Contains(value));
-    }
-}

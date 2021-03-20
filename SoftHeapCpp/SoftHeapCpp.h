@@ -54,8 +54,6 @@ public:
     virtual void           Meld(SoftHeapCpp& other);
     virtual ExtractedItems ExtractItems();
 
-    void Delete(ItemType key);
-
     const ItemType* FindMin();
 private:
     struct Node
@@ -168,8 +166,6 @@ private:
     std::shared_ptr<Head> m_header{};
     std::shared_ptr<Head> m_tail{};
     const size_t          m_r;
-
-    std::list<ItemType> m_to_delete{};
 };
 
 template<typename ItemType>
@@ -194,14 +190,7 @@ const ItemType* SoftHeapCpp<ItemType>::FindMin()
     const auto& node = FindMinNode();
     if (!node || node->IsNoValues())
         return nullptr;
-    auto value_ptr = &node->FrontValue();
-    if (auto itr = std::ranges::find(m_to_delete, *value_ptr); itr != m_to_delete.end())
-    {
-        m_to_delete.erase(itr);
-        node->PopValue();
-        return FindMin();
-    }
-    return value_ptr;
+    return &node->FrontValue();
 }
 
 template<typename ItemType>
@@ -209,13 +198,7 @@ ItemType SoftHeapCpp<ItemType>::DeleteMin()
 {
     auto node = FindMinNode();
     assert(node);
-    auto value = node->PopValue();
-    if (auto itr = std::ranges::find(m_to_delete, value); itr != m_to_delete.end())
-    {
-        m_to_delete.erase(itr);
-        return DeleteMin();
-    }
-    return value;
+    return node->PopValue();
 }
 
 template<typename ItemType>
@@ -245,12 +228,6 @@ typename SoftHeapCpp<ItemType>::ExtractedItems SoftHeapCpp<ItemType>::ExtractIte
     result.corrupted.unique();
     result.items.unique();
     return result;
-}
-
-template<typename ItemType>
-void SoftHeapCpp<ItemType>::Delete(ItemType key)
-{
-    m_to_delete.push_back(std::move(key));
 }
 
 template<typename ItemType>
