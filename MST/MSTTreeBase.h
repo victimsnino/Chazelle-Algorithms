@@ -70,14 +70,14 @@ class MSTStack
 public:
     MSTStack(Graph::Graph& graph, size_t c);
 
-    //void Push();
+    //void Push(size_t vertex);
     //Node Pop();
 
 private:
     void PushNode(size_t vertex);
 
     void AddNewBorderEdgesAfterPush();
-    void DeleteOldBorderEdgesAfterPush();
+    void DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
 
     size_t GetSize() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }

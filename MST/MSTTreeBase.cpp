@@ -68,13 +68,13 @@ void MSTStack::PushNode(size_t vertex)
         index = GetMaxHeight();
 
     m_vertices_inside.push_front(m_graph.FindRootOfSubGraph(vertex));
-    auto& new_node = m_nodes.emplace_back(m_vertices_inside.cbegin(),
-                                          index,
-                                          m_sizes_per_height[GetMaxHeight() - index],
-                                          m_r);
+    m_nodes.emplace_back(m_vertices_inside.cbegin(),
+                         index,
+                         m_sizes_per_height[GetMaxHeight() - index],
+                         m_r);
 
     AddNewBorderEdgesAfterPush();
-    DeleteOldBorderEdgesAfterPush();
+    DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
 }
 
 void MSTStack::AddNewBorderEdgesAfterPush()
@@ -85,21 +85,22 @@ void MSTStack::AddNewBorderEdgesAfterPush()
     {
         const auto vertices = edge.GetCurrentSubgraphs(m_graph);
 
-        const auto outside_vertices = vertices | rgv::filter(Utils::IsInRange(m_vertices_inside)) |
+        const auto outside_vertices = vertices |
+                rgv::filter(Utils::IsInRange(m_vertices_inside)) |
                 Utils::to_vector;
 
         if (outside_vertices.empty() || outside_vertices.size() == 2)
             return;
 
-        assert(new_node.GetVertices().size() == 1 && 
-            (vertices[0] == new_node.GetVertices().front() || 
-             vertices[1] == new_node.GetVertices().front()));
+        assert(new_node.GetVertices().size() == 1 &&
+               (vertices[0] == new_node.GetVertices().front() ||
+                   vertices[1] == new_node.GetVertices().front()));
 
-        new_node.PushToHeap(EdgePtrWrapper{ edge });
+        new_node.PushToHeap(EdgePtrWrapper{edge});
     });
 }
 
-void MSTStack::DeleteOldBorderEdgesAfterPush()
+void MSTStack::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 {
     auto& new_node = m_nodes.back();
     assert(new_node.GetVertices().size() == 1);
