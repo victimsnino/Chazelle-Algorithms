@@ -45,7 +45,12 @@ public:
         return m_index;
     }
 
-    MSTSoftHeapDecorator& GetHeap() { return m_heap; }
+    void                      PushToHeap(EdgePtrWrapper edge) { m_heap.Insert(edge); }
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
+
+    void AddToMinLinks(EdgePtrWrapper edge) { m_min_links_to_next_nodes.emplace_back(edge); }
+
+    std::list<size_t> GetVertices() const { return std::list<size_t>{m_vertices_begin, m_vertices_end}; }
 
 private:
     const size_t m_index; // aka k
@@ -70,6 +75,9 @@ public:
 
 private:
     void PushNode(size_t vertex);
+
+    void AddNewBorderEdges();
+    void DeleteOldBorderEdges();
 
     size_t GetSize() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }

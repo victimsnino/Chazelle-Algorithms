@@ -44,11 +44,15 @@ public:
     void  SetLastHeapIndex(Label label) { m_last_heap_index = label; }
     Label GetLastHeapIndex() const { return m_last_heap_index; }
 
-    bool operator<(const EdgePtrWrapper& rhs) const { return *m_edge < *rhs.m_edge; }
+    bool operator<(const EdgePtrWrapper& rhs) const { return m_working_cost < rhs.m_working_cost; }
     bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
+
+    void   SetWorkingCost(size_t cost) { m_working_cost = cost; }
+    size_t GetWorkingCost() const { return m_working_cost; }
 private:
     const Graph::Details::Edge* const m_edge;
     Label                             m_last_heap_index{};
+    size_t                            m_working_cost = m_edge->GetWeight();
 };
 
 class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
@@ -56,14 +60,18 @@ class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
 public:
     MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
 
-    void                             Insert(EdgePtrWrapper new_key) override;
-    EdgePtrWrapper                   DeleteMin() override;
-    void                             Meld(MSTSoftHeapDecorator& other);
-    const std::list<EdgePtrWrapper>& GetItemsInside() const { return m_items; }
+    void Insert(EdgePtrWrapper new_key) override;
+    void Meld(MSTSoftHeapDecorator& other);
+
+    EdgePtrWrapper  DeleteMin() override;
+    EdgePtrWrapper* FindMin() override;
+
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
 
     using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
     using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;
-    using SoftHeapCpp<EdgePtrWrapper>::FindMin;
+
+    const std::list<EdgePtrWrapper>& GetItemsInside() const { return m_items; }
 
 private:
     const Label               m_label;

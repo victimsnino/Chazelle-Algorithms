@@ -42,9 +42,45 @@ void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 
 EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
 {
+    auto ckey  = GetCurrentTopCkey();
     auto value = SoftHeapCpp<EdgePtrWrapper>::DeleteMin();
+
+    value.SetWorkingCost(ckey->GetWorkingCost());
+
+    if (std::ranges::find(m_items, value) == m_items.end())
+        return DeleteMin();
+
     m_items.remove(value);
     return value;
+}
+
+EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
+{
+    const auto ckey      = GetCurrentTopCkey();
+    const auto value_ptr = SoftHeapCpp<EdgePtrWrapper>::FindMin();
+    if (!value_ptr)
+        return value_ptr;
+
+    value_ptr->SetWorkingCost(ckey->GetWorkingCost());
+
+    if (std::ranges::find(m_items, *value_ptr) != m_items.end())
+        return value_ptr;
+
+    SoftHeapCpp<EdgePtrWrapper>::DeleteMin();
+    return FindMin();
+}
+
+std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func)
+{
+    std::list<EdgePtrWrapper> result{};
+    for (auto itr = m_items.begin(); itr != m_items.end();)
+    {
+        if (func(*itr))
+            result.splice(result.end(), m_items, itr++);
+        else
+            ++itr;
+    }
+    return result;
 }
 
 void MSTSoftHeapDecorator::Meld(MSTSoftHeapDecorator& other)

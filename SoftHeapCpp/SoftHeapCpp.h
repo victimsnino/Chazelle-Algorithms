@@ -51,10 +51,12 @@ public:
     virtual void     Insert(ItemType new_key);
     virtual ItemType DeleteMin();
 
-    virtual void           Meld(SoftHeapCpp& other);
-    virtual ExtractedItems ExtractItems();
+    void           Meld(SoftHeapCpp& other);
+    ExtractedItems ExtractItems();
 
-    const ItemType* FindMin();
+    virtual ItemType* FindMin();
+
+    const std::shared_ptr<ItemType> GetCurrentTopCkey();
 private:
     struct Node
     {
@@ -74,6 +76,7 @@ private:
             , m_values{m_next->m_values} { }
 
         size_t                                          GetRank() const { return m_rank; }
+        [[nodiscard]] std::shared_ptr<ItemType>         GetCkeyPtr() const { return m_ckey; }
         [[nodiscard]] Utils::ComparableObject<ItemType> GetCkey() const { return {m_ckey.get()}; }
         bool                                            IsInfntyCkey() const { return !m_ckey; }
         [[nodiscard]] std::unique_ptr<Node>             ExtractChild() { return std::move(m_child); }
@@ -112,7 +115,7 @@ private:
                 m_child->ExtractCorruptedItems(result);
         }
 
-        const ItemType& FrontValue()
+        ItemType& FrontValue()
         {
             assert(!!m_values && !m_values->empty());
             return m_values->front();
@@ -185,12 +188,22 @@ void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
 }
 
 template<typename ItemType>
-const ItemType* SoftHeapCpp<ItemType>::FindMin()
+ItemType* SoftHeapCpp<ItemType>::FindMin()
 {
-    const auto& node = FindMinNode();
+    auto node = FindMinNode();
     if (!node || node->IsNoValues())
         return nullptr;
     return &node->FrontValue();
+}
+
+template<typename ItemType>
+const std::shared_ptr<ItemType> SoftHeapCpp<ItemType>::GetCurrentTopCkey()
+{
+    auto node = FindMinNode();
+    if (!node || node->IsNoValues())
+        return nullptr;
+
+    return node->GetCkeyPtr();
 }
 
 template<typename ItemType>
@@ -250,9 +263,9 @@ typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::FindMinNode()
             FixMinlist(h->GetPrev());
 
             h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node)
-                {
-                    Meld(node->ExtractChild());
-                });
+            {
+                Meld(node->ExtractChild());
+            });
         }
         else
         {

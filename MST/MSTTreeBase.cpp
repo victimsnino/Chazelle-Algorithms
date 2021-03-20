@@ -48,6 +48,11 @@ static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, s
 
 namespace MST::Details
 {
+std::list<EdgePtrWrapper> SubGraph::DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func)
+{
+    return m_heap.DeleteAndReturnIf(std::move(func));
+}
+
 MSTStack::MSTStack(Graph::Graph& graph, size_t c)
     : m_graph{graph}
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(c))}
@@ -62,20 +67,56 @@ void MSTStack::PushNode(size_t vertex)
     if (index == 0)
         index = GetMaxHeight();
 
-    m_vertices_inside.push_front(vertex);
+    m_vertices_inside.push_front(m_graph.FindRootOfSubGraph(vertex));
     auto& new_node = m_nodes.emplace_back(m_vertices_inside.cbegin(),
                                           index,
-                                          m_sizes_per_height[GetMaxHeight() - index]);
+                                          m_sizes_per_height[GetMaxHeight() - index],
+                                          m_r);
+
+    AddNewBorderEdges();
+    DeleteOldBorderEdges();
+}
+
+void MSTStack::AddNewBorderEdges()
+{
+    auto& new_node = m_nodes.back();
 
     m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
     {
-        const auto view = m_vertices_inside | rgv::filter(Utils::IsInRange(edge.GetCurrentSubgraphs(m_graph))) |
+        const auto vertices = edge.GetCurrentSubgraphs(m_graph);
+
+        const auto outside_vertices = vertices | rgv::filter(Utils::IsInRange(m_vertices_inside)) |
                 Utils::to_vector;
 
-        if (view.empty() || view.size() == 2)
+        if (outside_vertices.empty() || outside_vertices.size() == 2)
             return;
 
-        new_node.GetHeap().Insert(EdgePtrWrapper{edge});
+        assert(new_node.GetVertices().size() == 1 && 
+            (vertices[0] == new_node.GetVertices().front() || 
+             vertices[1] == new_node.GetVertices().front()));
+
+        new_node.PushToHeap(EdgePtrWrapper{ edge });
     });
+}
+
+void MSTStack::DeleteOldBorderEdges()
+{
+    auto& new_node = m_nodes.back();
+    assert(new_node.GetVertices().size() == 1);
+
+    auto condition = [&](const EdgePtrWrapper& edge)
+    {
+        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertices().front());
+    };
+
+    for (auto& node : rgv::reverse(m_nodes) | rgv::drop(1))
+    {
+        const auto old_border_edges = node.DeleteAndReturnIf(condition);
+        if (old_border_edges.empty())
+            continue;
+
+        auto min = rg::min_element(old_border_edges, rg::less{}, [](const EdgePtrWrapper& ptr) { return ptr.GetWorkingCost(); });
+        node.AddToMinLinks(*min);
+    }
 }
 } // namespace MST::Details
