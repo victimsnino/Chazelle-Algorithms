@@ -53,7 +53,7 @@ bool MSTTree::Retraction()
     if (m_stack.top().GetIndex() == 0) // k should be >= 1
         return false;
 
-    auto [corrupted, items] = m_stack.Pop();
+    auto [corrupted, items] = m_stack.pop();
     for (auto& corrupted_edge : corrupted)
         m_graph.DisableEdge(corrupted_edge->GetIndex());
 

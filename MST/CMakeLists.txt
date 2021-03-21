@@ -22,10 +22,9 @@ add_library(${TARGET}
 
 target_include_directories(${TARGET} PUBLIC .)
 target_link_libraries(${TARGET}
-    PRIVATE
+    PUBLIC
         SoftHeapCpp
         Common
-    PUBLIC
         Graph
 )
 

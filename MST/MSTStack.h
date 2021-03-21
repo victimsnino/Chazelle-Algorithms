@@ -37,7 +37,7 @@ public:
     MSTStack(Graph::Graph& graph, size_t c);
 
     //void Push(size_t vertex);
-    SoftHeapCpp<EdgePtrWrapper>::ExtractedItems Pop();
+    SoftHeapCpp<EdgePtrWrapper>::ExtractedItems pop();
 
     SubGraph& top()
     {

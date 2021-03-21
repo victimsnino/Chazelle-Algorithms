@@ -51,7 +51,7 @@ MSTStack::MSTStack(Graph::Graph& graph, size_t c)
     PushNode(graph.FindRootOfSubGraph(0));
 }
 
-SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::Pop()
+SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::pop()
 {
     auto& last_subgraph = m_nodes.back();
     last_subgraph.Contract(m_graph, m_vertices_inside);
