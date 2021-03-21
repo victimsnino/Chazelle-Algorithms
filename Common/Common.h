@@ -83,6 +83,7 @@ std::function<bool(const T&)> IsInRange(const Rng& rng)
 {
     return [&](const T& val) { return IsRangeContains(rng, val); };
 }
+
 template<std::ranges::range R>
 constexpr auto ToVector(R&& r)
 {
@@ -106,4 +107,34 @@ struct ToVectorFn
 };
 
 constexpr ToVectorFn to_vector{};
+
+template<typename T>
+struct LazyList
+{
+    using Itr = typename std::list<T>::const_iterator;
+
+    LazyList(Itr begin, Itr end)
+        : m_begin{std::move(begin)}
+        , m_end{std::move(end)} {}
+
+
+    LazyList(const LazyList& other)                = delete;
+    LazyList(LazyList&& other) noexcept            = delete;
+    LazyList& operator=(const LazyList& other)     = delete;
+    LazyList& operator=(LazyList&& other) noexcept = delete;
+
+    auto begin() const { return m_begin; }
+    auto end() const { return m_begin; }
+    auto size() const { return std::distance(m_begin, m_end); }
+
+    const T& front() const { return *m_begin; }
+    const T& back() const { return *std::prev(m_end); }
+
+private:
+    Itr m_begin;
+    Itr m_end;
+};
+
+template<typename T>
+LazyList(typename std::list<T>::const_iterator begin, typename std::list<T>::const_iterator end) -> LazyList<T>;
 } // namespace Utils

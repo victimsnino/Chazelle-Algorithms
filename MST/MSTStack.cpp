@@ -61,11 +61,11 @@ SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::Pop()
         const size_t index = last_subgraph.GetIndex();
         m_nodes.emplace_front(m_vertices_inside.cbegin(),
                               index - 1,
-                              m_sizes_per_height[GetMaxHeight() - index - 1],
+                              m_sizes_per_height[IndexToHeight(index-1)],
                               m_r);
     }
 
-    std::next(m_nodes.rbegin())->Meld(last_subgraph);
+    std::next(m_nodes.rbegin())->MeldHeapsFrom(last_subgraph);
     auto data = last_subgraph.ExtractItems();
 
     m_nodes.pop_back();
@@ -89,7 +89,7 @@ void MSTStack::PushNode(size_t vertex)
     m_vertices_inside.push_back(m_graph.FindRootOfSubGraph(vertex));
     m_nodes.emplace_back(m_vertices_inside.cbegin(),
                          index,
-                         m_sizes_per_height[GetMaxHeight() - index],
+                         m_sizes_per_height[IndexToHeight(index)],
                          m_r);
 
     AddNewBorderEdgesAfterPush();
@@ -112,8 +112,8 @@ void MSTStack::AddNewBorderEdgesAfterPush()
             return;
 
         assert(new_node.GetVertices().size() == 1 &&
-               (vertices[0] == *new_node.GetVertices().begin() ||
-                   vertices[1] == *new_node.GetVertices().begin()));
+               (vertices[0] == new_node.GetVertices().front() ||
+                   vertices[1] == new_node.GetVertices().front()));
 
         new_node.PushToHeap(EdgePtrWrapper{edge});
     });
@@ -126,7 +126,7 @@ void MSTStack::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 
     auto condition = [&](const EdgePtrWrapper& edge)
     {
-        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), *new_node.GetVertices().begin());
+        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertices().front());
     };
 
     std::for_each_n(m_nodes.begin(),

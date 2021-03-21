@@ -33,7 +33,7 @@ MSTTree::MSTTree(Graph::Graph& graph, size_t c)
     : m_graph{graph}
     , m_stack{m_graph, c}
 {
-    while(true)
+    while (true)
     {
         if (m_stack.top().IsMeetTargetSize())
         {
@@ -50,21 +50,50 @@ MSTTree::MSTTree(Graph::Graph& graph, size_t c)
 
 bool MSTTree::Retraction()
 {
-    auto& last_node = m_stack.top();
-    if (last_node.GetIndex() == 0)
+    if (m_stack.top().GetIndex() == 0) // k should be >= 1
         return false;
 
-    auto data = m_stack.Pop();
-    for (auto& corrupted : data.corrupted)
-        m_graph.DisableEdge(corrupted->GetIndex());
+    auto [corrupted, items] = m_stack.Pop();
+    for (auto& corrupted_edge : corrupted)
+        m_graph.DisableEdge(corrupted_edge->GetIndex());
+
+    CreateClustersAndPushCheapest(std::move(items));
 
     return true;
 }
 
 bool MSTTree::Extension()
 {
-
     return false;
+}
+
+void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
+{
+    auto vertex = m_stack.top().GetVertices().back();
+
+    std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
+    std::for_each(std::make_move_iterator(items.begin()),
+                  std::make_move_iterator(items.end()),
+                  [&](Details::EdgePtrWrapper&& edge)
+                  {
+                      auto [i,j] = edge->GetCurrentSubgraphs(m_graph);
+                      if (i == vertex)
+                          clusters_by_out_vertex[j].emplace(edge);
+                      else
+                      {
+                          assert(j == vertex);
+                          clusters_by_out_vertex[i].emplace(edge);
+                      }
+                  });
+
+    for (auto& cluster : clusters_by_out_vertex | rgv::values)
+    {
+        auto cheapest = cluster.begin();
+        for (auto& edge : cluster | rgv::drop(1))
+            m_graph.DisableEdge(edge->GetIndex());
+
+        m_stack.top().PushToHeap(*cheapest);
+    }
 }
 
 MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)

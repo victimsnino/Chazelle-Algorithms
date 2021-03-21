@@ -23,6 +23,8 @@
 #pragma once
 #include "MSTSoftHeapDecorator.h"
 
+#include <Common.h>
+
 #include <optional>
 #include <ranges>
 
@@ -41,19 +43,20 @@ public:
     SubGraph& operator=(const SubGraph& other) = delete;
     SubGraph& operator=(SubGraph&& other)      = delete;
 
-    void                      PushToHeap(EdgePtrWrapper edge);
-    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
-    void Meld(SubGraph& other);
+    void                                        PushToHeap(EdgePtrWrapper edge);
+    std::list<EdgePtrWrapper>                   DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
+    void                                        MeldHeapsFrom(SubGraph& other);
     SoftHeapCpp<EdgePtrWrapper>::ExtractedItems ExtractItems();
 
-    void                      Contract(Graph::Graph& graph, std::list<size_t>& vertices_inside_tree);
+    void Contract(Graph::Graph& graph, std::list<size_t>& vertices_inside_tree);
 
     void AddToMinLinks(EdgePtrWrapper edge);
     void PopMinLink(bool chain_link = false);
 
-    bool   IsMeetTargetSize() const { return GetSizeOfVertices() >= m_target_size; }
-    size_t GetIndex() const { return m_index; }
-    auto   GetVertices() const { return rgv::counted(m_vertices_begin, GetSizeOfVertices()); }
+    bool                    IsMeetTargetSize() const { return GetSizeOfVertices() >= m_target_size; }
+    size_t                  GetIndex() const { return m_index; }
+    Utils::LazyList<size_t> GetVertices() const { return {m_vertices_begin, m_vertices_end}; }
+
 private:
     size_t GetSizeOfVertices() const { return std::distance(m_vertices_begin, m_vertices_end); }
 

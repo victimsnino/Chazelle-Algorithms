@@ -39,7 +39,12 @@ public:
     //void Push(size_t vertex);
     SoftHeapCpp<EdgePtrWrapper>::ExtractedItems Pop();
 
-    const SubGraph& top() const { assert(!m_nodes.empty()); return m_nodes.back();}
+    SubGraph& top()
+    {
+        assert(!m_nodes.empty());
+        return m_nodes.back();
+    }
+
     size_t size() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
 private:
     void PushNode(size_t vertex);
@@ -48,7 +53,7 @@ private:
     void DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
 
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
-
+    size_t IndexToHeight(size_t index) const { return GetMaxHeight() - index; }
 private:
     Graph::Graph&       m_graph;
     std::list<SubGraph> m_nodes{};

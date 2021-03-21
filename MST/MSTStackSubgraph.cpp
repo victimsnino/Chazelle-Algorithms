@@ -75,7 +75,7 @@ std::list<EdgePtrWrapper> SubGraph::DeleteAndReturnIf(std::function<bool(const E
     return result;
 }
 
-void SubGraph::Meld(SubGraph& other)
+void SubGraph::MeldHeapsFrom(SubGraph& other)
 {
     // GetIndex() = other.GetIndex() - 1
     for(size_t i = 0; i < GetIndex(); ++i)

@@ -34,6 +34,8 @@ class MSTTree
 
     bool Retraction();
     bool Extension();
+
+    void CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
 public:
     static MSTTree Create(Graph::Graph& graph, size_t c);
 
