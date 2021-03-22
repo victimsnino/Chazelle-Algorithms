@@ -27,13 +27,25 @@
 
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 
 namespace rg = std::ranges;
 namespace rgv = std::ranges::views;
 
 namespace MST::Details
 {
-class SubGraph
+struct ISubGraph
+{
+    virtual ~ISubGraph() { }
+
+    virtual void                  PushToHeap(EdgePtrWrapper edge) = 0;
+    virtual bool                  IsMeetTargetSize() const = 0;
+    virtual size_t                GetIndex() const = 0;
+    virtual size_t                GetVertex() const = 0;
+    virtual MSTSoftHeapDecorator* FindHeapWithMin() = 0;
+};
+
+class SubGraph : public ISubGraph
 {
 public:
     SubGraph(std::list<size_t>::const_iterator vertex_itr, size_t index, size_t target_size, size_t r);
@@ -43,7 +55,21 @@ public:
     SubGraph& operator=(const SubGraph& other) = delete;
     SubGraph& operator=(SubGraph&& other)      = delete;
 
-    void                                        PushToHeap(EdgePtrWrapper edge);
+    // PUBLIC
+    void   PushToHeap(EdgePtrWrapper edge) override;
+    bool   IsMeetTargetSize() const override { return GetSizeOfVertices() >= m_target_size; }
+    size_t GetIndex() const override { return m_index; }
+
+    size_t GetVertex() const override
+    {
+        if (GetSizeOfVertices() != 1)
+            throw std::out_of_range{"More than 1 vertexinside!"};
+        return *m_vertices_begin;
+    }
+
+    MSTSoftHeapDecorator* FindHeapWithMin() override;
+
+    // PRIVATE
     std::list<EdgePtrWrapper>                   DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
     void                                        MeldHeapsFrom(SubGraph& other);
     SoftHeapCpp<EdgePtrWrapper>::ExtractedItems ExtractItems();
@@ -53,12 +79,9 @@ public:
     void AddToMinLinks(EdgePtrWrapper edge);
     void PopMinLink(bool chain_link = false);
 
-    bool                    IsMeetTargetSize() const { return GetSizeOfVertices() >= m_target_size; }
-    size_t                  GetIndex() const { return m_index; }
-    Utils::LazyList<size_t> GetVertices() const { return {m_vertices_begin, m_vertices_end}; }
-
 private:
-    size_t GetSizeOfVertices() const { return std::distance(m_vertices_begin, m_vertices_end); }
+    size_t                  GetSizeOfVertices() const { return std::distance(m_vertices_begin, m_vertices_end); }
+    Utils::LazyList<size_t> GetVertices() const { return {m_vertices_begin, m_vertices_end}; }
 
 private:
     const size_t m_index; // aka k

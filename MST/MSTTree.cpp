@@ -64,12 +64,20 @@ bool MSTTree::Retraction()
 
 bool MSTTree::Extension()
 {
+    auto extension_edge = FindExtensionEdge();
+    if (!extension_edge)
+        return false;
+
+    // Fusion();
+
+    //m_stack.push()
+
     return false;
 }
 
 void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
 {
-    auto vertex = m_stack.top().GetVertices().back();
+    auto vertex = m_stack.top().GetVertex();
 
     std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
     std::for_each(std::make_move_iterator(items.begin()),
@@ -94,6 +102,28 @@ void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&&
 
         m_stack.top().PushToHeap(*cheapest);
     }
+}
+
+Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
+{
+    auto stack_view = m_stack.view();
+    auto transformed_stack_view = rgv::transform(stack_view, &Details::ISubGraph::FindHeapWithMin);
+    const auto min_element = rg::min_element(transformed_stack_view,
+                                             [](Details::MSTSoftHeapDecorator* left,
+                                                Details::MSTSoftHeapDecorator* right)
+                                             {
+                                                 if (!left)
+                                                     return false;
+                                                 if (!right)
+                                                     return true;
+                                                 return *left->FindMin() < *right->FindMin();
+                                             });
+
+    auto heap_ptr = *min_element;
+    if (!heap_ptr)
+        return {};
+
+    return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
 }
 
 MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)

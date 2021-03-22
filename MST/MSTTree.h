@@ -32,10 +32,12 @@ class MSTTree
 {
     MSTTree(Graph::Graph& graph, size_t c);
 
+    // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
     bool Retraction();
     bool Extension();
 
-    void CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    Details::EdgePtrWrapper* FindExtensionEdge();
 public:
     static MSTTree Create(Graph::Graph& graph, size_t c);
 

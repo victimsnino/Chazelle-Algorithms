@@ -22,6 +22,7 @@
 
 #include "MSTSoftHeapDecorator.h"
 
+#include <Common.h>
 #include <Graph.h>
 
 #include <algorithm>
@@ -47,7 +48,7 @@ EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
 
     value.SetWorkingCost(ckey->GetWorkingCost());
 
-    if (std::ranges::find(m_items, value) == m_items.end())
+    if (!Utils::IsRangeContains(m_items, value))
         return DeleteMin();
 
     m_items.remove(value);
@@ -61,10 +62,11 @@ EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
     if (!value_ptr)
         return value_ptr;
 
-    value_ptr->SetWorkingCost(ckey->GetWorkingCost());
-
-    if (std::ranges::find(m_items, *value_ptr) != m_items.end())
+    if (Utils::IsRangeContains(m_items, *value_ptr))
+    {
+        value_ptr->SetWorkingCost(ckey->GetWorkingCost());
         return value_ptr;
+    }
 
     SoftHeapCpp<EdgePtrWrapper>::DeleteMin();
     return FindMin();

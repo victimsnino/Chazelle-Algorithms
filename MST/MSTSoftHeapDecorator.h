@@ -35,14 +35,17 @@ using Label = std::array<std::optional<size_t>, 2>;
 class EdgePtrWrapper
 {
 public:
-    EdgePtrWrapper(const Graph::Details::Edge& edge)
-        : m_edge{&edge} {}
+    EdgePtrWrapper(const Graph::Details::Edge& edge, size_t outside_vertex)
+        : m_edge{&edge}
+        , m_outside_vertex{outside_vertex} {}
 
     const Graph::Details::Edge& GetEdge() const { return *m_edge; }
     const Graph::Details::Edge* operator->() const { return m_edge; }
 
     void  SetLastHeapIndex(Label label) { m_last_heap_index = label; }
     Label GetLastHeapIndex() const { return m_last_heap_index; }
+
+    size_t GetOutsideVertex() const { return m_outside_vertex; }
 
     bool operator<(const EdgePtrWrapper& rhs) const { return m_working_cost < rhs.m_working_cost; }
     bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
@@ -53,6 +56,7 @@ private:
     const Graph::Details::Edge* const m_edge;
     Label                             m_last_heap_index{};
     size_t                            m_working_cost = m_edge->GetWeight();
+    const size_t                      m_outside_vertex;
 };
 
 class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>

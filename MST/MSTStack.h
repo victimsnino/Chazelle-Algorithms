@@ -36,16 +36,25 @@ class MSTStack
 public:
     MSTStack(Graph::Graph& graph, size_t c);
 
-    //void Push(size_t vertex);
+    void Push(size_t vertex);
+
+    // Contact last node, move vertex to prev-last node, meld heaps all heaps except of H(K) and H(k-1, k).
+    // Extract data from these heaps. Pop min links for each prev. subgraphs
     SoftHeapCpp<EdgePtrWrapper>::ExtractedItems pop();
 
-    SubGraph& top()
+    ISubGraph& top()
     {
         assert(!m_nodes.empty());
         return m_nodes.back();
     }
 
     size_t size() const { return m_nodes.empty() ? 0 : m_nodes.back().GetIndex() + 1; }
+
+    auto view()
+    {
+        return std::ranges::views::transform(m_nodes, [](SubGraph& sub_graph)-> ISubGraph& { return sub_graph; });
+    }
+
 private:
     void PushNode(size_t vertex);
 
@@ -58,7 +67,6 @@ private:
     Graph::Graph&       m_graph;
     std::list<SubGraph> m_nodes{};
     std::list<size_t>   m_vertices_inside{};
-
 
     const size_t              m_r;
     const std::vector<size_t> m_sizes_per_height;

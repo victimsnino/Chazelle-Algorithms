@@ -123,9 +123,9 @@ struct LazyList
     LazyList& operator=(const LazyList& other)     = delete;
     LazyList& operator=(LazyList&& other) noexcept = delete;
 
-    auto begin() const { return m_begin; }
-    auto end() const { return m_begin; }
-    auto size() const { return std::distance(m_begin, m_end); }
+    auto   begin() const { return m_begin; }
+    auto   end() const { return m_begin; }
+    size_t size() const { return std::distance(m_begin, m_end); }
 
     const T& front() const { return *m_begin; }
     const T& back() const { return *std::prev(m_end); }

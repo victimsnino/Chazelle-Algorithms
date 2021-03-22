@@ -51,6 +51,11 @@ MSTStack::MSTStack(Graph::Graph& graph, size_t c)
     PushNode(graph.FindRootOfSubGraph(0));
 }
 
+void MSTStack::Push(size_t vertex)
+{
+    PushNode(m_graph.FindRootOfSubGraph(vertex));
+}
+
 SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::pop()
 {
     auto& last_subgraph = m_nodes.back();
@@ -61,7 +66,7 @@ SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::pop()
         const size_t index = last_subgraph.GetIndex();
         m_nodes.emplace_front(m_vertices_inside.cbegin(),
                               index - 1,
-                              m_sizes_per_height[IndexToHeight(index-1)],
+                              m_sizes_per_height[IndexToHeight(index - 1)],
                               m_r);
     }
 
@@ -72,7 +77,7 @@ SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::pop()
 
     std::for_each_n(m_nodes.begin(),
                     m_nodes.size() - 1,
-                    [](SubGraph& graph){graph.PopMinLink();});
+                    [](SubGraph& graph) { graph.PopMinLink(); });
 
     m_nodes.back().PopMinLink(true);
 
@@ -86,8 +91,8 @@ void MSTStack::PushNode(size_t vertex)
     if (index == 0)
         index = GetMaxHeight();
 
-    m_vertices_inside.push_back(m_graph.FindRootOfSubGraph(vertex));
-    m_nodes.emplace_back(m_vertices_inside.cbegin(),
+    m_vertices_inside.push_back(vertex);
+    m_nodes.emplace_back(std::prev(m_vertices_inside.cend()),
                          index,
                          m_sizes_per_height[IndexToHeight(index)],
                          m_r);
@@ -111,37 +116,39 @@ void MSTStack::AddNewBorderEdgesAfterPush()
         if (outside_vertices.empty() || outside_vertices.size() == 2)
             return;
 
-        assert(new_node.GetVertices().size() == 1 &&
-               (vertices[0] == new_node.GetVertices().front() ||
-                   vertices[1] == new_node.GetVertices().front()));
+        assert(vertices[0] == new_node.GetVertex() ||
+               vertices[1] == new_node.GetVertex());
 
-        new_node.PushToHeap(EdgePtrWrapper{edge});
+        new_node.PushToHeap(EdgePtrWrapper{edge, outside_vertices.front()});
     });
 }
 
 void MSTStack::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 {
     auto& new_node = m_nodes.back();
-    assert(new_node.GetVertices().size() == 1);
+    if (m_nodes.size() <= 1)
+        return;
 
     auto condition = [&](const EdgePtrWrapper& edge)
     {
-        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertices().front());
+        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertex());
     };
 
     std::for_each_n(m_nodes.begin(),
                     m_nodes.size() - 1,
                     [&](SubGraph& node)
                     {
+                        // TODO: How to guarantee that keys is raised??
                         const auto old_border_edges = node.DeleteAndReturnIf(condition);
                         if (old_border_edges.empty())
                             return;
 
-                        auto min = std::min_element(old_border_edges.cbegin(), old_border_edges.cend(),
-                                                         [](const EdgePtrWrapper& left,const EdgePtrWrapper& right)
-                                                         {
-                                                             return left.GetWorkingCost() < right.GetWorkingCost();
-                                                         });
+                        auto min = std::min_element(old_border_edges.cbegin(),
+                                                    old_border_edges.cend(),
+                                                    [](const EdgePtrWrapper& left, const EdgePtrWrapper& right)
+                                                    {
+                                                        return left.GetWorkingCost() < right.GetWorkingCost();
+                                                    });
                         node.AddToMinLinks(*min);
                     });
 }

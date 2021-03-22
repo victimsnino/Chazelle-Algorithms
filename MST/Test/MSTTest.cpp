@@ -26,19 +26,19 @@
 #include <MSTStack.h>
 #include <MSTUtils.h>
 
+#include <gtest/gtest.h>
 
 #include <algorithm>
-#include <gtest/gtest.h>
 
 
 static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
 {
     std::vector<std::pair<uint32_t, uint32_t>> edges{};
-    uint32_t N = 1;
+    uint32_t                                   N = 1;
     for (uint32_t i = 0; i < k; ++i)
     {
         std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
-        for(const auto[i,j] : edges)
+        for (const auto [i,j] : edges)
         {
             edges_to_add.emplace_back(i + N, j + N);
         }
@@ -46,7 +46,7 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
         edges.emplace_back(0, N);
         N *= 2;
     }
-    for(uint32_t z = 0; z < postprocess_; ++z)
+    for (uint32_t z = 0; z < postprocess_; ++z)
     {
         std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
         std::for_each(edges.rbegin(),
@@ -62,7 +62,7 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
     }
 
     std::vector<std::vector<uint32_t>> result{N};
-    for(size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < N; ++i)
         result[i].resize(N);
 
     uint32_t weight = edges.size();
@@ -77,24 +77,24 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
 
 TEST(MSTSTack, Init)
 {
-    auto                   matrix = GenerateMatrix(1, 2);
-    Graph::Graph           g{matrix};
+    const auto   matrix = GenerateMatrix(1, 2);
+    Graph::Graph g{matrix};
 
-    auto                   height = MST::FindMaxHeight(g, 1);
+    const auto height = MST::FindMaxHeight(g, 1);
 
     MST::Details::MSTStack stack{g, 1};
 
     EXPECT_EQ(stack.size(), height+1); // + leafs
     EXPECT_EQ(stack.top().GetIndex(), height);
-    EXPECT_EQ(stack.top().GetVertices().size(), 1);
-    EXPECT_EQ(stack.top().GetVertices().front(), 0);
+    EXPECT_EQ(stack.top().GetVertex(), 0);
 
     stack.pop();
 
     EXPECT_EQ(stack.size(), height);
     EXPECT_EQ(stack.top().GetIndex(), height-1);
-    EXPECT_EQ(stack.top().GetVertices().size(), 1);
-    EXPECT_EQ(stack.top().GetVertices().front(), 0);
+    EXPECT_EQ(stack.top().GetVertex(), 0);
+
+    //stack.push
 }
 
 TEST(MST, Init)
