@@ -68,16 +68,17 @@ bool MSTTree::Extension()
     if (!extension_edge)
         return false;
 
+    // TODO: Fusion
     // Fusion();
 
-    //m_stack.push()
+    m_stack.push(extension_edge->GetOutsideVertex());
 
-    return false;
+    return true;
 }
 
 void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
 {
-    auto vertex = m_stack.top().GetVertex();
+    auto vertex = m_stack.top().GetVertices().back();
 
     std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
     std::for_each(std::make_move_iterator(items.begin()),

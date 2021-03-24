@@ -51,7 +51,7 @@ MSTStack::MSTStack(Graph::Graph& graph, size_t c)
     PushNode(graph.FindRootOfSubGraph(0));
 }
 
-void MSTStack::Push(size_t vertex)
+void MSTStack::push(size_t vertex)
 {
     PushNode(m_graph.FindRootOfSubGraph(vertex));
 }
@@ -110,16 +110,14 @@ void MSTStack::AddNewBorderEdgesAfterPush()
         const auto vertices = edge.GetCurrentSubgraphs(m_graph);
 
         const auto outside_vertices = vertices |
-                rgv::filter(Utils::IsInRange(m_vertices_inside)) |
+                rgv::filter(std::not_fn(Utils::IsInRange(m_vertices_inside))) |
                 Utils::to_vector;
 
         if (outside_vertices.empty() || outside_vertices.size() == 2)
             return;
 
-        assert(vertices[0] == new_node.GetVertex() ||
-               vertices[1] == new_node.GetVertex());
-
-        new_node.PushToHeap(EdgePtrWrapper{edge, outside_vertices.front()});
+        if ((vertices[0] == outside_vertices.front() ? vertices[1] : vertices[0]) == new_node.GetVertex())
+            new_node.PushToHeap(EdgePtrWrapper{edge, outside_vertices.front()});
     });
 }
 

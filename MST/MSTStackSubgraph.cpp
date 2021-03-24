@@ -80,14 +80,14 @@ MSTSoftHeapDecorator* SubGraph::FindHeapWithMin()
             min_value = new_value;
         }
     }
-    return min_heap;
+    return min_value ? min_heap : nullptr;
 }
 
 std::list<EdgePtrWrapper> SubGraph::DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func)
 {
     std::list<EdgePtrWrapper> result{};
     for (auto& heap : m_heaps)
-        result.merge(heap.DeleteAndReturnIf(func));
+        result.splice(result.end(), heap.DeleteAndReturnIf(func));
     return result;
 }
 

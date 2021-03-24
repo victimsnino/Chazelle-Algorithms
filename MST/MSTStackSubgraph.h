@@ -43,6 +43,7 @@ struct ISubGraph
     virtual size_t                GetIndex() const = 0;
     virtual size_t                GetVertex() const = 0;
     virtual MSTSoftHeapDecorator* FindHeapWithMin() = 0;
+    virtual std::list<size_t> GetVertices() const = 0;
 };
 
 class SubGraph : public ISubGraph
@@ -66,6 +67,7 @@ public:
             throw std::out_of_range{"More than 1 vertexinside!"};
         return *m_vertices_begin;
     }
+    std::list<size_t> GetVertices() const override { return std::list<size_t>{m_vertices_begin, m_vertices_end}; }
 
     MSTSoftHeapDecorator* FindHeapWithMin() override;
 
@@ -81,7 +83,7 @@ public:
 
 private:
     size_t                  GetSizeOfVertices() const { return std::distance(m_vertices_begin, m_vertices_end); }
-    Utils::LazyList<size_t> GetVertices() const { return {m_vertices_begin, m_vertices_end}; }
+
 
 private:
     const size_t m_index; // aka k

@@ -36,7 +36,7 @@ class MSTStack
 public:
     MSTStack(Graph::Graph& graph, size_t c);
 
-    void Push(size_t vertex);
+    void push(size_t vertex);
 
     // Contact last node, move vertex to prev-last node, meld heaps all heaps except of H(K) and H(k-1, k).
     // Extract data from these heaps. Pop min links for each prev. subgraphs

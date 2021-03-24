@@ -94,13 +94,23 @@ TEST(MSTSTack, Init)
     EXPECT_EQ(stack.top().GetIndex(), height-1);
     EXPECT_EQ(stack.top().GetVertex(), 0);
 
-    //stack.push
+    stack.push(1);
+
+    EXPECT_EQ(stack.size(), height+1); // + leafs
+    EXPECT_EQ(stack.top().GetIndex(), height);
+    EXPECT_EQ(stack.top().GetVertex(), 1);
+
+    stack.pop();
+    EXPECT_EQ(stack.size(), height);
+    EXPECT_EQ(stack.top().GetIndex(), height-1);
+    EXPECT_EQ(stack.top().GetVertices().front(), 0);
+    EXPECT_EQ(stack.top().GetVertices().back(), 1);
 }
 
 TEST(MST, Init)
 {
     //auto matrix = GenerateMatrix(6, 5);
-    auto matrix = GenerateMatrix(1, 2);
+    auto matrix = GenerateMatrix(1, 4);
     {
         Graph::Graph g{matrix};
         std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;
