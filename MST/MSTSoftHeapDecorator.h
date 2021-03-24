@@ -42,9 +42,6 @@ public:
     const Graph::Details::Edge& GetEdge() const { return *m_edge; }
     const Graph::Details::Edge* operator->() const { return m_edge; }
 
-    void  SetLastHeapIndex(Label label) { m_last_heap_index = label; }
-    Label GetLastHeapIndex() const { return m_last_heap_index; }
-
     size_t GetOutsideVertex() const { return m_outside_vertex; }
 
     bool operator<(const EdgePtrWrapper& rhs) const { return m_working_cost < rhs.m_working_cost; }
@@ -54,31 +51,40 @@ public:
     size_t GetWorkingCost() const { return m_working_cost; }
 private:
     const Graph::Details::Edge* const m_edge;
-    Label                             m_last_heap_index{};
     size_t                            m_working_cost = m_edge->GetWeight();
     const size_t                      m_outside_vertex;
 };
 
-class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
+struct EdgePtrWrapperShared
+{
+    EdgePtrWrapperShared(const std::shared_ptr<EdgePtrWrapper>& value)
+        : shared_pointer{value} {}
+
+    bool operator<(const EdgePtrWrapperShared& rhs) const { return *shared_pointer < *rhs.shared_pointer; }
+    bool operator==(const EdgePtrWrapperShared& rhs) const { return *shared_pointer == *rhs.shared_pointer; }
+
+    std::shared_ptr<EdgePtrWrapper> shared_pointer;
+};
+
+class MSTSoftHeapDecorator
 {
 public:
     MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
 
-    void Insert(EdgePtrWrapper new_key) override;
-    void Meld(MSTSoftHeapDecorator& other);
+    using ExtractedItems = ::ExtractedItems<EdgePtrWrapper>;
 
-    EdgePtrWrapper  DeleteMin() override;
-    EdgePtrWrapper* FindMin() override;
+    void           Insert(EdgePtrWrapper new_key);
+    void           Meld(MSTSoftHeapDecorator& other);
+    ExtractedItems ExtractItems();
+
+    EdgePtrWrapper  DeleteMin();
+    EdgePtrWrapper* FindMin();
 
     std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
 
-    using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
-    using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;
-
-    const std::list<EdgePtrWrapper>& GetItemsInside() const { return m_items; }
-
 private:
-    const Label               m_label;
-    std::list<EdgePtrWrapper> m_items{};
+    SoftHeapCpp<EdgePtrWrapperShared>          m_heap;
+    const Label                                m_label;
+    std::list<std::shared_ptr<EdgePtrWrapper>> m_items{};
 };
 }

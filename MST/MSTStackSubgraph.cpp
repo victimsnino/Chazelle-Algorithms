@@ -56,8 +56,8 @@ void SubGraph::AddToMinLinks(EdgePtrWrapper edge)
 
 void SubGraph::PopMinLink(bool chain_link)
 {
-    //if (!m_min_links_to_next_nodes.empty())
-    m_min_links_to_next_nodes.pop_back();
+    if (!m_min_links_to_next_nodes.empty())
+        m_min_links_to_next_nodes.pop_back();
     //else
     //{
     //    assert(!m_chain_link_to_next.has_value());
@@ -98,9 +98,9 @@ void SubGraph::MeldHeapsFrom(SubGraph& other)
         m_heaps[i].Meld(other.m_heaps[i]);
 }
 
-SoftHeapCpp<EdgePtrWrapper>::ExtractedItems SubGraph::ExtractItems()
+MSTSoftHeapDecorator::ExtractedItems SubGraph::ExtractItems()
 {
-    SoftHeapCpp<EdgePtrWrapper>::ExtractedItems data{};
+    MSTSoftHeapDecorator::ExtractedItems data{};
 
     std::for_each_n(m_heaps.rbegin(),
                     std::min(size_t{2}, m_index),

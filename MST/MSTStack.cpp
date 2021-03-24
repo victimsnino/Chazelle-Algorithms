@@ -56,7 +56,7 @@ void MSTStack::Push(size_t vertex)
     PushNode(m_graph.FindRootOfSubGraph(vertex));
 }
 
-SoftHeapCpp<EdgePtrWrapper>::ExtractedItems MSTStack::pop()
+MSTSoftHeapDecorator::ExtractedItems MSTStack::pop()
 {
     auto& last_subgraph = m_nodes.back();
     last_subgraph.Contract(m_graph, m_vertices_inside);
@@ -138,7 +138,6 @@ void MSTStack::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
                     m_nodes.size() - 1,
                     [&](SubGraph& node)
                     {
-                        // TODO: How to guarantee that keys is raised??
                         const auto old_border_edges = node.DeleteAndReturnIf(condition);
                         if (old_border_edges.empty())
                             return;

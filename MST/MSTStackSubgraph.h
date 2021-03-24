@@ -70,9 +70,9 @@ public:
     MSTSoftHeapDecorator* FindHeapWithMin() override;
 
     // PRIVATE
-    std::list<EdgePtrWrapper>                   DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
-    void                                        MeldHeapsFrom(SubGraph& other);
-    SoftHeapCpp<EdgePtrWrapper>::ExtractedItems ExtractItems();
+    std::list<EdgePtrWrapper>            DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
+    void                                 MeldHeapsFrom(SubGraph& other);
+    MSTSoftHeapDecorator::ExtractedItems ExtractItems();
 
     void Contract(Graph::Graph& graph, std::list<size_t>& vertices_inside_tree);
 

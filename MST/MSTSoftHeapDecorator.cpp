@@ -30,45 +30,43 @@
 namespace MST::Details
 {
 MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j)
-    : SoftHeapCpp<EdgePtrWrapper>{r}
+    : m_heap{r,
+             [](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
+             {
+                 item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
+             }}
     , m_label{label_i, label_j} {}
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
-    new_key.SetLastHeapIndex(m_label);
+    auto ptr = std::make_shared<EdgePtrWrapper>(std::move(new_key));
 
-    m_items.push_back(new_key);
-    SoftHeapCpp<EdgePtrWrapper>::Insert(new_key);
+    m_heap.Insert(EdgePtrWrapperShared{ptr});
+    m_items.emplace_back(std::move(ptr));
 }
 
 EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
 {
-    auto ckey  = GetCurrentTopCkey();
-    auto value = SoftHeapCpp<EdgePtrWrapper>::DeleteMin();
+    const auto value = m_heap.DeleteMin();
+    auto       ptr   = value.shared_pointer;
 
-    value.SetWorkingCost(ckey->GetWorkingCost());
-
-    if (!Utils::IsRangeContains(m_items, value))
+    if (!Utils::IsRangeContains(m_items, value.shared_pointer))
         return DeleteMin();
 
-    m_items.remove(value);
-    return value;
+    m_items.remove(ptr);
+    return *ptr;
 }
 
 EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
 {
-    const auto ckey      = GetCurrentTopCkey();
-    const auto value_ptr = SoftHeapCpp<EdgePtrWrapper>::FindMin();
+    const auto value_ptr = m_heap.FindMin();
     if (!value_ptr)
-        return value_ptr;
+        return {};
 
-    if (Utils::IsRangeContains(m_items, *value_ptr))
-    {
-        value_ptr->SetWorkingCost(ckey->GetWorkingCost());
-        return value_ptr;
-    }
+    if (Utils::IsRangeContains(m_items, value_ptr->shared_pointer))
+        return value_ptr->shared_pointer.get();
 
-    SoftHeapCpp<EdgePtrWrapper>::DeleteMin();
+    m_heap.DeleteMin();
     return FindMin();
 }
 
@@ -77,8 +75,11 @@ std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<
     std::list<EdgePtrWrapper> result{};
     for (auto itr = m_items.begin(); itr != m_items.end();)
     {
-        if (func(*itr))
-            result.splice(result.end(), m_items, itr++);
+        if (func(**itr))
+        {
+            result.emplace_back(**itr);
+            itr = m_items.erase(itr);
+        }
         else
             ++itr;
     }
@@ -87,13 +88,21 @@ std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<
 
 void MSTSoftHeapDecorator::Meld(MSTSoftHeapDecorator& other)
 {
-    std::ranges::for_each(other.m_items,
-                          [&](EdgePtrWrapper& wrapper)
-                          {
-                              wrapper.SetLastHeapIndex(m_label);
-                          });
-
     m_items.splice(m_items.end(), other.m_items);
-    SoftHeapCpp<EdgePtrWrapper>::Meld(other);
+    m_heap.Meld(other.m_heap);
+}
+
+MSTSoftHeapDecorator::ExtractedItems MSTSoftHeapDecorator::ExtractItems()
+{
+    auto                                 data = m_heap.ExtractItems();
+    MSTSoftHeapDecorator::ExtractedItems to_out{};
+    auto                                 convert = [](EdgePtrWrapperShared& shared)
+    {
+        return std::move(*shared.shared_pointer);
+    };
+    std::ranges::transform(data.corrupted, std::back_inserter(to_out.corrupted), convert);
+    std::ranges::transform(data.items, std::back_inserter(to_out.items), convert);
+
+    return to_out;
 }
 } // namespace MST::Details
