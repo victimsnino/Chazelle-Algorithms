@@ -69,7 +69,7 @@ struct EdgePtrWrapperShared
 class MSTSoftHeapDecorator
 {
 public:
-    MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
+    MSTSoftHeapDecorator(size_t r);
 
     using ExtractedItems = ::ExtractedItems<EdgePtrWrapper>;
 
@@ -84,7 +84,6 @@ public:
 
 private:
     SoftHeapCpp<EdgePtrWrapperShared>          m_heap;
-    const Label                                m_label;
     std::list<std::shared_ptr<EdgePtrWrapper>> m_items{};
 };
 }

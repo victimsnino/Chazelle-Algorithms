@@ -25,15 +25,6 @@
 #include <Common.h>
 #include <Graph.h>
 
-static std::vector<MST::Details::MSTSoftHeapDecorator> InitSoftHeaps(size_t index, size_t r)
-{
-    std::vector<MST::Details::MSTSoftHeapDecorator> heaps{};
-    heaps.reserve(index);
-    for (size_t i = 0; i < index; ++i)
-        heaps.emplace_back(r, i, index);
-    heaps.emplace_back(r, index);
-    return heaps;
-}
 
 namespace MST::Details
 {
@@ -42,7 +33,7 @@ SubGraph::SubGraph(std::list<size_t>::const_iterator vertex_itr, size_t index, s
     , m_target_size{target_size}
     , m_vertices_begin{vertex_itr}
     , m_vertices_end{std::next(m_vertices_begin)}
-    , m_heaps{InitSoftHeaps(index, r)} {}
+    , m_heaps{index, MSTSoftHeapDecorator{r}} {}
 
 void SubGraph::PushToHeap(EdgePtrWrapper edge)
 {

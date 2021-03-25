@@ -29,13 +29,12 @@
 
 namespace MST::Details
 {
-MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j)
+MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r)
     : m_heap{r,
              [](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
-             }}
-    , m_label{label_i, label_j} {}
+             }} {}
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
