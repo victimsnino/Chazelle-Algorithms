@@ -26,6 +26,9 @@
 
 #include <Graph.h>
 
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
+#include <spdlog/spdlog.h>
 
 namespace MST
 {
@@ -50,6 +53,8 @@ MSTTree::MSTTree(Graph::Graph& graph, size_t c)
 
 bool MSTTree::Retraction()
 {
+    SPDLOG_DEBUG("");
+
     if (m_stack.top().GetIndex() == 0) // k should be >= 1
         return false;
 
@@ -65,11 +70,11 @@ bool MSTTree::Retraction()
 bool MSTTree::Extension()
 {
     auto extension_edge = FindExtensionEdge();
+    SPDLOG_DEBUG("Extension edge {}", !!extension_edge);
     if (!extension_edge)
         return false;
 
-    // TODO: Fusion
-    // Fusion();
+    Fusion(*extension_edge);
 
     m_stack.push(extension_edge->GetOutsideVertex());
 
@@ -125,6 +130,31 @@ Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
         return {};
 
     return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
+}
+
+void MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
+{
+    const auto view = m_stack.view();
+    auto fusion_start_itr = std::ranges::find_if(view,
+                                                 [&](const Details::ISubGraph& subgraph)
+                                                 {
+                                                     const auto& min_links = subgraph.GetMinLinks();
+                                                     return std::ranges::find_if(min_links,
+                                                         [&](const Details::EdgePtrWrapper& edge)
+                                                         {
+                                                             return edge <= extension_edge;
+                                                         }) != min_links.cend();
+                                                 });
+
+    if (fusion_start_itr == view.end())
+        return;
+
+    size_t count_of_pops = std::distance(fusion_start_itr, view.end()) - 1;
+    for (size_t i = 0; i < count_of_pops; ++i)
+    {
+       if (!Retraction())
+           return;
+    }
 }
 
 MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)

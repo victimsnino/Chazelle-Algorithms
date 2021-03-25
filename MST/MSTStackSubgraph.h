@@ -38,12 +38,13 @@ struct ISubGraph
 {
     virtual ~ISubGraph() { }
 
-    virtual void                  PushToHeap(EdgePtrWrapper edge) = 0;
-    virtual bool                  IsMeetTargetSize() const = 0;
-    virtual size_t                GetIndex() const = 0;
-    virtual size_t                GetVertex() const = 0;
-    virtual MSTSoftHeapDecorator* FindHeapWithMin() = 0;
-    virtual std::list<size_t> GetVertices() const = 0;
+    virtual void                               PushToHeap(EdgePtrWrapper edge) = 0;
+    virtual bool                               IsMeetTargetSize() const = 0;
+    virtual size_t                             GetIndex() const = 0;
+    virtual size_t                             GetVertex() const = 0;
+    virtual MSTSoftHeapDecorator*              FindHeapWithMin() = 0;
+    virtual std::list<size_t>                  GetVertices() const = 0;
+    virtual const std::vector<EdgePtrWrapper>& GetMinLinks() const = 0;
 };
 
 class SubGraph : public ISubGraph
@@ -71,6 +72,7 @@ public:
 
     MSTSoftHeapDecorator* FindHeapWithMin() override;
 
+    const std::vector<EdgePtrWrapper>& GetMinLinks() const override { return m_min_links_to_next_nodes;}
     // PRIVATE
     std::list<EdgePtrWrapper>            DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
     void                                 MeldHeapsFrom(SubGraph& other);
@@ -84,7 +86,6 @@ public:
 private:
     size_t                  GetSizeOfVertices() const { return std::distance(m_vertices_begin, m_vertices_end); }
 
-
 private:
     const size_t m_index; // aka k
     const size_t m_target_size;
@@ -95,7 +96,6 @@ private:
 
     std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
 
-    std::optional<EdgePtrWrapper> m_chain_link_to_next{};
     std::vector<EdgePtrWrapper>   m_min_links_to_next_nodes{};
 };
 }

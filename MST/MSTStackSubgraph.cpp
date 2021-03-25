@@ -33,7 +33,10 @@ SubGraph::SubGraph(std::list<size_t>::const_iterator vertex_itr, size_t index, s
     , m_target_size{target_size}
     , m_vertices_begin{vertex_itr}
     , m_vertices_end{std::next(m_vertices_begin)}
-    , m_heaps{index, MSTSoftHeapDecorator{r}} {}
+{
+    for (size_t i = 0; i < m_index + 1; ++i)
+        m_heaps.emplace_back(r);
+}
 
 void SubGraph::PushToHeap(EdgePtrWrapper edge)
 {
@@ -49,13 +52,6 @@ void SubGraph::PopMinLink(bool chain_link)
 {
     if (!m_min_links_to_next_nodes.empty())
         m_min_links_to_next_nodes.pop_back();
-    //else
-    //{
-    //    assert(!m_chain_link_to_next.has_value());
-    //}
-
-    //if (chain_link)
-    //    m_chain_link_to_next.reset();
 }
 
 MSTSoftHeapDecorator* SubGraph::FindHeapWithMin()

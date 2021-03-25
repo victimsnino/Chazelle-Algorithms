@@ -26,6 +26,7 @@ target_link_libraries(${TARGET}
         SoftHeapCpp
         Common
         Graph
+        spdlog::spdlog_header_only
 )
 
 SET_TARGET_PROPERTIES (${TARGET} PROPERTIES FOLDER MST)

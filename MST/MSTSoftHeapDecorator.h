@@ -45,6 +45,7 @@ public:
     size_t GetOutsideVertex() const { return m_outside_vertex; }
 
     bool operator<(const EdgePtrWrapper& rhs) const { return m_working_cost < rhs.m_working_cost; }
+    bool operator<=(const EdgePtrWrapper& rhs) const { return m_working_cost <= rhs.m_working_cost; }
     bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
 
     void   SetWorkingCost(size_t cost) { m_working_cost = cost; }
@@ -69,7 +70,7 @@ struct EdgePtrWrapperShared
 class MSTSoftHeapDecorator
 {
 public:
-    MSTSoftHeapDecorator(size_t r);
+    explicit MSTSoftHeapDecorator(size_t r);
 
     using ExtractedItems = ::ExtractedItems<EdgePtrWrapper>;
 

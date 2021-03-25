@@ -26,6 +26,10 @@
 
 #include <Common.h>
 
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
+#include <spdlog/spdlog.h>
+
 static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, size_t c)
 {
     const auto max_height = MST::FindMaxHeight(graph, c);
@@ -48,6 +52,9 @@ MSTStack::MSTStack(Graph::Graph& graph, size_t c)
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(c))}
     , m_sizes_per_height{InitTargetSizesPerHeight(graph, c)}
 {
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_pattern("[%s::%!::%#] %v");
+
     PushNode(graph.FindRootOfSubGraph(0));
 }
 
@@ -58,6 +65,8 @@ void MSTStack::push(size_t vertex)
 
 MSTSoftHeapDecorator::ExtractedItems MSTStack::pop()
 {
+    SPDLOG_DEBUG("Size {}", m_nodes.size());
+
     auto& last_subgraph = m_nodes.back();
     last_subgraph.Contract(m_graph, m_vertices_inside);
 
@@ -86,6 +95,8 @@ MSTSoftHeapDecorator::ExtractedItems MSTStack::pop()
 
 void MSTStack::PushNode(size_t vertex)
 {
+    SPDLOG_DEBUG(vertex);
+
     auto index = size();
     // Empty stack, initialization stage
     if (index == 0)

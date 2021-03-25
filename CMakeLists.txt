@@ -28,6 +28,8 @@ foreach(CompilerFlag ${CompilerFlags})
   string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
 endforeach()
 
+add_subdirectory(spdlog)
+
 add_subdirectory(googletest EXCLUDE_FROM_ALL)
 SET_TARGET_PROPERTIES (gtest PROPERTIES FOLDER gtest/)
 SET_TARGET_PROPERTIES (gtest_main PROPERTIES FOLDER gtest/)
