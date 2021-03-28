@@ -30,37 +30,61 @@
 
 namespace MST::Details
 {
+using Label = std::array<std::optional<size_t>, 2>;
+
 class EdgePtrWrapper
 {
 public:
-    EdgePtrWrapper(Graph::Details::Edge& edge)
-        : m_edge{&edge} {}
+    EdgePtrWrapper(const Graph::Details::Edge& edge, size_t outside_vertex)
+        : m_edge{&edge}
+        , m_outside_vertex{outside_vertex} {}
 
-    Graph::Details::Edge& GetEdge() const { return *m_edge; }
-    Graph::Details::Edge* operator->() const { return m_edge; }
+    const Graph::Details::Edge& GetEdge() const { return *m_edge; }
+    const Graph::Details::Edge* operator->() const { return m_edge; }
 
-    bool operator<(const EdgePtrWrapper& rhs) const { return *m_edge < *rhs.m_edge; }
+    size_t GetOutsideVertex() const { return m_outside_vertex; }
+
+    bool operator<(const EdgePtrWrapper& rhs) const { return m_working_cost < rhs.m_working_cost; }
+    bool operator<=(const EdgePtrWrapper& rhs) const { return m_working_cost <= rhs.m_working_cost; }
     bool operator==(const EdgePtrWrapper& rhs) const { return m_edge == rhs.m_edge; }
+
+    void   SetWorkingCost(size_t cost) { m_working_cost = cost; }
+    size_t GetWorkingCost() const { return m_working_cost; }
 private:
-    Graph::Details::Edge* const m_edge;
+    const Graph::Details::Edge* const m_edge;
+    size_t                            m_working_cost = m_edge->GetWeight();
+    const size_t                      m_outside_vertex;
 };
 
-class MSTSoftHeapDecorator : private SoftHeapCpp<EdgePtrWrapper>
+struct EdgePtrWrapperShared
+{
+    EdgePtrWrapperShared(const std::shared_ptr<EdgePtrWrapper>& value)
+        : shared_pointer{value} {}
+
+    bool operator<(const EdgePtrWrapperShared& rhs) const { return *shared_pointer < *rhs.shared_pointer; }
+    bool operator==(const EdgePtrWrapperShared& rhs) const { return *shared_pointer == *rhs.shared_pointer; }
+
+    std::shared_ptr<EdgePtrWrapper> shared_pointer;
+};
+
+class MSTSoftHeapDecorator
 {
 public:
-    MSTSoftHeapDecorator(size_t r, size_t label_i, std::optional<size_t> label_j = {});
+    explicit MSTSoftHeapDecorator(size_t r);
 
-    void                             Insert(EdgePtrWrapper new_key) override;
-    EdgePtrWrapper                   DeleteMin() override;
-    void                             Meld(MSTSoftHeapDecorator& other);
-    const std::list<EdgePtrWrapper>& GetItemsInside() const { return m_items; }
+    using ExtractedItems = ::ExtractedItems<EdgePtrWrapper>;
 
-    using SoftHeapCpp<EdgePtrWrapper>::ExtractedItems;
-    using SoftHeapCpp<EdgePtrWrapper>::ExtractItems;
-    using SoftHeapCpp<EdgePtrWrapper>::FindMin;
+    void           Insert(EdgePtrWrapper new_key);
+    void           Meld(MSTSoftHeapDecorator& other);
+    ExtractedItems ExtractItems();
+
+    EdgePtrWrapper  DeleteMin();
+    EdgePtrWrapper* FindMin();
+
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
 
 private:
-    const std::array<std::optional<size_t>, 2> m_label;
-    std::list<EdgePtrWrapper>                  m_items{};
+    SoftHeapCpp<EdgePtrWrapperShared>          m_heap;
+    std::list<std::shared_ptr<EdgePtrWrapper>> m_items{};
 };
 }

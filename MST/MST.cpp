@@ -31,6 +31,6 @@ namespace MST
 {
 void FindMST(Graph::Graph& graph)
 {
-    MSTTree tree{graph, 2};
+    auto tree = MSTTree::Create(graph, 2);
 }
 }

@@ -7,8 +7,11 @@ add_library(${TARGET}
     MSTTree.cpp
     MSTTree.h
 
-    MSTTreeBase.cpp
-    MSTTreeBase.h
+    MSTStack.cpp
+    MSTStack.h
+
+    MSTStackSubgraph.cpp
+    MSTStackSubgraph.h
 
     MSTUtils.h
     MSTUtils.cpp
@@ -19,11 +22,11 @@ add_library(${TARGET}
 
 target_include_directories(${TARGET} PUBLIC .)
 target_link_libraries(${TARGET}
-    PRIVATE
+    PUBLIC
         SoftHeapCpp
         Common
-    PUBLIC
         Graph
+        spdlog::spdlog_header_only
 )
 
 SET_TARGET_PROPERTIES (${TARGET} PROPERTIES FOLDER MST)

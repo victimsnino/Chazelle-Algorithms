@@ -21,44 +21,31 @@
 // SOFTWARE.
 
 #pragma once
-
-#include "MSTTreeBase.h"
+#include "MSTStack.h"
 
 #include <Graph.h>
-#include <SoftHeapCpp.h>
-
-#include <set>
 
 
 namespace MST
 {
-using Cluster = std::set<Details::EdgePtrWrapper>;
-
 class MSTTree
 {
-public:
     MSTTree(Graph::Graph& graph, size_t c);
 
-private:
-    // Step 1,2: Boruvka
-    bool BoruvkaPhase(size_t c) const;
-
-    // Step 3: Building tree T
-    void BuildTree();
-
-private:
+    // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
+    bool Retraction();
     bool Extension();
-    void Retraction();
 
-    void MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHeapDecorator>& cross_heaps,
-                                            std::list<Details::EdgePtrWrapper>&&        valid_items);
+    void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    Details::EdgePtrWrapper* FindExtensionEdge();
 
-    void InsertEdgeToCorrectHeap(Graph::Details::Edge&                       edge,
-                                 bool                                        is_his_cluster_empty,
-                                 std::vector<Details::MSTSoftHeapDecorator>& cross_heaps);
-
+    Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
+    void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
+public:
+    static MSTTree Create(Graph::Graph& graph, size_t c);
 
 private:
-    Details::MSTTreeBase m_base;
+    Graph::Graph&     m_graph;
+    Details::MSTStack m_stack;
 };
 }

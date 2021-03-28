@@ -6,6 +6,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 option(GRAPHVIZ_DISABLE "Force disable graphviz" OFF)
 
 if (GRAPHVIZ_DISABLE)
@@ -23,6 +27,8 @@ set(CompilerFlags
 foreach(CompilerFlag ${CompilerFlags})
   string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
 endforeach()
+
+add_subdirectory(spdlog)
 
 add_subdirectory(googletest EXCLUDE_FROM_ALL)
 SET_TARGET_PROPERTIES (gtest PROPERTIES FOLDER gtest/)

@@ -26,6 +26,7 @@
 
 #include "Utils.h"
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <list>
@@ -35,25 +36,26 @@ struct Head;
 struct Node;
 
 template<typename ItemType>
+struct ExtractedItems
+{
+    std::list<ItemType> corrupted{};
+    std::list<ItemType> items{};
+};
+
+template<typename ItemType>
 class SoftHeapCpp
 {
 public:
-    SoftHeapCpp(size_t r);
+    SoftHeapCpp(size_t r, std::function<void(ItemType& item, const ItemType& ckey)> on_key_raised = {});
     virtual ~SoftHeapCpp() = default;
-
-    struct ExtractedItems
-    {
-        std::list<ItemType> corrupted{};
-        std::list<ItemType> items{};
-    };
 
     virtual void     Insert(ItemType new_key);
     virtual ItemType DeleteMin();
 
-    virtual void           Meld(SoftHeapCpp& other);
-    virtual ExtractedItems ExtractItems();
+    void           Meld(SoftHeapCpp& other);
+    ExtractedItems<ItemType> ExtractItems();
 
-    const ItemType* FindMin();
+    virtual ItemType* FindMin();
 private:
     struct Node
     {
@@ -82,6 +84,18 @@ private:
 
         void Sift(size_t r);
 
+        void CheckForKeyRaised(const std::function<void(ItemType& item, const ItemType& ckey)>& function)
+        {
+            if (!function || !m_ckey ||!m_values)
+                return;
+
+            for (auto& value : *m_values)
+            {
+                if (value < *m_ckey)
+                    function(value, *m_ckey);
+            }
+        }
+
         void ForEachNodeWithChildOnLevel(std::function<void(Node* node)> func)
         {
             if (m_next)
@@ -91,7 +105,7 @@ private:
             }
         }
 
-        void ExtractCorruptedItems(ExtractedItems& result)
+        void ExtractCorruptedItems(ExtractedItems<ItemType>& result)
         {
             if (m_values || !m_ckey)
             {
@@ -111,7 +125,7 @@ private:
                 m_child->ExtractCorruptedItems(result);
         }
 
-        const ItemType& FrontValue()
+        ItemType& FrontValue()
         {
             assert(!!m_values && !m_values->empty());
             return m_values->front();
@@ -126,11 +140,11 @@ private:
         }
 
     private:
-        std::shared_ptr<ItemType>            m_ckey;
-        const size_t                         m_rank;
-        std::unique_ptr<Node>                m_next{};
-        std::unique_ptr<Node>                m_child{};
-        std::shared_ptr<std::list<ItemType>> m_values{};
+        std::shared_ptr<ItemType>             m_ckey;
+        const size_t                          m_rank;
+        std::unique_ptr<Node>                 m_next{};
+        std::unique_ptr<Node>                 m_child{};
+        std::shared_ptr<std::list<ItemType>>  m_values{};
     };
 
     struct Head
@@ -162,16 +176,18 @@ private:
     void  Meld(std::unique_ptr<Node> q);
     void  FixMinlist(std::shared_ptr<Head> h);
 private:
-    std::shared_ptr<Head> m_header{};
-    std::shared_ptr<Head> m_tail{};
-    const size_t          m_r;
+    std::shared_ptr<Head>                                           m_header{};
+    std::shared_ptr<Head>                                           m_tail{};
+    const size_t                                                    m_r;
+    const std::function<void(ItemType& item, const ItemType& ckey)> m_on_key_raised;
 };
 
 template<typename ItemType>
-SoftHeapCpp<ItemType>::SoftHeapCpp(size_t r)
+SoftHeapCpp<ItemType>::SoftHeapCpp(size_t r, std::function<void(ItemType& value, const ItemType& ckey)> on_key_raised)
     : m_header{std::make_shared<Head>(0)}
     , m_tail{std::make_shared<Head>(std::numeric_limits<size_t>::max())}
     , m_r(r)
+    , m_on_key_raised{std::move(on_key_raised)}
 {
     m_header->SetNext(m_tail);
     m_tail->SetPrev(m_header);
@@ -184,10 +200,12 @@ void SoftHeapCpp<ItemType>::Insert(ItemType new_key)
 }
 
 template<typename ItemType>
-const ItemType* SoftHeapCpp<ItemType>::FindMin()
+ItemType* SoftHeapCpp<ItemType>::FindMin()
 {
-    const auto& node = FindMinNode();
-    return !node || node->IsNoValues() ? nullptr : &node->FrontValue();
+    auto node = FindMinNode();
+    if (!node || node->IsNoValues())
+        return nullptr;
+    return &node->FrontValue();
 }
 
 template<typename ItemType>
@@ -211,9 +229,9 @@ void SoftHeapCpp<ItemType>::Meld(SoftHeapCpp& other)
 }
 
 template<typename ItemType>
-typename SoftHeapCpp<ItemType>::ExtractedItems SoftHeapCpp<ItemType>::ExtractItems()
+ExtractedItems<ItemType> SoftHeapCpp<ItemType>::ExtractItems()
 {
-    ExtractedItems result{};
+    ExtractedItems<ItemType> result{};
     auto           h = m_header->GetNext();
 
     while (h != m_tail)
@@ -247,13 +265,14 @@ typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::FindMinNode()
             FixMinlist(h->GetPrev());
 
             h->GetQueue()->ForEachNodeWithChildOnLevel([&](Node* node)
-                {
-                    Meld(node->ExtractChild());
-                });
+            {
+                Meld(node->ExtractChild());
+            });
         }
         else
         {
             h->GetQueue()->Sift(m_r);
+            h->GetQueue()->CheckForKeyRaised(m_on_key_raised);
             if (h->GetQueue()->IsInfntyCkey())
             {
                 h->GetPrev()->SetNext(h->GetNext());

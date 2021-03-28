@@ -21,49 +21,27 @@
 // SOFTWARE.
 
 #include "MSTTree.h"
+
 #include "MSTUtils.h"
 
-#include <Common.h>
+#include <Graph.h>
 
-#include <iostream>
-#include <ranges>
-#include <stdexcept>
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
+#include <spdlog/spdlog.h>
 
 namespace MST
 {
 MSTTree::MSTTree(Graph::Graph& graph, size_t c)
-    : m_base{graph, c}
-{
-    if (!BoruvkaPhase(c))
-        return;
-
-    BuildTree();
-}
-
-bool MSTTree::BoruvkaPhase(size_t c) const
-{
-    // TODO: ENable borubka Phase later
-    /* size_t count = FindParamT(graph, FindMaxHeight(m_base.GetGraph(), c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
- 
-     while (count > 0 && m_graph.GetVertexesCount() > 1)
-     {
-         m_graph.BoruvkaPhase();
-         --count;
-     }
- 
-     if (m_graph.GetVertexesCount() == 1)
-         return false;*/
-    return true;
-}
-
-void MSTTree::BuildTree()
+    : m_graph{graph}
+    , m_stack{m_graph, c}
 {
     while (true)
     {
-        if (m_base.IsNeedRetraction())
+        if (m_stack.top().IsMeetTargetSize())
         {
-            Retraction();
+            if (!Retraction())
+                return;
         }
         else
         {
@@ -73,111 +51,122 @@ void MSTTree::BuildTree()
     }
 }
 
-bool MSTTree::Extension()
+bool MSTTree::Retraction()
 {
-    auto heap_with_min_value = m_base.FindMinAllHeaps();
-    if (!heap_with_min_value)
+    SPDLOG_DEBUG("");
+
+    if (m_stack.top().GetIndex() == 0) // k should be >= 1
         return false;
 
-    // Fusion();
+    PostRetractionActions(m_stack.pop());
+    return true;
+}
 
-    auto edge = heap_with_min_value->DeleteMin();
-    m_base.AddNodeByEdge(std::move(edge));
+bool MSTTree::Extension()
+{
+    auto extension_edge = FindExtensionEdge();
+    SPDLOG_DEBUG("Extension edge {}", !!extension_edge);
+    if (!extension_edge)
+        return false;
+
+    PostRetractionActions(Fusion(*extension_edge));
+
+    m_stack.push(extension_edge->GetOutsideVertex());
 
     return true;
 }
 
-void MSTTree::Retraction()
+void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
 {
-    auto       contracted_last_node = m_base.ContractLastNode();
-    const auto k                    = contracted_last_node.GetLabel();
-    auto&      current_last         = m_base.GetLastNode(); // k-1
+    auto vertex = m_stack.top().GetVertices().back();
 
-    current_last.AddVertex(m_base.UpdateNodeIndex(contracted_last_node.GetVertices()[0]));
+    std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
+    std::for_each(std::make_move_iterator(items.begin()),
+                  std::make_move_iterator(items.end()),
+                  [&](Details::EdgePtrWrapper&& edge)
+                  {
+                      auto [i,j] = edge->GetCurrentSubgraphs(m_graph);
+                      if (i == vertex)
+                          clusters_by_out_vertex[j].emplace(edge);
+                      else
+                      {
+                          assert(j == vertex);
+                          clusters_by_out_vertex[i].emplace(edge);
+                      }
+                  });
 
-    std::list<Details::EdgePtrWrapper> valid_items{};
-    for (auto& heap_ptr : {&contracted_last_node.GetHeap(),
-                           &contracted_last_node.GetCrossHeapFrom(k - 1)})
+    for (auto& cluster : clusters_by_out_vertex | rgv::values)
     {
-        auto [corrupted, items] = heap_ptr->ExtractItems();
-        for (const auto& edge : corrupted)
-            m_base.GetGraph().DisableEdge(edge->GetIndex());
+        auto cheapest = cluster.begin();
+        for (auto& edge : cluster | rgv::drop(1))
+            m_graph.DisableEdge(edge->GetIndex());
 
-        valid_items.splice(valid_items.end(), items);
-    }
-
-    MoveItemsToSuitableHeapsByClusters(contracted_last_node.GetCrossHeaps(), std::move(valid_items));
-
-    for (size_t i = 0; i < k - 1; ++i)
-        current_last.GetCrossHeapFrom(i).Meld(contracted_last_node.GetCrossHeapFrom(i));
-}
-
-void MSTTree::MoveItemsToSuitableHeapsByClusters(std::vector<Details::MSTSoftHeapDecorator>& cross_heaps,
-                                                 std::list<Details::EdgePtrWrapper>&&        valid_items)
-{
-    std::map<size_t, Cluster> out_vertex_to_internals{};
-    std::ranges::for_each(valid_items,
-                          [&](Graph::Details::Edge& edge)
-                          {
-                              auto subgraphs = edge.GetCurrentSubgraphs(m_base.GetGraph());
-                              if (std::ranges::all_of(subgraphs, Utils::IsContainsIn(m_base.GetVerticesInsidePath())))
-                                  return;
-
-                              auto [i, j] = subgraphs;
-                              if (Utils::IsContains(m_base.GetVerticesInsidePath(), i))
-                                  out_vertex_to_internals[j].emplace(edge);
-                              else if (Utils::IsContains(m_base.GetVerticesInsidePath(), j))
-                                  out_vertex_to_internals[i].emplace(edge);
-                          },
-                          &Details::EdgePtrWrapper::GetEdge);
-
-    for (auto& edges : out_vertex_to_internals | std::views::values)
-    {
-        const auto cheapest_edge_ref = edges.begin();
-        auto       dropped_view      = edges | std::views::drop(1);
-        for (const auto& edge : dropped_view)
-            m_base.GetGraph().DisableEdge(edge->GetIndex());
-
-        InsertEdgeToCorrectHeap(cheapest_edge_ref->GetEdge(), dropped_view.empty(), cross_heaps);
+        m_stack.top().PushToHeap(*cheapest);
     }
 }
 
-void MSTTree::InsertEdgeToCorrectHeap(Graph::Details::Edge&                       edge,
-                                      bool                                        is_his_cluster_empty,
-                                      std::vector<Details::MSTSoftHeapDecorator>& cross_heaps)
+Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
 {
-    auto [i, j]   = edge.GetLastHeapIndex();
-    auto [v1, v2] = edge.GetCurrentSubgraphs(m_base.GetGraph());
+    auto stack_view = m_stack.view();
+    auto transformed_stack_view = rgv::transform(stack_view, &Details::ISubGraph::FindHeapWithMin);
+    const auto min_element = rg::min_element(transformed_stack_view,
+                                             [](Details::MSTSoftHeapDecorator* left,
+                                                Details::MSTSoftHeapDecorator* right)
+                                             {
+                                                 if (!left)
+                                                     return false;
+                                                 if (!right)
+                                                     return true;
+                                                 return *left->FindMin() < *right->FindMin();
+                                             });
 
-    auto is_contains_same_vertex_fn = [&](const Details::EdgePtrWrapper& temp_edge) -> bool
-    {
-        auto [tv1, tv2] = temp_edge->GetCurrentSubgraphs(m_base.GetGraph());
-        return tv1 == v1 || tv1 == v2 || tv2 == v1 || tv2 == v2;
-    };
-    assert(i.has_value());
-    assert(i == m_base.GetLastNode().GetLabel() && j == m_base.GetLastNode().GetLabel() + 1
-           || !j.has_value() && i == m_base.GetLastNode().GetLabel() + 1);
+    auto heap_ptr = *min_element;
+    if (!heap_ptr)
+        return {};
 
-    if (!j.has_value() // from the internal heap, not cross, so it is from H(k)
-        && std::ranges::find_if(cross_heaps[i.value() - 1].GetItemsInside(),
-                                is_contains_same_vertex_fn) != cross_heaps[i.value() - 1].GetItemsInside().end()
-        || i.value() + 1 == j // H(k-1, k)
-        || is_his_cluster_empty)
+    return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
+}
+
+Details::MSTSoftHeapDecorator::ExtractedItems MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
+{
+    const auto view = m_stack.view();
+    for (auto itr = view.begin(); itr != view.end(); ++itr)
     {
-        m_base.GetLastNode().GetHeap().Insert(edge); // H(k-1)
-        return;
+        const auto& min_links = (*itr).GetMinLinks();
+        auto edge_itr = rg::find_if(min_links,
+                                             [&](const Details::EdgePtrWrapper& edge)
+                                             {
+                                                 return edge <= extension_edge;
+                                             });
+
+        if (edge_itr != min_links.cend())
+            return m_stack.fusion(itr.base(), *edge_itr);
     }
+    return {};
+}
 
-    for (auto& cross_heap : cross_heaps)
-    {
-        const auto& items_in_heap = cross_heap.GetItemsInside();
-        if (std::ranges::find_if(items_in_heap, is_contains_same_vertex_fn) == items_in_heap.end())
-            return;
+void MSTTree::PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items)
+{
+    for (auto& corrupted_edge : items.corrupted)
+        m_graph.DisableEdge(corrupted_edge->GetIndex());
 
-        cross_heap.Insert(edge);
-        return;
-    }
+    CreateClustersAndPushCheapest(std::move(items.items));
+}
 
-    throw std::out_of_range{"Cant'f find suitable heap"};
+MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)
+{
+    // TODO: ENable boruvka Phase later
+    //size_t count = FindParamT(graph, FindMaxHeight(graph, c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
+
+    //while (count > 0 && graph.GetVertexesCount() > 1)
+    //{
+    //    graph.BoruvkaPhase();
+    //    --count;
+    //}
+
+    //if (graph.GetVertexesCount() == 1)
+    //    return false;
+    //return true;
+    return MSTTree{graph, c};
 }
 } // namespace MST

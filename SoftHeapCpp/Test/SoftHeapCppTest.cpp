@@ -55,6 +55,8 @@ struct ComparableObject
         return *this;
     }
 
+    //operator int() const {return m_v;}
+
     friend bool operator<(const ComparableObject& lhs, const ComparableObject& rhs) { return lhs.m_v < rhs.m_v; }
     friend bool operator<=(const ComparableObject& lhs, const ComparableObject& rhs) { return !(rhs < lhs); }
     friend bool operator>(const ComparableObject& lhs, const ComparableObject& rhs) { return rhs < lhs; }
@@ -81,7 +83,7 @@ TEST(SoftHeapCpp, AsSimpleHeap)
 
     for (size_t i = 0; i < count; ++i)
     {
-        EXPECT_EQ(i, heap.DeleteMin());
+        EXPECT_EQ(ComparableObject(i), heap.DeleteMin());
     }
 }
 
