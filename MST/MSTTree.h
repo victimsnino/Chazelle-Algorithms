@@ -34,34 +34,34 @@ namespace MST::Details
 class MSTTree
 {
 public:
-    MSTTree(Graph::Graph& graph, size_t t);
+    MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height);
 
     void push(size_t vertex);
 
     // Contact last node, move vertex to prev-last node, meld heaps all heaps except of H(K) and H(k-1, k).
     // Extract data from these heaps. Pop min links for each prev. subgraphs
     MSTSoftHeapDecorator::ExtractedItems pop();
-
     MSTSoftHeapDecorator::ExtractedItems fusion(std::list<SubGraph>::iterator itr, const EdgePtrWrapper& fusion_edge);
 
-    ISubGraph& top()
-    {
-        assert(!m_active_path.empty());
-        return m_active_path.back();
-    }
-
-    size_t size() const { return m_active_path.empty() ? 0 : m_active_path.back().GetIndex() + 1; }
+    ISubGraph& top();
+    size_t     size() const;
 
     auto view()
     {
         return std::ranges::views::transform(m_active_path,
-                                             [](SubGraph& sub_graph)-> ISubGraph& { return sub_graph; });
+                                             [](SubGraphPtr& sub_graph)-> ISubGraphPtr
+                                             {
+                                                 return sub_graph;
+                                             });
     }
 
     auto view() const
     {
         return std::ranges::views::transform(m_active_path,
-                                             [](const SubGraph& sub_graph)-> const ISubGraph& { return sub_graph; });
+                                             [](const SubGraphPtr& sub_graph)-> const ISubGraphPtr
+                                             {
+                                                 return sub_graph;
+                                             });
     }
 
 private:
@@ -73,11 +73,11 @@ private:
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
     size_t IndexToHeight(size_t index) const { return GetMaxHeight() - index; }
 private:
-    Graph::Graph&       m_graph;
-    std::list<SubGraph> m_active_path{};
-    std::list<size_t>   m_vertices_inside{};
+    Graph::Details::EdgesView& m_edges;
+    std::list<SubGraphPtr>     m_active_path{};
 
     const size_t              m_r;
     const std::vector<size_t> m_sizes_per_height;
 };
 }
+

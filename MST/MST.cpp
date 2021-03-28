@@ -32,8 +32,9 @@
 
 namespace MST
 {
-std::vector<size_t> MSF(Graph::Graph& graph, size_t t)
+std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
 {
+    size_t t = FindParamT(graph, max_height);
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     std::vector<size_t> boruvka_result{};
@@ -46,7 +47,7 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t t)
     //if (graph.GetVertexesCount() == 1)
         return boruvka_result;
 
-    //auto tree = MSTTreeBuilder(graph, t);
+    //auto tree = MSTTreeBuilder(graph, t, max_height);
 
     //std::vector<size_t> F{};
     //for(auto& subgraph : tree)
@@ -57,6 +58,6 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t t)
 
 std::vector<size_t> FindMST(Graph::Graph& graph)
 {
-    return MSF(graph, FindParamT(graph, FindMaxHeight(graph, c)));
+    return MSF(graph, FindMaxHeight(graph, c));
 }
-}
+} // namespace MST

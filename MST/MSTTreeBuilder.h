@@ -31,7 +31,7 @@ namespace MST
 class MSTTreeBuilder
 {
 public:
-    MSTTreeBuilder(Graph::Graph& graph, size_t t);
+    MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height);
 
 private:
     // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
@@ -44,8 +44,8 @@ private:
     Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
     void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
 private:
-    Graph::Graph&       m_graph;
-    Details::MSTTree    m_tree;
-    std::vector<size_t> m_bad_edges{};
+    Graph::Details::EdgesView& m_edges;
+    Details::MSTTree           m_tree;
+    std::vector<size_t>        m_bad_edges{};
 };
 }

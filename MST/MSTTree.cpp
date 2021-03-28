@@ -22,96 +22,113 @@
 
 #include "MSTTree.h"
 
+#include "MST.h"
 #include "MSTUtils.h"
 
 #include <Common.h>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#include <exception>
 
-#include "MST.h"
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
-static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, size_t t)
+static std::vector<size_t> InitTargetSizesPerHeight(size_t t, size_t max_height)
 {
-    const auto max_height = MST::FindMaxHeight(graph, MST::c);
     std::vector<size_t> out{};
 
     // Leafs
     out.push_back(1);
 
     for (uint32_t i = 1; i <= max_height; ++i)
-        out.push_back(MST::CalculateTargetSize(t, i));
+        out.push_back(::MST::CalculateTargetSize(t, i));
     return out;
 }
 
 namespace MST::Details
 {
-MSTTree::MSTTree(Graph::Graph& graph, size_t t)
-    : m_graph{graph}
+MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
+    : m_edges{edges}
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
-    , m_sizes_per_height{InitTargetSizesPerHeight(graph, t)}
+    , m_sizes_per_height{InitTargetSizesPerHeight(t, max_height)}
 {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%s::%!::%#] %v");
 
-    PushNode(graph.FindRootOfSubGraph(0));
+    auto itr = std::find_if(m_edges.begin(),
+                            m_edges.end(),
+                            [](const Graph::Details::Edge& edge)
+                            {
+                                return !edge.IsDisabled() && !edge.IsContracted();
+                            });
+
+    if (itr == m_edges.end())
+        throw std::exception{"Graph without edges!"};
+
+    PushNode((*itr).GetCurrentSubgraphs()[0]);
 }
-
-void MSTTree::push(size_t vertex)
-{
-    PushNode(m_graph.FindRootOfSubGraph(vertex));
-}
-
-MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
-{
-    SPDLOG_DEBUG("Size {}", m_active_path.size());
-
-    auto& last_subgraph = m_active_path.back();
-    last_subgraph.Contract(m_graph, m_vertices_inside);
-
-    if (m_active_path.size() == 1)
-    {
-        const size_t index = last_subgraph.GetIndex();
-        m_active_path.emplace_front(m_vertices_inside.cbegin(),
-                              index - 1,
-                              m_sizes_per_height[IndexToHeight(index - 1)],
-                              m_r);
-    }
-
-    std::next(m_active_path.rbegin())->MeldHeapsFrom(last_subgraph);
-    auto data = last_subgraph.ExtractItems();
-
-    m_active_path.pop_back();
-
-    std::for_each_n(m_active_path.begin(),
-                    m_active_path.size() - 1,
-                    [](SubGraph& graph) { graph.PopMinLink(); });
-
-    m_active_path.back().PopMinLink(true);
-
-    return data;
-}
-
-MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraph>::iterator itr,
-                                                      const EdgePtrWrapper&         fusion_edge)
-{
-    auto pop_count = std::distance(itr, m_active_path.end()) - 1;
-    SPDLOG_DEBUG("pop_count {}",pop_count);
-
-    MSTSoftHeapDecorator::ExtractedItems items{};
-    for (size_t i = 0; i < pop_count; ++i)
-    {
-        auto data = pop();
-        items.corrupted.splice(items.corrupted.end(), data.corrupted);
-        items.items.splice(items.items.end(), data.items);
-    }
-
-    m_graph.ContractEdge(fusion_edge->GetIndex());
-    m_vertices_inside.pop_back();
-    return items;
-}
-
+//void MSTTree::push(size_t vertex)
+//{
+//    PushNode(vertex);
+//}
+//
+//MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
+//{
+//    SPDLOG_DEBUG("Size {}", m_active_path.size());
+//
+//    auto& last_subgraph = m_active_path.back();
+//    last_subgraph.Contract(m_graph, m_vertices_inside);
+//
+//    if (m_active_path.size() == 1)
+//    {
+//        const size_t index = last_subgraph.GetIndex();
+//        m_active_path.emplace_front(m_vertices_inside.cbegin(),
+//                              index - 1,
+//                              m_sizes_per_height[IndexToHeight(index - 1)],
+//                              m_r);
+//    }
+//
+//    std::next(m_active_path.rbegin())->MeldHeapsFrom(last_subgraph);
+//    auto data = last_subgraph.ExtractItems();
+//
+//    m_active_path.pop_back();
+//
+//    std::for_each_n(m_active_path.begin(),
+//                    m_active_path.size() - 1,
+//                    [](SubGraph& graph) { graph.PopMinLink(); });
+//
+//    m_active_path.back().PopMinLink(true);
+//
+//    return data;
+//}
+//
+//MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraph>::iterator itr,
+//                                                      const EdgePtrWrapper&         fusion_edge)
+//{
+//    auto pop_count = std::distance(itr, m_active_path.end()) - 1;
+//    SPDLOG_DEBUG("pop_count {}",pop_count);
+//
+//    MSTSoftHeapDecorator::ExtractedItems items{};
+//    for (size_t i = 0; i < pop_count; ++i)
+//    {
+//        auto data = pop();
+//        items.corrupted.splice(items.corrupted.end(), data.corrupted);
+//        items.items.splice(items.items.end(), data.items);
+//    }
+//
+//    m_graph.ContractEdge(fusion_edge->GetIndex());
+//    m_vertices_inside.pop_back();
+//    return items;
+//}
+//
+//ISubGraph& MSTTree::top()
+//{
+//    assert(!m_active_path.empty());
+//    return m_active_path.back();
+//}
+//
+//size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back().GetIndex() + 1; }
+//
 void MSTTree::PushNode(size_t vertex)
 {
     SPDLOG_DEBUG(vertex);
@@ -121,11 +138,10 @@ void MSTTree::PushNode(size_t vertex)
     if (index == 0)
         index = GetMaxHeight();
 
-    m_vertices_inside.push_back(vertex);
-    m_active_path.emplace_back(std::prev(m_vertices_inside.cend()),
-                         index,
-                         m_sizes_per_height[IndexToHeight(index)],
-                         m_r);
+    m_active_path.emplace_back(vertex,
+                               index,
+                               m_sizes_per_height[IndexToHeight(index)],
+                               m_r);
 
     AddNewBorderEdgesAfterPush();
     DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
@@ -133,50 +149,54 @@ void MSTTree::PushNode(size_t vertex)
 
 void MSTTree::AddNewBorderEdgesAfterPush()
 {
-    auto& new_node = m_active_path.back();
+    auto& new_node      = m_active_path.back();
+    auto  node_vertices = new_node->GetVertices();
 
-    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    assert(node_vertices.size() == 1);
+
+    for (const auto& edge : m_edges)
     {
-        const auto vertices = edge.GetCurrentSubgraphs(m_graph);
-
-        const auto outside_vertices = vertices |
-                rgv::filter(std::not_fn(Utils::IsInRange(m_vertices_inside))) |
-                Utils::to_vector;
-
-        if (outside_vertices.empty() || outside_vertices.size() == 2)
-            return;
-
-        if ((vertices[0] == outside_vertices.front() ? vertices[1] : vertices[0]) == new_node.GetVertex())
-            new_node.PushToHeap(EdgePtrWrapper{edge, outside_vertices.front()});
-    });
+        const auto [i,j] = edge.GetCurrentSubgraphs();
+        if (Utils::IsRangeContains(node_vertices, i))
+        {
+            if (!Utils::IsRangeContains(node_vertices, j))
+                new_node->PushToHeap(EdgePtrWrapper{edge, j});
+        }
+        else if (Utils::IsRangeContains(node_vertices, j))
+        {
+            if (!Utils::IsRangeContains(node_vertices, i))
+                new_node->PushToHeap(EdgePtrWrapper{edge, i});
+        }
+    }
 }
 
-void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
-{
-    auto& new_node = m_active_path.back();
-    if (m_active_path.size() <= 1)
-        return;
 
-    auto condition = [&](const EdgePtrWrapper& edge)
-    {
-        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertex());
-    };
-
-    std::for_each_n(m_active_path.begin(),
-                    m_active_path.size() - 1,
-                    [&](SubGraph& node)
-                    {
-                        const auto old_border_edges = node.DeleteAndReturnIf(condition);
-                        if (old_border_edges.empty())
-                            return;
-
-                        auto min = std::min_element(old_border_edges.cbegin(),
-                                                    old_border_edges.cend(),
-                                                    [](const EdgePtrWrapper& left, const EdgePtrWrapper& right)
-                                                    {
-                                                        return left.GetWorkingCost() < right.GetWorkingCost();
-                                                    });
-                        node.AddToMinLinks(*min);
-                    });
-}
+//void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
+//{
+//    auto& new_node = m_active_path.back();
+//    if (m_active_path.size() <= 1)
+//        return;
+//
+//    auto condition = [&](const EdgePtrWrapper& edge)
+//    {
+//        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertex());
+//    };
+//
+//    std::for_each_n(m_active_path.begin(),
+//                    m_active_path.size() - 1,
+//                    [&](SubGraph& node)
+//                    {
+//                        const auto old_border_edges = node.DeleteAndReturnIf(condition);
+//                        if (old_border_edges.empty())
+//                            return;
+//
+//                        auto min = std::min_element(old_border_edges.cbegin(),
+//                                                    old_border_edges.cend(),
+//                                                    [](const EdgePtrWrapper& left, const EdgePtrWrapper& right)
+//                                                    {
+//                                                        return left.GetWorkingCost() < right.GetWorkingCost();
+//                                                    });
+//                        node.AddToMinLinks(*min);
+//                    });
+//}
 } // namespace MST::Details

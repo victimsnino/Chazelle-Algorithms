@@ -116,7 +116,6 @@ size_t Graph::FindRootOfSubGraph(size_t i)
 {
     auto member_of_subgraph = m_subgraphs[i];
 
-    // it is not a root... update root
     if (!member_of_subgraph->IsRoot())
         member_of_subgraph->SetParent(FindRootOfSubGraph(member_of_subgraph->GetParent()));
 

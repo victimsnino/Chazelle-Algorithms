@@ -27,8 +27,9 @@
 
 namespace MST::Details
 {
-SubGraph::SubGraph(size_t level_in_tree, size_t target_size, size_t r)
-    : m_level_in_tree{level_in_tree}
+SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r)
+    : m_vertex{vertex}
+    , m_level_in_tree{level_in_tree}
     , m_target_size{target_size}
 {
     m_heaps.reserve(m_level_in_tree+1);
@@ -39,11 +40,10 @@ SubGraph::SubGraph(size_t level_in_tree, size_t target_size, size_t r)
     m_heaps.shrink_to_fit();
 }
 
-//
-//void SubGraph::PushToHeap(EdgePtrWrapper edge)
-//{
-//    m_heaps[m_index].Insert(edge);
-//}
+void SubGraph::PushToHeap(EdgePtrWrapper edge)
+{
+    m_heaps[m_level_in_tree].Insert(edge);
+}
 //
 //void SubGraph::AddToMinLinks(EdgePtrWrapper edge)
 //{

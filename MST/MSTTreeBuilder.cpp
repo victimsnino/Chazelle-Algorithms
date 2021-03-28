@@ -30,9 +30,9 @@
 
 namespace MST
 {
-MSTTreeBuilder::MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t)
-    : m_graph{graph}
-    , m_tree{m_graph, t}
+MSTTreeBuilder::MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
+    : m_edges{edges}
+    , m_tree{m_edges, t, max_height}
 {
     while (true)
     {

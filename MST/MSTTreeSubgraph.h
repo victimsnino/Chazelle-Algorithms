@@ -35,23 +35,31 @@ struct ISubGraph
     virtual ~ISubGraph() { }
 };
 
+using ISubGraphPtr = std::shared_ptr<ISubGraph>;
+
 class SubGraph : public ISubGraph
 {
 public:
-    SubGraph(size_t level_in_tree, size_t target_size, size_t r);
+    SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r);
 
     SubGraph(SubGraph&& other)                 = delete;
     SubGraph(const SubGraph& other)            = delete;
     SubGraph& operator=(const SubGraph& other) = delete;
     SubGraph& operator=(SubGraph&& other)      = delete;
 
-private:
-    const size_t m_level_in_tree; // aka k
-    const size_t m_target_size;
+    void              PushToHeap(EdgePtrWrapper edge);
+    std::list<size_t> GetVertices() const {return {*m_vertex};}
 
-    std::list<std::unique_ptr<SubGraph>> m_childs{};
+private:
+    const std::optional<size_t> m_vertex;
+    const size_t                m_level_in_tree; // aka k
+    const size_t                m_target_size;
+
+    std::list<std::shared_ptr<SubGraph>> m_childs{};
 
     std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
     std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes{};
 };
+
+using SubGraphPtr = std::shared_ptr<SubGraph>;
 }

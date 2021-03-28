@@ -121,6 +121,7 @@ struct EdgesView
             , m_itr(std::move(itr)) {}
 
         void      operator ++() { ++m_itr; }
+        bool      operator ==(const iterator& other) const { return m_itr == other.m_itr; }
         bool      operator !=(const iterator& other) const { return m_itr != other.m_itr; }
         reference operator *() const { return m_edges[*m_itr]; }
     private:
