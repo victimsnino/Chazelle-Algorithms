@@ -39,7 +39,8 @@ class MSTTree
     void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
     Details::EdgePtrWrapper* FindExtensionEdge();
 
-    void Fusion(Details::EdgePtrWrapper& edge);
+    Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
+    void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
 public:
     static MSTTree Create(Graph::Graph& graph, size_t c);
 

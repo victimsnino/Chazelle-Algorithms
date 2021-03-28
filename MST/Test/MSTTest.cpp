@@ -29,6 +29,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <numeric>
 
 
 static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
@@ -110,7 +111,7 @@ TEST(MSTSTack, Init)
 TEST(MST, Init)
 {
     //auto matrix = GenerateMatrix(6, 5);
-    auto matrix = GenerateMatrix(1, 4);
+    auto matrix = GenerateMatrix(1, 3);
     {
         Graph::Graph g{matrix};
         std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;

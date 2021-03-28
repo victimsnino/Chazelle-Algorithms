@@ -42,6 +42,9 @@ public:
     // Extract data from these heaps. Pop min links for each prev. subgraphs
     MSTSoftHeapDecorator::ExtractedItems pop();
 
+    MSTSoftHeapDecorator::ExtractedItems fusion(std::list<SubGraph>::iterator itr, const EdgePtrWrapper& fusion_edge);
+
+
     ISubGraph& top()
     {
         assert(!m_nodes.empty());
@@ -52,7 +55,14 @@ public:
 
     auto view()
     {
-        return std::ranges::views::transform(m_nodes, [](SubGraph& sub_graph)-> ISubGraph& { return sub_graph; });
+        return std::ranges::views::transform(m_nodes,
+                                             [](SubGraph& sub_graph)-> ISubGraph& { return sub_graph; });
+    }
+
+    auto view() const
+    {
+        return std::ranges::views::transform(m_nodes,
+                                             [](const SubGraph& sub_graph)-> const ISubGraph& { return sub_graph; });
     }
 
 private:

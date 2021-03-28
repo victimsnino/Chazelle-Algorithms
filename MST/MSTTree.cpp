@@ -58,12 +58,7 @@ bool MSTTree::Retraction()
     if (m_stack.top().GetIndex() == 0) // k should be >= 1
         return false;
 
-    auto [corrupted, items] = m_stack.pop();
-    for (auto& corrupted_edge : corrupted)
-        m_graph.DisableEdge(corrupted_edge->GetIndex());
-
-    CreateClustersAndPushCheapest(std::move(items));
-
+    PostRetractionActions(m_stack.pop());
     return true;
 }
 
@@ -74,7 +69,7 @@ bool MSTTree::Extension()
     if (!extension_edge)
         return false;
 
-    Fusion(*extension_edge);
+    PostRetractionActions(Fusion(*extension_edge));
 
     m_stack.push(extension_edge->GetOutsideVertex());
 
@@ -132,29 +127,30 @@ Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
     return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
 }
 
-void MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
+Details::MSTSoftHeapDecorator::ExtractedItems MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
 {
     const auto view = m_stack.view();
-    auto fusion_start_itr = std::ranges::find_if(view,
-                                                 [&](const Details::ISubGraph& subgraph)
-                                                 {
-                                                     const auto& min_links = subgraph.GetMinLinks();
-                                                     return std::ranges::find_if(min_links,
-                                                         [&](const Details::EdgePtrWrapper& edge)
-                                                         {
-                                                             return edge <= extension_edge;
-                                                         }) != min_links.cend();
-                                                 });
-
-    if (fusion_start_itr == view.end())
-        return;
-
-    size_t count_of_pops = std::distance(fusion_start_itr, view.end()) - 1;
-    for (size_t i = 0; i < count_of_pops; ++i)
+    for (auto itr = view.begin(); itr != view.end(); ++itr)
     {
-       if (!Retraction())
-           return;
+        const auto& min_links = (*itr).GetMinLinks();
+        auto edge_itr = rg::find_if(min_links,
+                                             [&](const Details::EdgePtrWrapper& edge)
+                                             {
+                                                 return edge <= extension_edge;
+                                             });
+
+        if (edge_itr != min_links.cend())
+            return m_stack.fusion(itr.base(), *edge_itr);
     }
+    return {};
+}
+
+void MSTTree::PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items)
+{
+    for (auto& corrupted_edge : items.corrupted)
+        m_graph.DisableEdge(corrupted_edge->GetIndex());
+
+    CreateClustersAndPushCheapest(std::move(items.items));
 }
 
 MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)

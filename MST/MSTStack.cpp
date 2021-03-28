@@ -26,7 +26,7 @@
 
 #include <Common.h>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -91,6 +91,25 @@ MSTSoftHeapDecorator::ExtractedItems MSTStack::pop()
     m_nodes.back().PopMinLink(true);
 
     return data;
+}
+
+MSTSoftHeapDecorator::ExtractedItems MSTStack::fusion(std::list<SubGraph>::iterator itr,
+                                                      const EdgePtrWrapper&         fusion_edge)
+{
+    auto pop_count = std::distance(itr, m_nodes.end()) - 1;
+    SPDLOG_DEBUG("pop_count {}",pop_count);
+
+    MSTSoftHeapDecorator::ExtractedItems items{};
+    for (size_t i = 0; i < pop_count; ++i)
+    {
+        auto data = pop();
+        items.corrupted.splice(items.corrupted.end(), data.corrupted);
+        items.items.splice(items.items.end(), data.items);
+    }
+
+    m_graph.ContractEdge(fusion_edge->GetIndex());
+    m_vertices_inside.pop_back();
+    return items;
 }
 
 void MSTStack::PushNode(size_t vertex)
