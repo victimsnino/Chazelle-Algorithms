@@ -39,9 +39,11 @@ Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
 {
     m_subgraphs.reserve(adjacency.size());
     for (size_t i = 0; i < adjacency.size(); ++i)
+        m_subgraphs.emplace_back(std::make_shared<Details::MemberOfSubGraph>(i));
+
+    for (size_t i = 0; i < adjacency.size(); ++i)
     {
         assert(adjacency.size() == adjacency[i].size());
-        m_subgraphs.emplace_back(i);
 
         for (size_t j = 0; j < i; ++j)
             AddEdge(i, j, std::max(adjacency[i][j], adjacency[j][i]));
@@ -53,7 +55,7 @@ void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
     if (begin == end || !weight)
         return;
 
-    m_edges_view.AddEdge(std::min(begin, end), std::max(begin, end), weight);
+    m_edges_view.AddEdge(m_subgraphs[std::min(begin, end)], m_subgraphs[std::max(begin, end)], weight);
 }
 
 void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
@@ -62,7 +64,7 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
     std::vector<size_t>                    edges_to_disable{};
     for (const auto& edge : m_edges_view)
     {
-        auto [i, j] = edge.GetCurrentSubgraphs(*this);
+        auto [i, j] = edge.GetCurrentSubgraphs();
 
         if (i != vertex_id && j != vertex_id)
             continue;
@@ -84,7 +86,7 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
 
 void Graph::ContractEdge(size_t edge_index)
 {
-    const auto [i, j] = m_edges_view[edge_index].GetCurrentSubgraphs(*this);
+    const auto [i, j] = m_edges_view[edge_index].GetCurrentSubgraphs();
 
     auto& root_subgraph_1 = m_subgraphs[i];
     auto& root_subgraph_2 = m_subgraphs[j];
@@ -93,13 +95,16 @@ void Graph::ContractEdge(size_t edge_index)
         return;
 
     if (root_subgraph_1 < root_subgraph_2)
-        root_subgraph_1.SetParent(root_subgraph_2.GetParent());
+        root_subgraph_1->SetParent(root_subgraph_2->GetParent());
     else
-        root_subgraph_2.SetParent(root_subgraph_1.GetParent());
+        root_subgraph_2->SetParent(root_subgraph_1->GetParent());
 
     m_edges_view.ContractEdge(edge_index);
 
-    RemoveMultipleEdgesForVertex(root_subgraph_1.GetParent());
+    for(size_t i = 0; i < m_subgraphs.size();++i)
+        FindRootOfSubGraph(i);
+
+    RemoveMultipleEdgesForVertex(root_subgraph_1->GetParent());
 }
 
 void Graph::DisableEdge(size_t edge_index)
@@ -112,10 +117,10 @@ size_t Graph::FindRootOfSubGraph(size_t i)
     auto member_of_subgraph = m_subgraphs[i];
 
     // it is not a root... update root
-    if (!member_of_subgraph.IsRoot())
-        member_of_subgraph.SetParent(FindRootOfSubGraph(member_of_subgraph.GetParent()));
+    if (!member_of_subgraph->IsRoot())
+        member_of_subgraph->SetParent(FindRootOfSubGraph(member_of_subgraph->GetParent()));
 
-    return member_of_subgraph.GetParent();
+    return member_of_subgraph->GetParent();
 }
 
 void Graph::ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func)
@@ -128,12 +133,12 @@ void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& e
     std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
 }
 
-void Graph::BoruvkaPhase()
+std::vector<size_t> Graph::BoruvkaPhase()
 {
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
     for (const auto& edge : m_edges_view)
     {
-        const auto subgraphs     = edge.GetOriginalVertexes();
+        const auto subgraphs = edge.GetCurrentSubgraphs();
 
         if (subgraphs[0] == subgraphs[1])
             continue;
@@ -146,36 +151,35 @@ void Graph::BoruvkaPhase()
         }
     }
 
+    std::vector<size_t> result{};
     for (const auto& opt_cheapest : cheapest_edge_for_each_vertex)
     {
         if (!opt_cheapest.has_value())
             continue;
 
-        ContractEdge(opt_cheapest.value());
+        auto index = opt_cheapest.value();
+        if (auto edge = GetEdge(index); edge.IsContracted() || edge.IsDisabled())
+            continue;
+
+        ContractEdge(index);
+        result.emplace_back(index);
     }
+    result.erase(std::unique(result.begin(), result.end()), result.end());
+    return result;
 }
 
-size_t Graph::GetVertexesCount() const
+size_t Graph::GetVerticesCount() const
 {
     return std::count_if(m_subgraphs.cbegin(),
                          m_subgraphs.cend(),
-                         [](const Details::MemberOfSubGraph& member) { return member.IsRoot(); });
+                         [](const Details::MemberOfSubGraphPtr& member) { return member->IsRoot(); });
 }
 
 size_t Graph::GetEdgesCount() const
 {
     return std::count_if(m_edges_view.begin(),
                          m_edges_view.end(),
-                         [](const Details::Edge& edge) { return !edge.IsContracted(); });
-}
-
-std::vector<std::array<size_t, 2>> Graph::GetMST() const
-{
-    std::vector<std::array<size_t, 2>> result{};
-    for (const auto& edge : m_edges_view.Original())
-        if (edge.IsContracted())
-            result.emplace_back(edge.GetOriginalVertexes());
-    return result;
+                         [](const Details::Edge& edge) { return !edge.IsContracted() && !edge.IsDisabled(); });
 }
 
 void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst)
@@ -188,7 +192,7 @@ void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_ms
     for (const auto& edge : graph.m_edges_view.Original())
     {
         std::string options = "label="s + std::to_string(edge.GetWeight());
-        auto [i, j] = edge.GetOriginalVertexes();
+        auto        [i, j]  = edge.GetOriginalVertices();
 
         if (with_mst)
         {
@@ -202,7 +206,7 @@ void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_ms
             i = graph.FindRootOfSubGraph(i);
             j = graph.FindRootOfSubGraph(j);
         }
-        
+
         file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
     }
 

@@ -20,43 +20,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "MST.h"
+#pragma once
+#include "MSTSoftHeapDecorator.h"
 
-#include "MSTTreeBuilder.h"
-#include "MSTUtils.h"
+#include <ranges>
 
-#include <Graph.h>
+namespace rg = std::ranges;
+namespace rgv = std::ranges::views;
 
-#include <iterator>
-
-
-namespace MST
+namespace MST::Details
 {
-std::vector<size_t> MSF(Graph::Graph& graph, size_t t)
+struct ISubGraph
 {
-    size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
+    virtual ~ISubGraph() { }
+};
 
-    std::vector<size_t> boruvka_result{};
-    while (count > 0 && graph.GetVerticesCount() > 1)
-    {
-        std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
-        --count;
-    }
-
-    //if (graph.GetVertexesCount() == 1)
-        return boruvka_result;
-
-    //auto tree = MSTTreeBuilder(graph, t);
-
-    //std::vector<size_t> F{};
-    //for(auto& subgraph : tree)
-    //    std::ranges::move(MSF(subgraph - tree.corrupted(), t-1), std::back_inserter(F));
-
-    //return MSF(F + B, t) + boruvka_result;
-}
-
-std::vector<size_t> FindMST(Graph::Graph& graph)
+class SubGraph : public ISubGraph
 {
-    return MSF(graph, FindParamT(graph, FindMaxHeight(graph, c)));
-}
+public:
+    SubGraph(size_t level_in_tree, size_t target_size, size_t r);
+
+    SubGraph(SubGraph&& other)                 = delete;
+    SubGraph(const SubGraph& other)            = delete;
+    SubGraph& operator=(const SubGraph& other) = delete;
+    SubGraph& operator=(SubGraph&& other)      = delete;
+
+private:
+    const size_t m_level_in_tree; // aka k
+    const size_t m_target_size;
+
+    std::list<std::unique_ptr<SubGraph>> m_childs{};
+
+    std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
+    std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes{};
+};
 }

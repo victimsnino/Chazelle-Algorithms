@@ -25,31 +25,38 @@
 #include <array>
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
-namespace Graph {
+namespace Graph
+{
 class Graph;
 }
 
 namespace Graph::Details
 {
+class MemberOfSubGraph;
+using MemberOfSubGraphPtr = std::shared_ptr<MemberOfSubGraph>;
+
 class Edge
 {
 public:
-    Edge(size_t i, size_t j, uint32_t weight, size_t index);
+    Edge(const MemberOfSubGraphPtr& i,
+         const MemberOfSubGraphPtr& j,
+         uint32_t                   weight,
+         size_t                     index);
 
     Edge(const Edge& other)            = default;
     Edge& operator=(const Edge& other) = delete;
 
     Edge(Edge&& other) noexcept;
-
     Edge& operator=(Edge&& other) noexcept;
 
-    std::array<size_t, 2> GetOriginalVertexes() const { return {m_i, m_j}; }
-    std::array<size_t, 2> GetCurrentSubgraphs(Graph& graph) const;
+    std::array<size_t, 2> GetOriginalVertices() const;
+    std::array<size_t, 2> GetCurrentSubgraphs() const;
 
     size_t   GetIndex() const { return m_index; }
     uint32_t GetWeight() const { return m_weight; }
@@ -62,14 +69,13 @@ public:
 
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
     bool operator==(const Edge& rhs) const { return m_index == rhs.m_index; }
-    //bool operator>(const Edge& rhs) const { return rhs < *this; }
 private:
-    size_t                               m_i;
-    size_t                               m_j;
-    uint32_t                             m_weight;
-    size_t                               m_index;
-    bool                                 m_is_contracted{false};
-    bool                                 m_is_disabled{false};
+    MemberOfSubGraphPtr m_i;
+    MemberOfSubGraphPtr m_j;
+    uint32_t            m_weight;
+    size_t              m_index;
+    bool                m_is_contracted{false};
+    bool                m_is_disabled{false};
 };
 
 class MemberOfSubGraph
@@ -77,18 +83,17 @@ class MemberOfSubGraph
 public:
     MemberOfSubGraph(size_t parent, size_t rank = 0);
 
+    size_t GetOrignal() const { return m_original_vertex; }
     size_t GetParent() const { return m_parent; }
     void   SetParent(size_t parent) { m_parent = parent; }
 
-    bool IsRoot() const { return m_parent == m_original_vertex; }
+    bool IsRoot() const { return GetParent() == GetOrignal(); }
 
     // Equal or not by parents (AKA same tree or not)
     bool operator==(const MemberOfSubGraph& rhs) const { return m_parent == rhs.m_parent; }
     bool operator!=(const MemberOfSubGraph& rhs) const { return !(*this == rhs); }
 
-    // Compare by weights
     bool operator<(const MemberOfSubGraph& rhs) const { return m_rank < rhs.m_rank; }
-    //bool operator>(const MemberOfSubGraph& rhs) const { return rhs < *this; }
 private:
     size_t       m_parent{};
     const size_t m_original_vertex;
@@ -123,12 +128,15 @@ struct EdgesView
         std::list<size_t>::const_iterator m_itr;
     };
 
-    void AddEdge(size_t begin, size_t end, uint32_t weight);
+    void AddEdge(const MemberOfSubGraphPtr& begin,
+                 const MemberOfSubGraphPtr& end,
+                 uint32_t                   weight);
+
     void ContractEdge(size_t index);
     void DisableEdge(size_t index);
 
-    Edge& operator[] (size_t index);
-    const Edge& operator[] (size_t index) const;
+    Edge&       operator[](size_t index);
+    const Edge& operator[](size_t index) const;
 
     auto begin() { return iterator<false>{m_edges, m_indexes.cbegin()}; }
     auto end() { return iterator<false>{m_edges, m_indexes.cend()}; }
@@ -142,4 +150,4 @@ private:
     std::vector<Edge> m_edges{};
     std::list<size_t> m_indexes{};
 };
-}
+} // namespace Graph::Details

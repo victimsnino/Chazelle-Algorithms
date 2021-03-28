@@ -24,149 +24,159 @@
 
 #include "MSTUtils.h"
 
-#include <Graph.h>
+#include <Common.h>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
+#include "MST.h"
 
 #include <spdlog/spdlog.h>
 
-namespace MST
+static std::vector<size_t> InitTargetSizesPerHeight(const Graph::Graph& graph, size_t t)
 {
-MSTTree::MSTTree(Graph::Graph& graph, size_t c)
+    const auto max_height = MST::FindMaxHeight(graph, MST::c);
+    std::vector<size_t> out{};
+
+    // Leafs
+    out.push_back(1);
+
+    for (uint32_t i = 1; i <= max_height; ++i)
+        out.push_back(MST::CalculateTargetSize(t, i));
+    return out;
+}
+
+namespace MST::Details
+{
+MSTTree::MSTTree(Graph::Graph& graph, size_t t)
     : m_graph{graph}
-    , m_stack{m_graph, c}
+    , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
+    , m_sizes_per_height{InitTargetSizesPerHeight(graph, t)}
 {
-    while (true)
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_pattern("[%s::%!::%#] %v");
+
+    PushNode(graph.FindRootOfSubGraph(0));
+}
+
+void MSTTree::push(size_t vertex)
+{
+    PushNode(m_graph.FindRootOfSubGraph(vertex));
+}
+
+MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
+{
+    SPDLOG_DEBUG("Size {}", m_active_path.size());
+
+    auto& last_subgraph = m_active_path.back();
+    last_subgraph.Contract(m_graph, m_vertices_inside);
+
+    if (m_active_path.size() == 1)
     {
-        if (m_stack.top().IsMeetTargetSize())
-        {
-            if (!Retraction())
-                return;
-        }
-        else
-        {
-            if (!Extension())
-                return;
-        }
+        const size_t index = last_subgraph.GetIndex();
+        m_active_path.emplace_front(m_vertices_inside.cbegin(),
+                              index - 1,
+                              m_sizes_per_height[IndexToHeight(index - 1)],
+                              m_r);
     }
+
+    std::next(m_active_path.rbegin())->MeldHeapsFrom(last_subgraph);
+    auto data = last_subgraph.ExtractItems();
+
+    m_active_path.pop_back();
+
+    std::for_each_n(m_active_path.begin(),
+                    m_active_path.size() - 1,
+                    [](SubGraph& graph) { graph.PopMinLink(); });
+
+    m_active_path.back().PopMinLink(true);
+
+    return data;
 }
 
-bool MSTTree::Retraction()
+MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraph>::iterator itr,
+                                                      const EdgePtrWrapper&         fusion_edge)
 {
-    SPDLOG_DEBUG("");
+    auto pop_count = std::distance(itr, m_active_path.end()) - 1;
+    SPDLOG_DEBUG("pop_count {}",pop_count);
 
-    if (m_stack.top().GetIndex() == 0) // k should be >= 1
-        return false;
-
-    PostRetractionActions(m_stack.pop());
-    return true;
-}
-
-bool MSTTree::Extension()
-{
-    auto extension_edge = FindExtensionEdge();
-    SPDLOG_DEBUG("Extension edge {}", !!extension_edge);
-    if (!extension_edge)
-        return false;
-
-    PostRetractionActions(Fusion(*extension_edge));
-
-    m_stack.push(extension_edge->GetOutsideVertex());
-
-    return true;
-}
-
-void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
-{
-    auto vertex = m_stack.top().GetVertices().back();
-
-    std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
-    std::for_each(std::make_move_iterator(items.begin()),
-                  std::make_move_iterator(items.end()),
-                  [&](Details::EdgePtrWrapper&& edge)
-                  {
-                      auto [i,j] = edge->GetCurrentSubgraphs(m_graph);
-                      if (i == vertex)
-                          clusters_by_out_vertex[j].emplace(edge);
-                      else
-                      {
-                          assert(j == vertex);
-                          clusters_by_out_vertex[i].emplace(edge);
-                      }
-                  });
-
-    for (auto& cluster : clusters_by_out_vertex | rgv::values)
+    MSTSoftHeapDecorator::ExtractedItems items{};
+    for (size_t i = 0; i < pop_count; ++i)
     {
-        auto cheapest = cluster.begin();
-        for (auto& edge : cluster | rgv::drop(1))
-            m_graph.DisableEdge(edge->GetIndex());
-
-        m_stack.top().PushToHeap(*cheapest);
+        auto data = pop();
+        items.corrupted.splice(items.corrupted.end(), data.corrupted);
+        items.items.splice(items.items.end(), data.items);
     }
+
+    m_graph.ContractEdge(fusion_edge->GetIndex());
+    m_vertices_inside.pop_back();
+    return items;
 }
 
-Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
+void MSTTree::PushNode(size_t vertex)
 {
-    auto stack_view = m_stack.view();
-    auto transformed_stack_view = rgv::transform(stack_view, &Details::ISubGraph::FindHeapWithMin);
-    const auto min_element = rg::min_element(transformed_stack_view,
-                                             [](Details::MSTSoftHeapDecorator* left,
-                                                Details::MSTSoftHeapDecorator* right)
-                                             {
-                                                 if (!left)
-                                                     return false;
-                                                 if (!right)
-                                                     return true;
-                                                 return *left->FindMin() < *right->FindMin();
-                                             });
+    SPDLOG_DEBUG(vertex);
 
-    auto heap_ptr = *min_element;
-    if (!heap_ptr)
-        return {};
+    auto index = size();
+    // Empty stack, initialization stage
+    if (index == 0)
+        index = GetMaxHeight();
 
-    return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
+    m_vertices_inside.push_back(vertex);
+    m_active_path.emplace_back(std::prev(m_vertices_inside.cend()),
+                         index,
+                         m_sizes_per_height[IndexToHeight(index)],
+                         m_r);
+
+    AddNewBorderEdgesAfterPush();
+    DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
 }
 
-Details::MSTSoftHeapDecorator::ExtractedItems MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
+void MSTTree::AddNewBorderEdgesAfterPush()
 {
-    const auto view = m_stack.view();
-    for (auto itr = view.begin(); itr != view.end(); ++itr)
+    auto& new_node = m_active_path.back();
+
+    m_graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
     {
-        const auto& min_links = (*itr).GetMinLinks();
-        auto edge_itr = rg::find_if(min_links,
-                                             [&](const Details::EdgePtrWrapper& edge)
-                                             {
-                                                 return edge <= extension_edge;
-                                             });
+        const auto vertices = edge.GetCurrentSubgraphs(m_graph);
 
-        if (edge_itr != min_links.cend())
-            return m_stack.fusion(itr.base(), *edge_itr);
-    }
-    return {};
+        const auto outside_vertices = vertices |
+                rgv::filter(std::not_fn(Utils::IsInRange(m_vertices_inside))) |
+                Utils::to_vector;
+
+        if (outside_vertices.empty() || outside_vertices.size() == 2)
+            return;
+
+        if ((vertices[0] == outside_vertices.front() ? vertices[1] : vertices[0]) == new_node.GetVertex())
+            new_node.PushToHeap(EdgePtrWrapper{edge, outside_vertices.front()});
+    });
 }
 
-void MSTTree::PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items)
+void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 {
-    for (auto& corrupted_edge : items.corrupted)
-        m_graph.DisableEdge(corrupted_edge->GetIndex());
+    auto& new_node = m_active_path.back();
+    if (m_active_path.size() <= 1)
+        return;
 
-    CreateClustersAndPushCheapest(std::move(items.items));
+    auto condition = [&](const EdgePtrWrapper& edge)
+    {
+        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(m_graph), new_node.GetVertex());
+    };
+
+    std::for_each_n(m_active_path.begin(),
+                    m_active_path.size() - 1,
+                    [&](SubGraph& node)
+                    {
+                        const auto old_border_edges = node.DeleteAndReturnIf(condition);
+                        if (old_border_edges.empty())
+                            return;
+
+                        auto min = std::min_element(old_border_edges.cbegin(),
+                                                    old_border_edges.cend(),
+                                                    [](const EdgePtrWrapper& left, const EdgePtrWrapper& right)
+                                                    {
+                                                        return left.GetWorkingCost() < right.GetWorkingCost();
+                                                    });
+                        node.AddToMinLinks(*min);
+                    });
 }
-
-MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)
-{
-    // TODO: ENable boruvka Phase later
-    //size_t count = FindParamT(graph, FindMaxHeight(graph, c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
-
-    //while (count > 0 && graph.GetVertexesCount() > 1)
-    //{
-    //    graph.BoruvkaPhase();
-    //    --count;
-    //}
-
-    //if (graph.GetVertexesCount() == 1)
-    //    return false;
-    //return true;
-    return MSTTree{graph, c};
-}
-} // namespace MST
+} // namespace MST::Details

@@ -24,76 +24,84 @@
 
 #include "Graph.h"
 
-
 #include <cassert>
-#include <map>
 
 namespace Graph::Details
 {
-    Edge::Edge(size_t i, size_t j, uint32_t weight, size_t index)
-        : m_i(i)
-        , m_j(j)
-        , m_weight(weight)
-        , m_index(index) { }
+Edge::Edge(const MemberOfSubGraphPtr& i,
+           const MemberOfSubGraphPtr& j,
+           uint32_t                   weight,
+           size_t                     index)
+    : m_i(i)
+    , m_j(j)
+    , m_weight(weight)
+    , m_index(index) { }
 
-    Edge::Edge(Edge&& other) noexcept
-        : m_i{other.m_i}
-        , m_j{other.m_j}
-        , m_weight{other.m_weight}
-        , m_index{other.m_index}
-        , m_is_contracted{other.m_is_contracted}
-        , m_is_disabled{other.m_is_disabled} {}
+Edge::Edge(Edge&& other) noexcept
+    : m_i{other.m_i}
+    , m_j{other.m_j}
+    , m_weight{other.m_weight}
+    , m_index{other.m_index}
+    , m_is_contracted{other.m_is_contracted}
+    , m_is_disabled{other.m_is_disabled} {}
 
-    Edge& Edge::operator=(Edge&& other) noexcept
-    {
-        if (this == &other)
-            return *this;
-        m_i             = other.m_i;
-        m_j             = other.m_j;
-        m_weight        = other.m_weight;
-        m_index         = other.m_index;
-        m_is_contracted = other.m_is_contracted;
-        m_is_disabled   = other.m_is_disabled;
+Edge& Edge::operator=(Edge&& other) noexcept
+{
+    if (this == &other)
         return *this;
-    }
-
-    std::array<size_t, 2> Edge::GetCurrentSubgraphs(Graph& graph) const
-    {
-        return { graph.FindRootOfSubGraph(m_i), graph.FindRootOfSubGraph(m_j)};
-    }
-
-    MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)
-        : m_parent(parent)
-        , m_original_vertex(parent)
-        , m_rank(rank) {}
-
-    void EdgesView::AddEdge(size_t begin, size_t end, uint32_t weight)
-    {
-        m_indexes.push_back(m_edges.size());
-        m_edges.emplace_back(std::min(begin, end), std::max(begin, end), weight, m_indexes.back());
-    }
-
-    void EdgesView::ContractEdge(size_t index)
-    {
-        m_edges[index].SetIsContracted();
-        DisableEdge(index);
-    }
-
-    void EdgesView::DisableEdge(size_t index)
-    {
-        m_indexes.remove(index);
-        m_edges[index].SetIsDisabled();
-    }
-
-    Edge& EdgesView::operator[](size_t index)
-    {
-        assert(index < m_edges.size());
-        return m_edges[index];
-    }
-
-    const Edge& EdgesView::operator[](size_t index) const
-    {
-        assert(index < m_edges.size());
-        return m_edges[index];
-    }
+    m_i             = other.m_i;
+    m_j             = other.m_j;
+    m_weight        = other.m_weight;
+    m_index         = other.m_index;
+    m_is_contracted = other.m_is_contracted;
+    m_is_disabled   = other.m_is_disabled;
+    return *this;
 }
+
+std::array<size_t, 2> Edge::GetOriginalVertices() const
+{
+    return {m_i->GetOrignal(), m_j->GetOrignal()};
+}
+
+std::array<size_t, 2> Edge::GetCurrentSubgraphs() const
+{
+    return {m_i->GetParent(), m_j->GetParent()};
+}
+
+MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)
+    : m_parent(parent)
+    , m_original_vertex(parent)
+    , m_rank(rank) {}
+
+void EdgesView::AddEdge(const MemberOfSubGraphPtr& begin,
+                        const MemberOfSubGraphPtr& end,
+                        uint32_t                   weight)
+{
+    m_indexes.push_back(m_edges.size());
+    m_edges.emplace_back(begin, end, weight, m_indexes.back());
+}
+
+void EdgesView::ContractEdge(size_t index)
+{
+    m_edges[index].SetIsContracted();
+    DisableEdge(index);
+}
+
+void EdgesView::DisableEdge(size_t index)
+{
+    m_indexes.remove(index);
+    m_edges[index].SetIsDisabled();
+}
+
+Edge& EdgesView::operator[](size_t index)
+{
+    assert(index < m_edges.size());
+    return m_edges[index];
+}
+
+const Edge& EdgesView::operator[](size_t index) const
+{
+    assert(index < m_edges.size());
+    return m_edges[index];
+}
+} // namespace Graph::Details

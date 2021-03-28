@@ -21,31 +21,63 @@
 // SOFTWARE.
 
 #pragma once
-#include "MSTStack.h"
+
+#include "MSTSoftHeapDecorator.h"
+#include "MSTTreeSubgraph.h"
 
 #include <Graph.h>
 
+#include <vector>
 
-namespace MST
+namespace MST::Details
 {
 class MSTTree
 {
-    MSTTree(Graph::Graph& graph, size_t c);
-
-    // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
-    bool Retraction();
-    bool Extension();
-
-    void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
-    Details::EdgePtrWrapper* FindExtensionEdge();
-
-    Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
-    void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
 public:
-    static MSTTree Create(Graph::Graph& graph, size_t c);
+    MSTTree(Graph::Graph& graph, size_t t);
+
+    void push(size_t vertex);
+
+    // Contact last node, move vertex to prev-last node, meld heaps all heaps except of H(K) and H(k-1, k).
+    // Extract data from these heaps. Pop min links for each prev. subgraphs
+    MSTSoftHeapDecorator::ExtractedItems pop();
+
+    MSTSoftHeapDecorator::ExtractedItems fusion(std::list<SubGraph>::iterator itr, const EdgePtrWrapper& fusion_edge);
+
+    ISubGraph& top()
+    {
+        assert(!m_active_path.empty());
+        return m_active_path.back();
+    }
+
+    size_t size() const { return m_active_path.empty() ? 0 : m_active_path.back().GetIndex() + 1; }
+
+    auto view()
+    {
+        return std::ranges::views::transform(m_active_path,
+                                             [](SubGraph& sub_graph)-> ISubGraph& { return sub_graph; });
+    }
+
+    auto view() const
+    {
+        return std::ranges::views::transform(m_active_path,
+                                             [](const SubGraph& sub_graph)-> const ISubGraph& { return sub_graph; });
+    }
 
 private:
-    Graph::Graph&     m_graph;
-    Details::MSTStack m_stack;
+    void PushNode(size_t vertex);
+
+    void AddNewBorderEdgesAfterPush();
+    void DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
+
+    size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
+    size_t IndexToHeight(size_t index) const { return GetMaxHeight() - index; }
+private:
+    Graph::Graph&       m_graph;
+    std::list<SubGraph> m_active_path{};
+    std::list<size_t>   m_vertices_inside{};
+
+    const size_t              m_r;
+    const std::vector<size_t> m_sizes_per_height;
 };
 }

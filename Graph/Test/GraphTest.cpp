@@ -20,11 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <Common.h>
 #include <Graph.h>
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <array>
+#include <ranges>
 
 static constexpr  bool       s_show_graphs = false;
 
@@ -49,8 +52,8 @@ std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vect
                 ++count_of_edges;
 
     EXPECT_EQ(count_of_edges, g.GetEdgesCount());
-    EXPECT_EQ(matrix.size(), g.GetVertexesCount());
-    return { g, count_of_edges, matrix.size() };
+    EXPECT_EQ(matrix.size(), g.GetVerticesCount());
+    return std::make_tuple(g, count_of_edges, matrix.size());
 }
 
 TEST(Graph, DummyChecks)
@@ -58,30 +61,25 @@ TEST(Graph, DummyChecks)
     {
         Graph::Graph g{};
         EXPECT_EQ(g.GetEdgesCount(), 0);
-        EXPECT_EQ(g.GetVertexesCount(), 0);
-        EXPECT_EQ(g.GetMST().size(), 0);
+        EXPECT_EQ(g.GetVerticesCount(), 0);
 
         g.BoruvkaPhase();
 
         EXPECT_EQ(g.GetEdgesCount(), 0);
-        EXPECT_EQ(g.GetVertexesCount(), 0);
-        EXPECT_EQ(g.GetMST().size(), 0);
+        EXPECT_EQ(g.GetVerticesCount(), 0);
     }
 
     Graph::Graph g{std::vector<std::vector<uint32_t>>{{0, 1},
                                                       {1, 0}}};
 
     EXPECT_EQ(g.GetEdgesCount(), 1);
-    EXPECT_EQ(g.GetVertexesCount(), 2);
-    EXPECT_EQ(g.GetMST().size(), 0);
+    EXPECT_EQ(g.GetVerticesCount(), 2);
 
     for (int i = 0; i < 2; ++i)
     {
-        g.BoruvkaPhase();
-
+        EXPECT_THAT(g.BoruvkaPhase(), ::testing::SizeIs(1-i));
         EXPECT_EQ(g.GetEdgesCount(), 0);
-        EXPECT_EQ(g.GetVertexesCount(), 1);
-        EXPECT_EQ(g.GetMST().size(), 1);
+        EXPECT_EQ(g.GetVerticesCount(), 1);
     }
 }
 
@@ -94,7 +92,7 @@ TEST(Graph, Init)
     g.ContractEdge(0);
 
     EXPECT_EQ(count_of_edges-3, g.GetEdgesCount());
-    EXPECT_EQ(nodes_count -1, g.GetVertexesCount());
+    EXPECT_EQ(nodes_count -1, g.GetVerticesCount());
 
     ToFile(g, "Test_1_contracted", s_show_graphs);
 }
@@ -105,22 +103,24 @@ TEST(Graph, Boruvka)
 
     ToFile(g, "Test_2", s_show_graphs);
 
-    g.BoruvkaPhase();
+    auto mst_indexes = g.BoruvkaPhase();
+    std::vector<std::array<size_t, 2>> mst_edges{};
+    for(auto index : mst_indexes)
+        mst_edges.emplace_back(g.GetEdge(index).GetOriginalVertices());
 
-    std::set<std::array<size_t, 2>> contracted{{0, 3},
-                                                        {1, 2},
-                                                        {1, 4},
-                                                        {2, 5},
-                                                        {4, 6}};
-    size_t removed_edges = contracted.size();
+    const std::set<std::array<size_t, 2>> contracted{{0, 3},
+                                                     {1, 2},
+                                                     {1, 4},
+                                                     {2, 5},
+                                                     {4, 6}};
+    const size_t removed_edges = contracted.size();
 
-    auto mst = g.GetMST();
-    EXPECT_EQ(mst.size(), contracted.size());
-    for (const auto& vertexes : mst)
+    EXPECT_THAT(mst_edges, ::testing::SizeIs(contracted.size()));
+    for (const auto& vertexes : mst_edges)
         EXPECT_TRUE(contracted.count(vertexes));
 
     EXPECT_EQ(1, g.GetEdgesCount());
-    EXPECT_EQ(nodes_count- removed_edges, g.GetVertexesCount());
+    EXPECT_EQ(nodes_count- removed_edges, g.GetVerticesCount());
 
     ToFile(g, "Test_2_contracted", s_show_graphs, false);
     ToFile(g, "Test_2_contracted_mst", s_show_graphs, true);
@@ -128,7 +128,7 @@ TEST(Graph, Boruvka)
     g.BoruvkaPhase();
 
     EXPECT_EQ(0, g.GetEdgesCount());
-    EXPECT_EQ(1, g.GetVertexesCount());
+    EXPECT_EQ(1, g.GetVerticesCount());
     ToFile(g, "Test_2_contracted_mst_final", s_show_graphs, true);
 }
 
@@ -151,7 +151,7 @@ TEST(Graph, Boruvka_2)
 
     ToFile(g, "Test_3", s_show_graphs);
 
-    g.BoruvkaPhase();
+    auto mst = g.BoruvkaPhase();
 
     std::set<std::array<size_t, 2>> contracted{ {0, 3},
                                                         {0, 1},
@@ -166,13 +166,12 @@ TEST(Graph, Boruvka_2)
     };
     size_t removed_edges = contracted.size();
 
-    auto mst = g.GetMST();
     EXPECT_EQ(mst.size(), contracted.size());
     for (const auto& vertexes : mst)
-        EXPECT_TRUE(contracted.count(vertexes));
+        EXPECT_TRUE(contracted.count(g.GetEdge(vertexes).GetOriginalVertices()));
 
     EXPECT_EQ(0, g.GetEdgesCount());
-    EXPECT_EQ(1, g.GetVertexesCount());
+    EXPECT_EQ(1, g.GetVerticesCount());
 
     ToFile(g, "Test_3_contracted", s_show_graphs, false);
     ToFile(g, "Test_3_contracted_mst", s_show_graphs, true);
@@ -180,6 +179,6 @@ TEST(Graph, Boruvka_2)
     g.BoruvkaPhase();
 
     EXPECT_EQ(0, g.GetEdgesCount());
-    EXPECT_EQ(1, g.GetVertexesCount());
+    EXPECT_EQ(1, g.GetVerticesCount());
     ToFile(g, "Test_3_contracted_mst_final", s_show_graphs, true);
 }

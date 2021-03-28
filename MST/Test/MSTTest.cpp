@@ -23,9 +23,6 @@
 #include "Graph.h"
 #include "MST.h"
 
-#include <MSTStack.h>
-#include <MSTUtils.h>
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -76,47 +73,15 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
     return result;
 }
 
-TEST(MSTSTack, Init)
-{
-    const auto   matrix = GenerateMatrix(1, 2);
-    Graph::Graph g{matrix};
-
-    const auto height = MST::FindMaxHeight(g, 1);
-
-    MST::Details::MSTStack stack{g, 1};
-
-    EXPECT_EQ(stack.size(), height+1); // + leafs
-    EXPECT_EQ(stack.top().GetIndex(), height);
-    EXPECT_EQ(stack.top().GetVertex(), 0);
-
-    stack.pop();
-
-    EXPECT_EQ(stack.size(), height);
-    EXPECT_EQ(stack.top().GetIndex(), height-1);
-    EXPECT_EQ(stack.top().GetVertex(), 0);
-
-    stack.push(1);
-
-    EXPECT_EQ(stack.size(), height+1); // + leafs
-    EXPECT_EQ(stack.top().GetIndex(), height);
-    EXPECT_EQ(stack.top().GetVertex(), 1);
-
-    stack.pop();
-    EXPECT_EQ(stack.size(), height);
-    EXPECT_EQ(stack.top().GetIndex(), height-1);
-    EXPECT_EQ(stack.top().GetVertices().front(), 0);
-    EXPECT_EQ(stack.top().GetVertices().back(), 1);
-}
-
 TEST(MST, Init)
 {
     //auto matrix = GenerateMatrix(6, 5);
     auto matrix = GenerateMatrix(1, 3);
     {
         Graph::Graph g{matrix};
-        std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;
+        std::cout << g.GetVerticesCount() << " " << g.GetEdgesCount() << std::endl;
         uint32_t count = 0;
-        while (g.GetVertexesCount() != 1)
+        while (g.GetVerticesCount() != 1)
         {
             g.BoruvkaPhase();
             ++count;

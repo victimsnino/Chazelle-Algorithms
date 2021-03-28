@@ -7,11 +7,11 @@ add_library(${TARGET}
     MSTTree.cpp
     MSTTree.h
 
-    MSTStack.cpp
-    MSTStack.h
+    MSTTreeBuilder.cpp
+    MSTTreeBuilder.h
 
-    MSTStackSubgraph.cpp
-    MSTStackSubgraph.h
+    MSTTreeSubgraph.cpp
+    MSTTreeSubgraph.h
 
     MSTUtils.h
     MSTUtils.cpp

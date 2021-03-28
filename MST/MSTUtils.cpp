@@ -48,7 +48,7 @@ static_assert(S(100500, 1) == 2);
 
 uint32_t FindMaxHeight(const Graph::Graph& graph, uint32_t c)
 {
-    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
+    const double vertexes_count = static_cast<double>(graph.GetVerticesCount());
     const double edges_count    = static_cast<double>(graph.GetEdgesCount());
     return c * static_cast<uint32_t>(std::ceil(std::pow(edges_count / vertexes_count, 1.0 / 3.0)));
 }
@@ -58,7 +58,7 @@ uint32_t FindParamT(const Graph::Graph& graph, uint32_t d)
     if (d == 1)
         return 1;
 
-    const double vertexes_count = static_cast<double>(graph.GetVertexesCount());
+    const double vertexes_count = static_cast<double>(graph.GetVerticesCount());
 
     uint32_t result = 1;
     while (vertexes_count > std::pow(S(result, d), 3))

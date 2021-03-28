@@ -40,16 +40,17 @@ class Graph
 {
 public:
     Graph(const std::vector<std::vector<uint32_t>>& adjacency);
-
     Graph() = default;
 
-    void BoruvkaPhase();
-    void ContractEdge(size_t edge_index);
-    void DisableEdge(size_t edge_index);
 
-    size_t GetVertexesCount()const;
-    size_t GetEdgesCount() const;
-    std::vector<std::array<size_t, 2>> GetMST() const;
+    std::vector<size_t> BoruvkaPhase();
+
+    void                ContractEdge(size_t edge_index);
+    void                DisableEdge(size_t edge_index);
+
+    size_t               GetVerticesCount() const;
+    size_t               GetEdgesCount() const;
+    const Details::Edge& GetEdge(size_t index) const { return m_edges_view[index]; }
 
     size_t FindRootOfSubGraph(size_t i);
 
@@ -57,12 +58,12 @@ public:
     void ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const;
 
 private:
-    void   AddEdge(size_t begin, size_t end, uint32_t weight);
-    void   RemoveMultipleEdgesForVertex(size_t vertex_id);
+    void AddEdge(size_t begin, size_t end, uint32_t weight);
+    void RemoveMultipleEdgesForVertex(size_t vertex_id);
 
 private:
-    Details::EdgesView                     m_edges_view{};
-    std::vector<Details::MemberOfSubGraph> m_subgraphs{}; // aka vertexes
+    Details::EdgesView                                      m_edges_view{};
+    std::vector<std::shared_ptr<Details::MemberOfSubGraph>> m_subgraphs{}; // aka vertices
 
     friend void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };

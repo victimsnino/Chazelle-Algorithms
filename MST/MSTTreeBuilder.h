@@ -20,43 +20,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "MST.h"
-
-#include "MSTTreeBuilder.h"
-#include "MSTUtils.h"
+#pragma once
+#include "MSTTree.h"
 
 #include <Graph.h>
-
-#include <iterator>
 
 
 namespace MST
 {
-std::vector<size_t> MSF(Graph::Graph& graph, size_t t)
+class MSTTreeBuilder
 {
-    size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
+public:
+    MSTTreeBuilder(Graph::Graph& graph, size_t t);
 
-    std::vector<size_t> boruvka_result{};
-    while (count > 0 && graph.GetVerticesCount() > 1)
-    {
-        std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
-        --count;
-    }
+private:
+    // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
+    bool Retraction();
+    bool Extension();
 
-    //if (graph.GetVertexesCount() == 1)
-        return boruvka_result;
+    void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    Details::EdgePtrWrapper* FindExtensionEdge();
 
-    //auto tree = MSTTreeBuilder(graph, t);
-
-    //std::vector<size_t> F{};
-    //for(auto& subgraph : tree)
-    //    std::ranges::move(MSF(subgraph - tree.corrupted(), t-1), std::back_inserter(F));
-
-    //return MSF(F + B, t) + boruvka_result;
-}
-
-std::vector<size_t> FindMST(Graph::Graph& graph)
-{
-    return MSF(graph, FindParamT(graph, FindMaxHeight(graph, c)));
-}
+    Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
+    void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
+private:
+    Graph::Graph&       m_graph;
+    Details::MSTTree    m_tree;
+    std::vector<size_t> m_bad_edges{};
+};
 }
