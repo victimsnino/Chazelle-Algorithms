@@ -32,7 +32,20 @@ SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size
     , m_level_in_tree{level_in_tree}
     , m_target_size{target_size}
 {
-    m_heaps.reserve(m_level_in_tree+1);
+    InitHeaps(r);
+}
+
+SubGraph::SubGraph(const SubGraphPtr& child, size_t target_size, size_t r)
+    : m_level_in_tree{child->GetLevelInTree() - 1}
+    , m_target_size{target_size}
+    , m_childs{child}
+{
+    InitHeaps(r);
+}
+
+void SubGraph::InitHeaps(size_t r)
+{
+    m_heaps.reserve(m_level_in_tree + 1);
 
     for (size_t i = 0; i < m_level_in_tree + 1; ++i)
         m_heaps.emplace_back(r);
@@ -40,10 +53,36 @@ SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size
     m_heaps.shrink_to_fit();
 }
 
+size_t SubGraph::GetLevelInTree() const
+{
+    return m_level_in_tree;
+}
+
+bool SubGraph::IsMeetTargetSize() const
+{
+    return m_vertex.has_value() ? true : m_childs.size() >= m_target_size;
+}
+
+std::list<size_t> SubGraph::GetVertices() const
+{
+    assert(m_vertex.has_value()  &&  m_childs.empty());
+    assert(!m_vertex.has_value() && !m_childs.empty());
+
+    if(m_vertex)
+        return {*m_vertex};
+
+    std::list<size_t> result{};
+    for(const auto& child : m_childs)
+        result.splice(result.end(), child->GetVertices());
+
+    return result;
+}
+
 void SubGraph::PushToHeap(EdgePtrWrapper edge)
 {
     m_heaps[m_level_in_tree].Insert(edge);
 }
+
 //
 //void SubGraph::AddToMinLinks(EdgePtrWrapper edge)
 //{

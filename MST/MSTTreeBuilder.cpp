@@ -53,7 +53,7 @@ bool MSTTreeBuilder::Retraction()
 {
     SPDLOG_DEBUG("");
 
-    if (m_tree.top().GetIndex() == 0) // k should be >= 1
+    if (m_tree.top().GetLevelInTree() == 0)
         return false;
 
     PostRetractionActions(m_tree.pop());

@@ -67,40 +67,39 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
 
     PushNode((*itr).GetCurrentSubgraphs()[0]);
 }
+
 //void MSTTree::push(size_t vertex)
 //{
 //    PushNode(vertex);
 //}
 //
-//MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
-//{
-//    SPDLOG_DEBUG("Size {}", m_active_path.size());
-//
-//    auto& last_subgraph = m_active_path.back();
-//    last_subgraph.Contract(m_graph, m_vertices_inside);
-//
-//    if (m_active_path.size() == 1)
-//    {
-//        const size_t index = last_subgraph.GetIndex();
-//        m_active_path.emplace_front(m_vertices_inside.cbegin(),
-//                              index - 1,
-//                              m_sizes_per_height[IndexToHeight(index - 1)],
-//                              m_r);
-//    }
-//
-//    std::next(m_active_path.rbegin())->MeldHeapsFrom(last_subgraph);
-//    auto data = last_subgraph.ExtractItems();
-//
-//    m_active_path.pop_back();
-//
-//    std::for_each_n(m_active_path.begin(),
-//                    m_active_path.size() - 1,
-//                    [](SubGraph& graph) { graph.PopMinLink(); });
-//
-//    m_active_path.back().PopMinLink(true);
-//
-//    return data;
-//}
+MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
+{
+    SPDLOG_DEBUG("Size {}", m_active_path.size());
+
+    auto& last_subgraph = m_active_path.back();
+
+    if (m_active_path.size() == 1)
+    {
+        const size_t index = last_subgraph->GetLevelInTree();
+        m_active_path.emplace_front(m_active_path.back(),
+                                    m_sizes_per_height[IndexToHeight(index - 1)],
+                                    m_r);
+    }
+
+    std::next(m_active_path.rbegin())->MeldHeapsFrom(last_subgraph);
+    auto data = last_subgraph.ExtractItems();
+
+    m_active_path.pop_back();
+
+    std::for_each_n(m_active_path.begin(),
+                    m_active_path.size() - 1,
+                    [](SubGraph& graph) { graph.PopMinLink(); });
+
+    m_active_path.back().PopMinLink(true);
+
+    return data;
+}
 //
 //MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraph>::iterator itr,
 //                                                      const EdgePtrWrapper&         fusion_edge)
