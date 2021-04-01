@@ -36,8 +36,12 @@ struct ISubGraph
 {
     virtual ~ISubGraph() { }
 
-    virtual size_t GetLevelInTree() const = 0;
-    virtual bool   IsMeetTargetSize() const = 0;
+    virtual size_t            GetLevelInTree() const = 0;
+    virtual bool              IsMeetTargetSize() const = 0;
+    virtual std::list<size_t> GetVertices() const = 0;
+    virtual void              PushToHeap(EdgePtrWrapper edge) = 0;
+    virtual MSTSoftHeapDecorator* FindHeapWithMin() = 0;
+    virtual std::vector<EdgePtrWrapper> GetMinLinks() const = 0;
 };
 
 using ISubGraphPtr = std::shared_ptr<ISubGraph>;
@@ -56,21 +60,35 @@ public:
     SubGraph& operator=(SubGraph&& other)      = delete;
 
     size_t GetLevelInTree() const override;
-    bool IsMeetTargetSize() const override;
+    bool   IsMeetTargetSize() const override;
 
-    std::list<size_t> GetVertices() const;
-    void              PushToHeap(EdgePtrWrapper edge);
+    std::list<size_t>           GetVertices() const override;
+    void                        PushToHeap(EdgePtrWrapper edge) override;
+    MSTSoftHeapDecorator*       FindHeapWithMin() override;
+    std::vector<EdgePtrWrapper> GetMinLinks() const { return m_min_links_to_next_nodes_in_active_path; }
+
+    void                                 MeldHeapsFrom(SubGraphPtr& other);
+    void                                 AddToMinLinks(const EdgePtrWrapper& edge);
+    void                                 PopMinLink();
+    MSTSoftHeapDecorator::ExtractedItems ExtractItems();
+
+    void        AddChild(size_t edge, const SubGraphPtr& child);
+    SubGraphPtr PopLastChild(); // Called only during fusion
+    auto        GetChilds() const { return m_childs | rgv::values; }
+
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
 
 private:
-    void InitHeaps(size_t r);
+    void InitHeaps();
 private:
     const std::optional<size_t> m_vertex;
     const size_t                m_level_in_tree; // aka k
     const size_t                m_target_size;
+    const size_t                m_r;
 
-    std::list<SubGraphPtr> m_childs{};
+    std::vector<std::pair<std::optional<size_t>, SubGraphPtr>> m_childs{}; // chain-link + child
 
     std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
-    std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes{};
+    std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes_in_active_path{};
 };
 }

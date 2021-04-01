@@ -36,12 +36,12 @@ class MSTTree
 public:
     MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height);
 
-    void push(size_t vertex);
+    void push(const EdgePtrWrapper& extension_edge);
 
     // Contact last node, move vertex to prev-last node, meld heaps all heaps except of H(K) and H(k-1, k).
     // Extract data from these heaps. Pop min links for each prev. subgraphs
     MSTSoftHeapDecorator::ExtractedItems pop();
-    MSTSoftHeapDecorator::ExtractedItems fusion(std::list<SubGraph>::iterator itr, const EdgePtrWrapper& fusion_edge);
+    MSTSoftHeapDecorator::ExtractedItems fusion(std::list<SubGraphPtr>::iterator itr, const EdgePtrWrapper& fusion_edge);
 
     ISubGraph& top();
     size_t     size() const;

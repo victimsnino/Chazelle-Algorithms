@@ -47,7 +47,7 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
     //if (graph.GetVertexesCount() == 1)
         return boruvka_result;
 
-    //auto tree = MSTTreeBuilder(graph, t, max_height);
+    auto tree = MSTTreeBuilder(graph, t, max_height);
 
     //std::vector<size_t> F{};
     //for(auto& subgraph : tree)

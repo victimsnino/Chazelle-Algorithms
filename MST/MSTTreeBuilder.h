@@ -25,7 +25,6 @@
 
 #include <Graph.h>
 
-
 namespace MST
 {
 class MSTTreeBuilder
@@ -38,8 +37,8 @@ private:
     bool Retraction();
     bool Extension();
 
-    void                     CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
-    Details::EdgePtrWrapper* FindExtensionEdge();
+    void                           CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    Details::MSTSoftHeapDecorator* FindHeapWithExtensionEdge();
 
     Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
     void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);

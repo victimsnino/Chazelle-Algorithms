@@ -50,7 +50,7 @@ public:
          size_t                     index);
 
     Edge(const Edge& other)            = default;
-    Edge& operator=(const Edge& other) = delete;
+    Edge& operator=(const Edge& other) = default;
 
     Edge(Edge&& other) noexcept;
     Edge& operator=(Edge&& other) noexcept;
@@ -120,10 +120,23 @@ struct EdgesView
             : m_edges(edges)
             , m_itr(std::move(itr)) {}
 
+        iterator(const iterator& other)
+            : m_edges{other.m_edges}
+            , m_itr{other.m_itr} {}
+
+        iterator& operator=(const iterator& other)
+        {
+            if (this == &other)
+                return *this;
+            m_edges = other.m_edges;
+            m_itr   = other.m_itr;
+            return *this;
+        }
+
         void      operator ++() { ++m_itr; }
         bool      operator ==(const iterator& other) const { return m_itr == other.m_itr; }
         bool      operator !=(const iterator& other) const { return m_itr != other.m_itr; }
-        reference operator *() const { return m_edges[*m_itr]; }
+        reference operator*() const { return m_edges[*m_itr]; }
     private:
         Container                         m_edges;
         std::list<size_t>::const_iterator m_itr;

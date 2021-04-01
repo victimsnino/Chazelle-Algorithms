@@ -62,48 +62,45 @@ bool MSTTreeBuilder::Retraction()
 
 bool MSTTreeBuilder::Extension()
 {
-    auto extension_edge = FindExtensionEdge();
-    SPDLOG_DEBUG("Extension edge {}", !!extension_edge);
-    if (!extension_edge)
+    const auto extension_heap = FindHeapWithExtensionEdge();
+    SPDLOG_DEBUG("Extension heap {}", !!extension_heap);
+    if (!extension_heap)
         return false;
 
-    PostRetractionActions(Fusion(*extension_edge));
+    auto edge = extension_heap->DeleteMin();
 
-    m_tree.push(extension_edge->GetOutsideVertex());
+    PostRetractionActions(Fusion(edge));
+
+    m_tree.push(edge);
 
     return true;
 }
 
 void MSTTreeBuilder::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
 {
-    auto vertex = m_tree.top().GetVertices().back();
-
     std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
     std::for_each(std::make_move_iterator(items.begin()),
                   std::make_move_iterator(items.end()),
                   [&](Details::EdgePtrWrapper&& edge)
                   {
-                      auto [i,j] = edge->GetCurrentSubgraphs(m_graph);
-                      if (i == vertex)
-                          clusters_by_out_vertex[j].emplace(edge);
-                      else
-                      {
-                          assert(j == vertex);
-                          clusters_by_out_vertex[i].emplace(edge);
-                      }
+                      auto [i,j] = edge->GetCurrentSubgraphs();
+
+                      size_t outside_vertex = edge.GetOutsideVertex();
+                      assert(i == outside_vertex || j == outside_vertex);
+
+                      clusters_by_out_vertex[outside_vertex].emplace(edge);
                   });
 
     for (auto& cluster : clusters_by_out_vertex | rgv::values)
     {
-        auto cheapest = cluster.begin();
         for (auto& edge : cluster | rgv::drop(1))
-            m_graph.DisableEdge(edge->GetIndex());
+            m_edges.DisableEdge(edge->GetIndex());
 
-        m_tree.top().PushToHeap(*cheapest);
+        m_tree.top().PushToHeap(*cluster.begin());
     }
 }
 
-Details::EdgePtrWrapper* MSTTreeBuilder::FindExtensionEdge()
+Details::MSTSoftHeapDecorator* MSTTreeBuilder::FindHeapWithExtensionEdge()
 {
     auto stack_view = m_tree.view();
     auto transformed_stack_view = rgv::transform(stack_view, &Details::ISubGraph::FindHeapWithMin);
@@ -118,11 +115,7 @@ Details::EdgePtrWrapper* MSTTreeBuilder::FindExtensionEdge()
                                                  return *left->FindMin() < *right->FindMin();
                                              });
 
-    auto heap_ptr = *min_element;
-    if (!heap_ptr)
-        return {};
-
-    return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
+    return *min_element;
 }
 
 Details::MSTSoftHeapDecorator::ExtractedItems MSTTreeBuilder::Fusion(Details::EdgePtrWrapper& extension_edge)
@@ -130,12 +123,12 @@ Details::MSTSoftHeapDecorator::ExtractedItems MSTTreeBuilder::Fusion(Details::Ed
     const auto view = m_tree.view();
     for (auto itr = view.begin(); itr != view.end(); ++itr)
     {
-        const auto& min_links = (*itr).GetMinLinks();
-        auto edge_itr = rg::find_if(min_links,
-                                             [&](const Details::EdgePtrWrapper& edge)
-                                             {
-                                                 return edge <= extension_edge;
-                                             });
+        const auto& min_links = (*itr)->GetMinLinks();
+        auto        edge_itr  = rg::find_if(min_links,
+                                            [&](const Details::EdgePtrWrapper& edge)
+                                            {
+                                                return edge <= extension_edge;
+                                            });
 
         if (edge_itr != min_links.cend())
             return m_tree.fusion(itr.base(), *edge_itr);
@@ -147,7 +140,7 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
 {
     for (auto& corrupted_edge : items.corrupted)
     {
-        m_graph.DisableEdge(corrupted_edge->GetIndex());
+        m_edges.DisableEdge(corrupted_edge->GetIndex());
         m_bad_edges.emplace_back(corrupted_edge->GetIndex());
     }
 
