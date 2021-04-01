@@ -52,9 +52,6 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
     , m_sizes_per_height{InitTargetSizesPerHeight(t, max_height)}
 {
-    spdlog::set_level(spdlog::level::debug);
-    spdlog::set_pattern("[%s::%!::%#] %v");
-
     const auto itr = std::find_if(m_edges.begin(),
                                   m_edges.end(),
                                   [](const Graph::Details::Edge& edge)
@@ -70,6 +67,8 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
 
 void MSTTree::push(const EdgePtrWrapper& extension_edge)
 {
+    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetIndex());
+
     auto& pre_last = m_active_path.back();
     PushNode(extension_edge.GetOutsideVertex());
 
@@ -105,7 +104,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
                                                      const EdgePtrWrapper&            fusion_edge)
 {
     auto pop_count = std::distance(itr, m_active_path.end()) - 1;
-    SPDLOG_DEBUG("pop_count {}", pop_count);
+    SPDLOG_DEBUG("pop_count for fusion {}", pop_count);
 
     MSTSoftHeapDecorator::ExtractedItems items{};
     for (size_t i = 0; i < pop_count; ++i)
@@ -162,6 +161,7 @@ void MSTTree::AddNewBorderEdgesAfterPush()
 {
     auto& new_node      = m_active_path.back();
     auto  node_vertices = new_node->GetVertices();
+    auto all_vertices = m_active_path.front()->GetVertices();
 
     assert(node_vertices.size() == 1);
 
@@ -170,12 +170,12 @@ void MSTTree::AddNewBorderEdgesAfterPush()
         const auto [i,j] = edge.GetCurrentSubgraphs();
         if (Utils::IsRangeContains(node_vertices, i))
         {
-            if (!Utils::IsRangeContains(node_vertices, j))
+            if (!Utils::IsRangeContains(all_vertices, j))
                 new_node->PushToHeap(EdgePtrWrapper{edge, j});
         }
         else if (Utils::IsRangeContains(node_vertices, j))
         {
-            if (!Utils::IsRangeContains(node_vertices, i))
+            if (!Utils::IsRangeContains(all_vertices, i))
                 new_node->PushToHeap(EdgePtrWrapper{edge, i});
         }
     }

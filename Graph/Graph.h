@@ -57,6 +57,7 @@ public:
     void ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func);
     void ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const;
 
+    Details::EdgesView& GetEdgesView() {return m_edges_view;}
 private:
     void AddEdge(size_t begin, size_t end, uint32_t weight);
     void RemoveMultipleEdgesForVertex(size_t vertex_id);

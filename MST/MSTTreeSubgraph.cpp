@@ -67,8 +67,7 @@ bool SubGraph::IsMeetTargetSize() const
 
 std::list<size_t> SubGraph::GetVertices() const
 {
-    assert(m_vertex.has_value()  &&  m_childs.empty());
-    assert(!m_vertex.has_value() && !m_childs.empty());
+    assert(m_vertex.has_value()  &&  m_childs.empty() || !m_vertex.has_value() && !m_childs.empty());
 
     if(m_vertex)
         return {*m_vertex};

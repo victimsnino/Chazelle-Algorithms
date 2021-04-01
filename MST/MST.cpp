@@ -26,6 +26,7 @@
 #include "MSTUtils.h"
 
 #include <Graph.h>
+#include <spdlog/spdlog.h>
 
 #include <iterator>
 
@@ -34,21 +35,22 @@ namespace MST
 {
 std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
 {
-    size_t t = FindParamT(graph, max_height);
+    size_t t = FindParamT(graph, max_height) +1; // TODO; Remove +1
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     std::vector<size_t> boruvka_result{};
-    while (count > 0 && graph.GetVerticesCount() > 1)
-    {
-        std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
-        --count;
-    }
+    //while (count > 0 && graph.GetVerticesCount() > 1)
+    //{
+    //    std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
+    //    --count;
+    //}
 
-    //if (graph.GetVertexesCount() == 1)
+    if (graph.GetVerticesCount() == 1)
         return boruvka_result;
 
-    auto tree = MSTTreeBuilder(graph, t, max_height);
+    auto tree = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
 
+    return boruvka_result;
     //std::vector<size_t> F{};
     //for(auto& subgraph : tree)
     //    std::ranges::move(MSF(subgraph - tree.corrupted(), t-1), std::back_inserter(F));
@@ -58,6 +60,9 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
 
 std::vector<size_t> FindMST(Graph::Graph& graph)
 {
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_pattern("Line: %4# [%-35!] %v");
+
     return MSF(graph, FindMaxHeight(graph, c));
 }
 } // namespace MST
