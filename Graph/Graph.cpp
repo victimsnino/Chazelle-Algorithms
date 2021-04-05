@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <cassert>
 #include <fstream>
-#include <numeric>
+#include <ranges>
 #include <optional>
 #include <utility>
 
@@ -39,7 +39,7 @@ Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
 {
     m_subgraphs.reserve(adjacency.size());
     for (size_t i = 0; i < adjacency.size(); ++i)
-        m_subgraphs.emplace_back(std::make_shared<Details::MemberOfSubGraph>(i));
+        m_subgraphs[i] = std::make_shared<Details::MemberOfSubGraph>(i);
 
     for (size_t i = 0; i < adjacency.size(); ++i)
     {
@@ -55,7 +55,37 @@ void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
     if (begin == end || !weight)
         return;
 
-    m_edges_view.AddEdge(m_subgraphs[std::min(begin, end)], m_subgraphs[std::max(begin, end)], weight);
+
+    m_edges_view.AddEdge(GetOrCreateSubgraph(std::min(begin, end)), GetOrCreateSubgraph(std::max(begin, end)), weight);
+}
+
+std::shared_ptr<Details::MemberOfSubGraph> Graph::GetOrCreateSubgraph(size_t index)
+{
+    auto itr = m_subgraphs.find(index);
+    if (itr != m_subgraphs.end())
+        return itr->second;
+    auto ptr           = std::make_shared<Details::MemberOfSubGraph>(index);
+    m_subgraphs[index] = ptr;
+    return ptr;
+}
+
+void Graph::UnionVertices(size_t i, size_t j)
+{
+    auto root_subgraph_1 = GetOrCreateSubgraph(i);
+    auto root_subgraph_2 = GetOrCreateSubgraph(j);
+
+    if (root_subgraph_1 == root_subgraph_2)
+        return;
+
+    if (root_subgraph_1 < root_subgraph_2)
+        root_subgraph_1->SetParent(root_subgraph_2->GetParent());
+    else
+        root_subgraph_2->SetParent(root_subgraph_1->GetParent());
+
+    for (size_t i : m_subgraphs | std::views::keys)
+        FindRootOfSubGraph(i);
+
+    RemoveMultipleEdgesForVertex(root_subgraph_1->GetParent());
 }
 
 void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
@@ -88,23 +118,9 @@ void Graph::ContractEdge(size_t edge_index)
 {
     const auto [i, j] = m_edges_view[edge_index].GetCurrentSubgraphs();
 
-    auto& root_subgraph_1 = m_subgraphs[i];
-    auto& root_subgraph_2 = m_subgraphs[j];
-
-    if (root_subgraph_1 == root_subgraph_2)
-        return;
-
-    if (root_subgraph_1 < root_subgraph_2)
-        root_subgraph_1->SetParent(root_subgraph_2->GetParent());
-    else
-        root_subgraph_2->SetParent(root_subgraph_1->GetParent());
-
     m_edges_view.ContractEdge(edge_index);
 
-    for(size_t i = 0; i < m_subgraphs.size();++i)
-        FindRootOfSubGraph(i);
-
-    RemoveMultipleEdgesForVertex(root_subgraph_1->GetParent());
+    UnionVertices(i,j);
 }
 
 void Graph::DisableEdge(size_t edge_index)
@@ -169,9 +185,8 @@ std::vector<size_t> Graph::BoruvkaPhase()
 
 size_t Graph::GetVerticesCount() const
 {
-    return std::count_if(m_subgraphs.cbegin(),
-                         m_subgraphs.cend(),
-                         [](const Details::MemberOfSubGraphPtr& member) { return member->IsRoot(); });
+    return std::ranges::count_if(m_subgraphs | std::ranges::views::values,
+                                 [](const Details::MemberOfSubGraphPtr& member) { return member->IsRoot(); });
 }
 
 size_t Graph::GetEdgesCount() const

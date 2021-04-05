@@ -33,6 +33,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <deque>
+
 static std::vector<size_t> InitTargetSizesPerHeight(size_t t, size_t max_height)
 {
     std::vector<size_t> out{};
@@ -138,6 +140,41 @@ ISubGraph& MSTTree::top()
 }
 
 size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back()->GetLevelInTree() + 1; }
+
+std::vector<Graph::Graph> MSTTree::CreateSubGraphs()
+{
+    std::list list_of_subgraphs{m_active_path.front()};
+    std::vector<Graph::Graph> result{};
+    while(!list_of_subgraphs.empty())
+    {
+        auto& front = list_of_subgraphs.front();
+        auto& graph = result.emplace_back();
+
+        for (const auto& edge_index : front->GetChildsEdges())
+        {
+            auto& edge  = m_edges[edge_index];
+            auto  [i,j] = edge.GetCurrentSubgraphs();
+            graph.AddEdge(i, j, edge.GetWeight());
+        }
+
+        for(auto& child : front->GetChilds())
+        {
+            list_of_subgraphs.emplace_back(child);
+
+            // todo: possible perf imprvement
+            auto vertices = child->GetVertices();
+            auto front = vertices.front();
+            for(auto other : vertices | rgv::drop(1))
+                graph.UnionVertices(front, other);
+        }
+        if (graph.GetVerticesCount() <= 1)
+            result.pop_back();
+
+        // DUPLICATED FIRST SUBGRAPH!
+        list_of_subgraphs.pop_front();
+    }
+    return result;
+}
 
 void MSTTree::PushNode(size_t vertex)
 {

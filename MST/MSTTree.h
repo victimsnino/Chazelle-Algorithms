@@ -64,6 +64,7 @@ public:
                                              });
     }
 
+    std::vector<Graph::Graph> CreateSubGraphs();
 private:
     void PushNode(size_t vertex);
 

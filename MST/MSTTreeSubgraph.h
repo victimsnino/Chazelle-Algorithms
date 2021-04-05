@@ -76,6 +76,14 @@ public:
     SubGraphPtr PopLastChild(); // Called only during fusion
     auto        GetChilds() const { return m_childs | rgv::values; }
 
+    auto GetChildsEdges() const
+    {
+        return m_childs
+                | rgv::keys
+                | rgv::filter([](const std::optional<size_t>& v) { return v.has_value(); })
+                | rgv::transform([](const std::optional<size_t>& v){return v.value();});
+    }
+
     std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
 
 private:

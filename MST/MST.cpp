@@ -48,9 +48,15 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
     if (graph.GetVerticesCount() == 1)
         return boruvka_result;
 
-    auto tree = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
+    auto tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
+    auto& tree = tree_builder.GetTree();
+    auto& bad_edges = tree_builder.GetBadEdges();
 
+    auto graphs = tree.CreateSubGraphs();
+    for(auto& graph : graphs)
+        Graph::ToFile(graph, "temp", true);
     return boruvka_result;
+
     //std::vector<size_t> F{};
     //for(auto& subgraph : tree)
     //    std::ranges::move(MSF(subgraph - tree.corrupted(), t-1), std::back_inserter(F));
