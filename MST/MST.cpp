@@ -39,7 +39,7 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
     size_t t = FindParamT(graph, max_height);
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
-    SPDLOG_INFO("t is {}", t);
+    SPDLOG_DEBUG("t is {}", t);
 
     std::vector<size_t> boruvka_result{};
 
@@ -68,13 +68,18 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         if (!Utils::IsRangeContains(F, edge.GetOriginalIndex()))
             edges_to_disable.push_back(edge.GetOriginalIndex());
         else
-            F.erase(std::remove(F.begin(), F.end(), edge.GetOriginalIndex()), F.end());
+        {
+            if constexpr (s_mst_debug)
+                F.erase(std::remove(F.begin(), F.end(), edge.GetOriginalIndex()), F.end());
+        }
     });
 
     for (auto edge : edges_to_disable)
         graph.DisableEdge(edge);
 
-    assert(F.empty());
+    if constexpr (s_mst_debug)
+        if (!F.empty())
+            throw std::exception("F is not empty");
 
     std::ranges::move(MSF(graph, t, recursion_level +1), std::back_inserter(boruvka_result));
     return boruvka_result;

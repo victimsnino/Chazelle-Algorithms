@@ -24,6 +24,8 @@
 
 #include "Graph.h"
 
+static constexpr bool s_mst_debug = false;
+
 namespace MST
 {
 static constexpr uint32_t c = 2;

@@ -23,6 +23,7 @@
 #include "Graph.h"
 #include "MST.h"
 
+#include <Common.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -76,24 +77,32 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
 
 TEST(MST, Init)
 {
-    auto matrix = GenerateMatrix(6, 5);
+    auto matrix = GenerateMatrix(7, 5);
     //auto matrix = GenerateMatrix(1, 3);
     std::vector<size_t> boruvka_result{};
     {
         Graph::Graph g{matrix};
         std::cout << g.GetVerticesCount() << " " << g.GetEdgesCount() << std::endl;
         uint32_t count = 0;
-        while (g.GetVerticesCount() != 1)
         {
-            std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
-            ++count;
+            Utils::MeasurePerfomance measure{"Boruvka"};
+            while (g.GetVerticesCount() != 1)
+            {
+                std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
+                ++count;
+            }
         }
         std::cout << "Required Boruvka stages: " << count << std::endl;
     }
 
     Graph::Graph g{matrix};
     //ToFile(g, "TEMP-Pre", true);
-    auto mst_result = MST::FindMST(g);
+
+    std::vector<size_t> mst_result;
+    {
+        Utils::MeasurePerfomance measure{"SoftHeap MST"};
+        mst_result = MST::FindMST(g);
+    }
 
     std::ranges::sort(mst_result);
     std::ranges::sort(boruvka_result);

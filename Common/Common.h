@@ -23,8 +23,10 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <functional>
+#include <iostream>
 #include <ranges>
 #include <vector>
 
@@ -137,4 +139,22 @@ private:
 
 template<typename T>
 LazyList(typename std::list<T>::const_iterator begin, typename std::list<T>::const_iterator end) -> LazyList<T>;
+
+
+struct MeasurePerfomance
+{
+    MeasurePerfomance(std::string name)
+        : m_name{std::move(name)} {}
+
+    ~MeasurePerfomance()
+    {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "[" << m_name << "] Execution time is " << std::chrono::duration_cast<std::chrono::seconds>(end - m_start) <<
+                std::endl;
+    }
+
+private:
+    const std::chrono::steady_clock::time_point m_start = std::chrono::high_resolution_clock::now();
+    const std::string                           m_name;
+};
 } // namespace Utils
