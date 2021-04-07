@@ -47,18 +47,25 @@ public:
     Edge(const MemberOfSubGraphPtr& i,
          const MemberOfSubGraphPtr& j,
          uint32_t                   weight,
-         size_t                     index);
+         size_t                     index,
+         std::optional<size_t> original_index = {});
 
     Edge(const Edge& other)            = default;
     Edge& operator=(const Edge& other) = default;
 
-    Edge(Edge&& other) noexcept;
-    Edge& operator=(Edge&& other) noexcept;
+    Edge(Edge&& other) noexcept            = default;
+    Edge& operator=(Edge&& other) noexcept = default;
 
     std::array<size_t, 2> GetOriginalVertices() const;
     std::array<size_t, 2> GetCurrentSubgraphs() const;
 
-    size_t   GetIndex() const { return m_index; }
+    size_t GetIndex() const { return m_index; }
+
+    size_t GetOriginalIndex() const
+    {
+        return m_original_index.has_value() ? m_original_index.value() : m_index;
+    }
+
     uint32_t GetWeight() const { return m_weight; }
 
     void SetIsContracted() { m_is_contracted = true; }
@@ -70,12 +77,13 @@ public:
     bool operator<(const Edge& rhs) const { return m_weight < rhs.m_weight; }
     bool operator==(const Edge& rhs) const { return m_index == rhs.m_index; }
 private:
-    MemberOfSubGraphPtr m_i;
-    MemberOfSubGraphPtr m_j;
-    uint32_t            m_weight;
-    size_t              m_index;
-    bool                m_is_contracted{false};
-    bool                m_is_disabled{false};
+    MemberOfSubGraphPtr   m_i;
+    MemberOfSubGraphPtr   m_j;
+    uint32_t              m_weight;
+    size_t                m_index;
+    bool                  m_is_contracted{false};
+    bool                  m_is_disabled{false};
+    std::optional<size_t> m_original_index;
 };
 
 class MemberOfSubGraph
@@ -144,7 +152,8 @@ struct EdgesView
 
     void AddEdge(const MemberOfSubGraphPtr& begin,
                  const MemberOfSubGraphPtr& end,
-                 uint32_t                   weight);
+                 uint32_t                   weight,
+                 std::optional<size_t> original_index = {});
 
     void ContractEdge(size_t index);
     void DisableEdge(size_t index);

@@ -29,7 +29,7 @@
 
 #include <exception>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -141,7 +141,7 @@ ISubGraph& MSTTree::top()
 
 size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back()->GetLevelInTree() + 1; }
 
-std::vector<Graph::Graph> MSTTree::CreateSubGraphs()
+std::vector<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& bad_edges)
 {
     std::list list_of_subgraphs{m_active_path.front()};
     std::vector<Graph::Graph> result{};
@@ -152,9 +152,12 @@ std::vector<Graph::Graph> MSTTree::CreateSubGraphs()
 
         for (const auto& edge_index : front->GetChildsEdges())
         {
+            if (Utils::IsRangeContains(bad_edges, edge_index))
+                continue;
+
             auto& edge  = m_edges[edge_index];
             auto  [i,j] = edge.GetCurrentSubgraphs();
-            graph.AddEdge(i, j, edge.GetWeight());
+            graph.AddEdge(i, j, edge.GetWeight(), edge.GetIndex());
         }
 
         for(auto& child : front->GetChilds())

@@ -25,6 +25,7 @@
 #include "MSTTreeBuilder.h"
 #include "MSTUtils.h"
 
+#include <Common.h>
 #include <Graph.h>
 #include <spdlog/spdlog.h>
 
@@ -33,17 +34,20 @@
 
 namespace MST
 {
-std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
+std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
 {
-    size_t t = FindParamT(graph, max_height) +1; // TODO; Remove +1
+    size_t t = FindParamT(graph, max_height);
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
+    SPDLOG_INFO("t is {}", t);
+
     std::vector<size_t> boruvka_result{};
-    //while (count > 0 && graph.GetVerticesCount() > 1)
-    //{
-    //    std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
-    //    --count;
-    //}
+
+    while (count > 0 && graph.GetVerticesCount() > 1)
+    {
+        std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
+        --count;
+    }
 
     if (graph.GetVerticesCount() == 1)
         return boruvka_result;
@@ -52,16 +56,28 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height)
     auto& tree = tree_builder.GetTree();
     auto& bad_edges = tree_builder.GetBadEdges();
 
-    auto graphs = tree.CreateSubGraphs();
-    for(auto& graph : graphs)
-        Graph::ToFile(graph, "temp", true);
+    auto graphs = tree.CreateSubGraphs(bad_edges);
+
+    std::vector<size_t> F = bad_edges;
+    for (auto& subgraph : graphs)
+        std::ranges::move(MSF(subgraph, max_height, recursion_level +1), std::back_inserter(F));
+
+    std::vector<size_t> edges_to_disable{};
+    graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+    {
+        if (!Utils::IsRangeContains(F, edge.GetOriginalIndex()))
+            edges_to_disable.push_back(edge.GetOriginalIndex());
+        else
+            F.erase(std::remove(F.begin(), F.end(), edge.GetOriginalIndex()), F.end());
+    });
+
+    for (auto edge : edges_to_disable)
+        graph.DisableEdge(edge);
+
+    assert(F.empty());
+
+    std::ranges::move(MSF(graph, t, recursion_level +1), std::back_inserter(boruvka_result));
     return boruvka_result;
-
-    //std::vector<size_t> F{};
-    //for(auto& subgraph : tree)
-    //    std::ranges::move(MSF(subgraph - tree.corrupted(), t-1), std::back_inserter(F));
-
-    //return MSF(F + B, t) + boruvka_result;
 }
 
 std::vector<size_t> FindMST(Graph::Graph& graph)

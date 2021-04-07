@@ -50,13 +50,12 @@ Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
     }
 }
 
-void Graph::AddEdge(size_t begin, size_t end, uint32_t weight)
+void Graph::AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index)
 {
     if (begin == end || !weight)
         return;
 
-
-    m_edges_view.AddEdge(GetOrCreateSubgraph(std::min(begin, end)), GetOrCreateSubgraph(std::max(begin, end)), weight);
+    m_edges_view.AddEdge(GetOrCreateSubgraph(std::min(begin, end)), GetOrCreateSubgraph(std::max(begin, end)), weight, original_index);
 }
 
 std::shared_ptr<Details::MemberOfSubGraph> Graph::GetOrCreateSubgraph(size_t index)
@@ -69,12 +68,20 @@ std::shared_ptr<Details::MemberOfSubGraph> Graph::GetOrCreateSubgraph(size_t ind
     return ptr;
 }
 
+std::shared_ptr<Details::MemberOfSubGraph> Graph::GetSubgraphIfExists(size_t index)
+{
+    auto itr = m_subgraphs.find(index);
+    if (itr != m_subgraphs.end())
+        return itr->second;
+    return {};
+}
+
 void Graph::UnionVertices(size_t i, size_t j)
 {
-    auto root_subgraph_1 = GetOrCreateSubgraph(i);
-    auto root_subgraph_2 = GetOrCreateSubgraph(j);
+    auto root_subgraph_1 = GetSubgraphIfExists(i);
+    auto root_subgraph_2 = GetSubgraphIfExists(j);
 
-    if (root_subgraph_1 == root_subgraph_2)
+    if (root_subgraph_1 == root_subgraph_2 || !root_subgraph_1 || !root_subgraph_2)
         return;
 
     if (root_subgraph_1 < root_subgraph_2)
@@ -98,6 +105,13 @@ void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
 
         if (i != vertex_id && j != vertex_id)
             continue;
+        
+        // self-loops
+        if (i == vertex_id && j==vertex_id)
+        {
+            edges_to_disable.push_back(edge.GetIndex());
+            continue;
+        }
 
         auto  out_index = i == vertex_id ? j : i;
         auto& ptr       = cheapest_out_edges[out_index];
@@ -150,7 +164,7 @@ void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& e
 
 std::vector<size_t> Graph::BoruvkaPhase()
 {
-    std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex(m_subgraphs.size(), std::nullopt);
+    std::map<size_t, std::optional<size_t>> cheapest_edge_for_each_vertex{};
     for (const auto& edge : m_edges_view)
     {
         const auto subgraphs = edge.GetCurrentSubgraphs();
@@ -167,7 +181,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
     }
 
     std::vector<size_t> result{};
-    for (const auto& opt_cheapest : cheapest_edge_for_each_vertex)
+    for (const auto& opt_cheapest : cheapest_edge_for_each_vertex | std::ranges::views::values)
     {
         if (!opt_cheapest.has_value())
             continue;
@@ -177,7 +191,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
             continue;
 
         ContractEdge(index);
-        result.emplace_back(index);
+        result.emplace_back(GetEdge(index).GetOriginalIndex());
     }
     result.erase(std::unique(result.begin(), result.end()), result.end());
     return result;

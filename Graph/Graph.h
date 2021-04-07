@@ -41,6 +41,7 @@ class Graph
 public:
     Graph(const std::vector<std::vector<uint32_t>>& adjacency);
 
+
     Graph(Graph&& other) noexcept
         : m_edges_view{std::move(other.m_edges_view)}
         , m_subgraphs{std::move(other.m_subgraphs)} {}
@@ -56,7 +57,7 @@ public:
 
     Graph() = default;
 
-    void AddEdge(size_t begin, size_t end, uint32_t weight);
+    void AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index = {});
     void UnionVertices(size_t i, size_t j);
 
     std::vector<size_t> BoruvkaPhase();
@@ -77,6 +78,7 @@ public:
 private:
     void RemoveMultipleEdgesForVertex(size_t vertex_id);
     std::shared_ptr<Details::MemberOfSubGraph> GetOrCreateSubgraph(size_t index);
+    std::shared_ptr<Details::MemberOfSubGraph> GetSubgraphIfExists(size_t index);
 
 private:
     Details::EdgesView                                                     m_edges_view{};

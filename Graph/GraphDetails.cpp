@@ -31,32 +31,14 @@ namespace Graph::Details
 Edge::Edge(const MemberOfSubGraphPtr& i,
            const MemberOfSubGraphPtr& j,
            uint32_t                   weight,
-           size_t                     index)
+           size_t                     index,
+           std::optional<size_t>      original_index)
     : m_i(i)
     , m_j(j)
     , m_weight(weight)
-    , m_index(index) { }
+    , m_index(index)
+    , m_original_index{original_index} { }
 
-Edge::Edge(Edge&& other) noexcept
-    : m_i{other.m_i}
-    , m_j{other.m_j}
-    , m_weight{other.m_weight}
-    , m_index{other.m_index}
-    , m_is_contracted{other.m_is_contracted}
-    , m_is_disabled{other.m_is_disabled} {}
-
-Edge& Edge::operator=(Edge&& other) noexcept
-{
-    if (this == &other)
-        return *this;
-    m_i             = other.m_i;
-    m_j             = other.m_j;
-    m_weight        = other.m_weight;
-    m_index         = other.m_index;
-    m_is_contracted = other.m_is_contracted;
-    m_is_disabled   = other.m_is_disabled;
-    return *this;
-}
 
 std::array<size_t, 2> Edge::GetOriginalVertices() const
 {
@@ -75,10 +57,11 @@ MemberOfSubGraph::MemberOfSubGraph(size_t parent, size_t rank)
 
 void EdgesView::AddEdge(const MemberOfSubGraphPtr& begin,
                         const MemberOfSubGraphPtr& end,
-                        uint32_t                   weight)
+                        uint32_t                   weight,
+                        std::optional<size_t>      original_index)
 {
     m_indexes.push_back(m_edges.size());
-    m_edges.emplace_back(begin, end, weight, m_indexes.back());
+    m_edges.emplace_back(begin, end, weight, m_indexes.back(), original_index);
 }
 
 void EdgesView::ContractEdge(size_t index)
