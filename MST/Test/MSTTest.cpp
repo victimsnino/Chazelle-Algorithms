@@ -23,10 +23,8 @@
 #include "Graph.h"
 #include "MST.h"
 
-#include <MSTStack.h>
-#include <MSTUtils.h>
-
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <algorithm>
 #include <numeric>
@@ -76,49 +74,18 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
     return result;
 }
 
-TEST(MSTSTack, Init)
-{
-    const auto   matrix = GenerateMatrix(1, 2);
-    Graph::Graph g{matrix};
-
-    const auto height = MST::FindMaxHeight(g, 1);
-
-    MST::Details::MSTStack stack{g, 1};
-
-    EXPECT_EQ(stack.size(), height+1); // + leafs
-    EXPECT_EQ(stack.top().GetIndex(), height);
-    EXPECT_EQ(stack.top().GetVertex(), 0);
-
-    stack.pop();
-
-    EXPECT_EQ(stack.size(), height);
-    EXPECT_EQ(stack.top().GetIndex(), height-1);
-    EXPECT_EQ(stack.top().GetVertex(), 0);
-
-    stack.push(1);
-
-    EXPECT_EQ(stack.size(), height+1); // + leafs
-    EXPECT_EQ(stack.top().GetIndex(), height);
-    EXPECT_EQ(stack.top().GetVertex(), 1);
-
-    stack.pop();
-    EXPECT_EQ(stack.size(), height);
-    EXPECT_EQ(stack.top().GetIndex(), height-1);
-    EXPECT_EQ(stack.top().GetVertices().front(), 0);
-    EXPECT_EQ(stack.top().GetVertices().back(), 1);
-}
-
 TEST(MST, Init)
 {
-    //auto matrix = GenerateMatrix(6, 5);
-    auto matrix = GenerateMatrix(1, 3);
+    auto matrix = GenerateMatrix(6, 5);
+    //auto matrix = GenerateMatrix(1, 3);
+    std::vector<size_t> boruvka_result{};
     {
         Graph::Graph g{matrix};
-        std::cout << g.GetVertexesCount() << " " << g.GetEdgesCount() << std::endl;
+        std::cout << g.GetVerticesCount() << " " << g.GetEdgesCount() << std::endl;
         uint32_t count = 0;
-        while (g.GetVertexesCount() != 1)
+        while (g.GetVerticesCount() != 1)
         {
-            g.BoruvkaPhase();
+            std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
             ++count;
         }
         std::cout << "Required Boruvka stages: " << count << std::endl;
@@ -126,7 +93,12 @@ TEST(MST, Init)
 
     Graph::Graph g{matrix};
     //ToFile(g, "TEMP-Pre", true);
-    // d:\Coding\Study\Chazelle-Algorithms\_build_\MST\Test\temp.png
-    MST::FindMST(g);
-    //ToFile(g, "TEMP", true, true);
+    auto mst_result = MST::FindMST(g);
+
+    std::ranges::sort(mst_result);
+    std::ranges::sort(boruvka_result);
+
+    std::vector<size_t> diff{};
+    std::ranges::set_symmetric_difference(mst_result, boruvka_result, std::back_inserter(diff));
+    EXPECT_THAT(diff, ::testing::SizeIs(0));
 }

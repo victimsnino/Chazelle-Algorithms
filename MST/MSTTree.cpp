@@ -22,151 +22,227 @@
 
 #include "MSTTree.h"
 
+#include "MST.h"
 #include "MSTUtils.h"
 
-#include <Graph.h>
+#include <Common.h>
+
+#include <exception>
 
 //#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
-namespace MST
+#include <deque>
+
+static std::vector<size_t> InitTargetSizesPerHeight(size_t t, size_t max_height)
 {
-MSTTree::MSTTree(Graph::Graph& graph, size_t c)
-    : m_graph{graph}
-    , m_stack{m_graph, c}
+    std::vector<size_t> out{};
+
+    // Leafs
+    out.push_back(1);
+
+    for (uint32_t i = 1; i <= max_height; ++i)
+        out.push_back(::MST::CalculateTargetSize(t, i));
+    return out;
+}
+
+namespace MST::Details
 {
-    while (true)
+MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
+    : m_edges{edges}
+    , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
+    , m_sizes_per_height{InitTargetSizesPerHeight(t, max_height)}
+{
+    const auto itr = std::find_if(m_edges.begin(),
+                                  m_edges.end(),
+                                  [](const Graph::Details::Edge& edge)
+                                  {
+                                      return !edge.IsDisabled() && !edge.IsContracted();
+                                  });
+
+    if (itr == m_edges.end())
+        throw std::exception{"Graph without edges!"};
+
+    PushNode((*itr).GetCurrentSubgraphs()[0]);
+}
+
+void MSTTree::push(const EdgePtrWrapper& extension_edge)
+{
+    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetIndex());
+
+    auto& pre_last = m_active_path.back();
+    PushNode(extension_edge.GetOutsideVertex());
+
+    pre_last->AddChild(extension_edge->GetIndex(), m_active_path.back());
+}
+
+MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
+{
+    SPDLOG_DEBUG("Size {}", m_active_path.size());
+
+    auto& last_subgraph = m_active_path.back();
+
+    if (m_active_path.size() == 1)
     {
-        if (m_stack.top().IsMeetTargetSize())
+        m_active_path.emplace_front(std::make_shared<SubGraph>(last_subgraph,
+                                    m_sizes_per_height[IndexToHeight(last_subgraph->GetLevelInTree() - 1)],
+                                    m_r));
+    }
+
+    (*std::next(m_active_path.rbegin()))->MeldHeapsFrom(last_subgraph);
+    auto data = last_subgraph->ExtractItems();
+
+    m_active_path.pop_back();
+
+    std::for_each_n(m_active_path.begin(),
+                    m_active_path.size(),
+                    [](SubGraphPtr& graph) { graph->PopMinLink(); });
+
+    return data;
+}
+
+MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::iterator itr,
+                                                     const EdgePtrWrapper&            fusion_edge)
+{
+    auto pop_count = std::distance(itr, m_active_path.end()) - 1;
+    SPDLOG_DEBUG("pop_count for fusion {}", pop_count);
+
+    MSTSoftHeapDecorator::ExtractedItems items{};
+    for (size_t i = 0; i < pop_count; ++i)
+    {
+        auto data = pop();
+        items.corrupted.splice(items.corrupted.end(), data.corrupted);
+        items.items.splice(items.items.end(), data.items);
+    }
+
+    // Fused chain doesn't become an vertex of this subgraph
+    auto last_child = m_active_path.back()->PopLastChild();
+
+    auto [i,j] = fusion_edge->GetCurrentSubgraphs();
+    auto childs = m_active_path.back()->GetChilds();
+    auto child_itr = rg::find_if(childs, [&](const SubGraphPtr& sub)
+    {
+        auto vertices = sub->GetVertices();
+        return Utils::IsRangeContains(vertices, i) ||  Utils::IsRangeContains(vertices, j); 
+    });
+
+    assert(child_itr != childs.end());
+
+    (*child_itr)->AddChild(fusion_edge->GetIndex(), last_child);
+    return items;
+}
+
+ISubGraph& MSTTree::top()
+{
+    assert(!m_active_path.empty());
+    return *m_active_path.back();
+}
+
+size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back()->GetLevelInTree() + 1; }
+
+std::vector<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& bad_edges)
+{
+    std::list list_of_subgraphs{m_active_path.front()};
+    std::vector<Graph::Graph> result{};
+    while(!list_of_subgraphs.empty())
+    {
+        auto& front = list_of_subgraphs.front();
+        auto& graph = result.emplace_back();
+
+        for (const auto& edge_index : front->GetChildsEdges())
         {
-            if (!Retraction())
-                return;
+            if (Utils::IsRangeContains(bad_edges, edge_index))
+                continue;
+
+            auto& edge  = m_edges[edge_index];
+            auto  [i,j] = edge.GetCurrentSubgraphs();
+            graph.AddEdge(i, j, edge.GetWeight(), edge.GetIndex());
         }
-        else
+
+        for(auto& child : front->GetChilds())
         {
-            if (!Extension())
-                return;
+            list_of_subgraphs.emplace_back(child);
+
+            // todo: possible perf imprvement
+            auto vertices = child->GetVertices();
+            auto front = vertices.front();
+            for(auto other : vertices | rgv::drop(1))
+                graph.UnionVertices(front, other);
+        }
+        if (graph.GetVerticesCount() <= 1)
+            result.pop_back();
+
+        // DUPLICATED FIRST SUBGRAPH!
+        list_of_subgraphs.pop_front();
+    }
+    return result;
+}
+
+void MSTTree::PushNode(size_t vertex)
+{
+    SPDLOG_DEBUG(vertex);
+
+    auto index = size();
+    // Empty stack, initialization stage
+    if (index == 0)
+        index = GetMaxHeight();
+
+    m_active_path.emplace_back(std::make_shared<SubGraph>(vertex,
+                               index,
+                               m_sizes_per_height[IndexToHeight(index)],
+                               m_r));
+
+    AddNewBorderEdgesAfterPush();
+    DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();
+}
+
+void MSTTree::AddNewBorderEdgesAfterPush()
+{
+    auto& new_node      = m_active_path.back();
+    auto  node_vertices = new_node->GetVertices();
+    auto all_vertices = m_active_path.front()->GetVertices();
+
+    assert(node_vertices.size() == 1);
+
+    for (const auto& edge : m_edges)
+    {
+        const auto [i,j] = edge.GetCurrentSubgraphs();
+        if (Utils::IsRangeContains(node_vertices, i))
+        {
+            if (!Utils::IsRangeContains(all_vertices, j))
+                new_node->PushToHeap(EdgePtrWrapper{edge, j});
+        }
+        else if (Utils::IsRangeContains(node_vertices, j))
+        {
+            if (!Utils::IsRangeContains(all_vertices, i))
+                new_node->PushToHeap(EdgePtrWrapper{edge, i});
         }
     }
 }
 
-bool MSTTree::Retraction()
+void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 {
-    SPDLOG_DEBUG("");
+    auto& new_node = m_active_path.back();
+    if (m_active_path.size() <= 1)
+        return;
 
-    if (m_stack.top().GetIndex() == 0) // k should be >= 1
-        return false;
-
-    PostRetractionActions(m_stack.pop());
-    return true;
-}
-
-bool MSTTree::Extension()
-{
-    auto extension_edge = FindExtensionEdge();
-    SPDLOG_DEBUG("Extension edge {}", !!extension_edge);
-    if (!extension_edge)
-        return false;
-
-    PostRetractionActions(Fusion(*extension_edge));
-
-    m_stack.push(extension_edge->GetOutsideVertex());
-
-    return true;
-}
-
-void MSTTree::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items)
-{
-    auto vertex = m_stack.top().GetVertices().back();
-
-    std::map<size_t, std::set<Details::EdgePtrWrapper>> clusters_by_out_vertex{};
-    std::for_each(std::make_move_iterator(items.begin()),
-                  std::make_move_iterator(items.end()),
-                  [&](Details::EdgePtrWrapper&& edge)
-                  {
-                      auto [i,j] = edge->GetCurrentSubgraphs(m_graph);
-                      if (i == vertex)
-                          clusters_by_out_vertex[j].emplace(edge);
-                      else
-                      {
-                          assert(j == vertex);
-                          clusters_by_out_vertex[i].emplace(edge);
-                      }
-                  });
-
-    for (auto& cluster : clusters_by_out_vertex | rgv::values)
+    auto condition = [&](const EdgePtrWrapper& edge)
     {
-        auto cheapest = cluster.begin();
-        for (auto& edge : cluster | rgv::drop(1))
-            m_graph.DisableEdge(edge->GetIndex());
+        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(), new_node->GetVertices().back());
+    };
 
-        m_stack.top().PushToHeap(*cheapest);
-    }
+    std::for_each_n(m_active_path.begin(),
+                    m_active_path.size() - 1,
+                    [&](SubGraphPtr& node)
+                    {
+                        const auto old_border_edges = node->DeleteAndReturnIf(condition);
+                        if (old_border_edges.empty())
+                            return;
+
+                        auto min = std::min_element(old_border_edges.cbegin(),
+                                                    old_border_edges.cend());
+                        node->AddToMinLinks(*min);
+                    });
 }
-
-Details::EdgePtrWrapper* MSTTree::FindExtensionEdge()
-{
-    auto stack_view = m_stack.view();
-    auto transformed_stack_view = rgv::transform(stack_view, &Details::ISubGraph::FindHeapWithMin);
-    const auto min_element = rg::min_element(transformed_stack_view,
-                                             [](Details::MSTSoftHeapDecorator* left,
-                                                Details::MSTSoftHeapDecorator* right)
-                                             {
-                                                 if (!left)
-                                                     return false;
-                                                 if (!right)
-                                                     return true;
-                                                 return *left->FindMin() < *right->FindMin();
-                                             });
-
-    auto heap_ptr = *min_element;
-    if (!heap_ptr)
-        return {};
-
-    return heap_ptr->FindMin(); // don't call DeleteMin, only FindMin! we will remove it later
-}
-
-Details::MSTSoftHeapDecorator::ExtractedItems MSTTree::Fusion(Details::EdgePtrWrapper& extension_edge)
-{
-    const auto view = m_stack.view();
-    for (auto itr = view.begin(); itr != view.end(); ++itr)
-    {
-        const auto& min_links = (*itr).GetMinLinks();
-        auto edge_itr = rg::find_if(min_links,
-                                             [&](const Details::EdgePtrWrapper& edge)
-                                             {
-                                                 return edge <= extension_edge;
-                                             });
-
-        if (edge_itr != min_links.cend())
-            return m_stack.fusion(itr.base(), *edge_itr);
-    }
-    return {};
-}
-
-void MSTTree::PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items)
-{
-    for (auto& corrupted_edge : items.corrupted)
-        m_graph.DisableEdge(corrupted_edge->GetIndex());
-
-    CreateClustersAndPushCheapest(std::move(items.items));
-}
-
-MSTTree MSTTree::Create(Graph::Graph& graph, size_t c)
-{
-    // TODO: ENable boruvka Phase later
-    //size_t count = FindParamT(graph, FindMaxHeight(graph, c)) == 1 ? std::numeric_limits<uint32_t>::max() : c;
-
-    //while (count > 0 && graph.GetVertexesCount() > 1)
-    //{
-    //    graph.BoruvkaPhase();
-    //    --count;
-    //}
-
-    //if (graph.GetVertexesCount() == 1)
-    //    return false;
-    //return true;
-    return MSTTree{graph, c};
-}
-} // namespace MST
+} // namespace MST::Details

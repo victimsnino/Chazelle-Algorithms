@@ -41,28 +41,48 @@ class Graph
 public:
     Graph(const std::vector<std::vector<uint32_t>>& adjacency);
 
+
+    Graph(Graph&& other) noexcept
+        : m_edges_view{std::move(other.m_edges_view)}
+        , m_subgraphs{std::move(other.m_subgraphs)} {}
+
+    Graph& operator=(Graph&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        m_edges_view = std::move(other.m_edges_view);
+        m_subgraphs  = std::move(other.m_subgraphs);
+        return *this;
+    }
+
     Graph() = default;
 
-    void BoruvkaPhase();
-    void ContractEdge(size_t edge_index);
-    void DisableEdge(size_t edge_index);
+    void AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index = {});
+    void UnionVertices(size_t i, size_t j);
 
-    size_t GetVertexesCount()const;
-    size_t GetEdgesCount() const;
-    std::vector<std::array<size_t, 2>> GetMST() const;
+    std::vector<size_t> BoruvkaPhase();
+
+    void                ContractEdge(size_t edge_index);
+    void                DisableEdge(size_t edge_index);
+
+    size_t               GetVerticesCount() const;
+    size_t               GetEdgesCount() const;
+    const Details::Edge& GetEdge(size_t index) const { return m_edges_view[index]; }
 
     size_t FindRootOfSubGraph(size_t i);
 
     void ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func);
     void ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const;
 
+    Details::EdgesView& GetEdgesView() {return m_edges_view;}
 private:
-    void   AddEdge(size_t begin, size_t end, uint32_t weight);
-    void   RemoveMultipleEdgesForVertex(size_t vertex_id);
+    void RemoveMultipleEdgesForVertex(size_t vertex_id);
+    std::shared_ptr<Details::MemberOfSubGraph> GetOrCreateSubgraph(size_t index);
+    std::shared_ptr<Details::MemberOfSubGraph> GetSubgraphIfExists(size_t index);
 
 private:
-    Details::EdgesView                     m_edges_view{};
-    std::vector<Details::MemberOfSubGraph> m_subgraphs{}; // aka vertexes
+    Details::EdgesView                                                     m_edges_view{};
+    std::unordered_map<size_t, std::shared_ptr<Details::MemberOfSubGraph>> m_subgraphs{}; // aka vertices
 
     friend void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };

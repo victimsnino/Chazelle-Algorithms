@@ -21,11 +21,32 @@
 // SOFTWARE.
 
 #pragma once
+#include "MSTTree.h"
 
-#include "Graph.h"
+#include <Graph.h>
 
 namespace MST
 {
-static constexpr uint32_t c = 2;
-std::vector<size_t>       FindMST(Graph::Graph& graph);
+class MSTTreeBuilder
+{
+public:
+    MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height);
+
+    MST::Details::MSTTree& GetTree() { return m_tree; }
+    std::vector<size_t>&   GetBadEdges() { return m_bad_edges; }
+private:
+    // Pop last node from stack, discard corrupted edges, for rest create clusters and insert cheapest to heap
+    bool Retraction();
+    bool Extension();
+
+    void                           CreateClustersAndPushCheapest(std::list<Details::EdgePtrWrapper>&& items);
+    Details::MSTSoftHeapDecorator* FindHeapWithExtensionEdge();
+
+    Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
+    void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
+private:
+    Graph::Details::EdgesView& m_edges;
+    Details::MSTTree           m_tree;
+    std::vector<size_t>        m_bad_edges{};
+};
 }
