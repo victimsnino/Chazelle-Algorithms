@@ -39,6 +39,9 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
     size_t t = FindParamT(graph, max_height);
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
+    if (recursion_level == 1)
+        std::cout << " t is  " << t << std::endl;
+
     SPDLOG_DEBUG("t is {}", t);
 
     std::vector<size_t> boruvka_result{};

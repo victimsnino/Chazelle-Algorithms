@@ -81,8 +81,8 @@ private:
     std::shared_ptr<Details::MemberOfSubGraph> GetSubgraphIfExists(size_t index);
 
 private:
-    Details::EdgesView                                                     m_edges_view{};
-    std::unordered_map<size_t, std::shared_ptr<Details::MemberOfSubGraph>> m_subgraphs{}; // aka vertices
+    Details::EdgesView                                      m_edges_view{};
+    std::vector<std::shared_ptr<Details::MemberOfSubGraph>> m_subgraphs{}; // aka vertices
 
     friend void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst);
 };

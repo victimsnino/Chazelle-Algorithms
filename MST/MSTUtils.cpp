@@ -24,27 +24,41 @@
 
 #include <Graph.h>
 
-
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
 
 namespace MST
 {
-static constexpr uint32_t S(uint32_t i, uint32_t j)
+static constexpr uint32_t Ackermann(uint32_t i, uint32_t j)
 {
-    if (i == 0 || j == 0)
+    if (i == 0)
+        return 2*j;
+
+    if (j == 0)
+        return 0;
+
+    if (j == 1)
+        return 2;
+
+    return Ackermann(i - 1, Ackermann(i, j - 1));
+}
+
+static uint32_t S(uint32_t i, uint32_t j)
+{
+    return Ackermann(i-1, j);
+    /*if (i == 0 || j == 0)
         throw std::out_of_range{"i and j must be > 0"};
 
     if (i == 1)
         return 2 * j;
     if (j == 1)
         return 2;
-    return S(i, j - 1) * S(i - 1, S(i, j - 1));
+    return S(i, j - 1)*S(i - 1, S(i, j - 1));*/
 }
 
-static_assert(S(1, 5) == 2 * 5);
-static_assert(S(100500, 1) == 2);
+//static_assert(S(1, 1) == 2);
+//static_assert(S(3, 1) == 2);
 
 uint32_t FindMaxHeight(const Graph::Graph& graph, uint32_t c)
 {

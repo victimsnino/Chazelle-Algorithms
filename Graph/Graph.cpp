@@ -39,7 +39,7 @@ Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
 {
     m_subgraphs.reserve(adjacency.size());
     for (size_t i = 0; i < adjacency.size(); ++i)
-        m_subgraphs[i] = std::make_shared<Details::MemberOfSubGraph>(i);
+        m_subgraphs.emplace_back(std::make_shared<Details::MemberOfSubGraph>(i));
 
     for (size_t i = 0; i < adjacency.size(); ++i)
     {
@@ -60,20 +60,23 @@ void Graph::AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<siz
 
 std::shared_ptr<Details::MemberOfSubGraph> Graph::GetOrCreateSubgraph(size_t index)
 {
-    auto itr = m_subgraphs.find(index);
-    if (itr != m_subgraphs.end())
-        return itr->second;
-    auto ptr           = std::make_shared<Details::MemberOfSubGraph>(index);
-    m_subgraphs[index] = ptr;
+    if (m_subgraphs.size() <= index)
+        m_subgraphs.resize(index+1);
+
+    auto & ptr = m_subgraphs[index];
+    if (ptr)
+        return ptr;
+
+    ptr           = std::make_shared<Details::MemberOfSubGraph>(index);
     return ptr;
 }
 
 std::shared_ptr<Details::MemberOfSubGraph> Graph::GetSubgraphIfExists(size_t index)
 {
-    auto itr = m_subgraphs.find(index);
-    if (itr != m_subgraphs.end())
-        return itr->second;
-    return {};
+    if (m_subgraphs.size() <= index)
+        return {};
+
+    return m_subgraphs[index];
 }
 
 void Graph::UnionVertices(size_t i, size_t j)
@@ -89,8 +92,9 @@ void Graph::UnionVertices(size_t i, size_t j)
     else
         root_subgraph_2->SetParent(root_subgraph_1->GetParent());
 
-    for (size_t i : m_subgraphs | std::views::keys)
-        FindRootOfSubGraph(i);
+    for (size_t i = 0; i  < m_subgraphs.size(); ++i)
+        if(m_subgraphs[i])
+            FindRootOfSubGraph(i);
 
     RemoveMultipleEdgesForVertex(root_subgraph_1->GetParent());
 }
@@ -199,8 +203,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
 
 size_t Graph::GetVerticesCount() const
 {
-    return std::ranges::count_if(m_subgraphs | std::ranges::views::values,
-                                 [](const Details::MemberOfSubGraphPtr& member) { return member->IsRoot(); });
+    return std::ranges::count_if(m_subgraphs, [](const Details::MemberOfSubGraphPtr& member) { return member && member->IsRoot(); });
 }
 
 size_t Graph::GetEdgesCount() const
