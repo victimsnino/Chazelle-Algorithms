@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <random>
 
 
 static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
@@ -75,39 +76,98 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
     return result;
 }
 
-TEST(MST, Init)
+static std::vector<std::tuple<size_t, size_t, size_t>> ErdosRenie(uint32_t n, double p)
 {
-    auto matrix = GenerateMatrix(7, 5);
-    //auto matrix = GenerateMatrix(1, 3);
-    std::vector<size_t> boruvka_result{};
+    std::vector<size_t> values(n, 0);
+    std::iota(values.begin(), values.end(), 0);
+
+    std::vector<size_t> weights(std::pow(n,2), 0);
+    std::iota(weights.begin(), weights.end(), 1);
+
+    std::random_device rd;
+    std::mt19937       g(rd());
+    std::ranges::shuffle(weights, g);
+
+    std::vector<std::tuple<size_t, size_t, size_t>> result{};
+    std::uniform_real_distribution<>                dis(0.0, 1.0);
+    for (size_t i = 0; i < n; ++i)
     {
-        Graph::Graph g{matrix};
-        std::cout << g.GetVerticesCount() << " " << g.GetEdgesCount() << std::endl;
-        uint32_t count = 0;
+        for (size_t j = i + 1; j < n; ++j)
         {
-            Utils::MeasurePerfomance measure{"Boruvka"};
-            while (g.GetVerticesCount() != 1)
+            if (dis(g) <= p)
             {
-                std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
-                ++count;
+                result.emplace_back(i, j, weights.back());
+                weights.pop_back();
             }
         }
-        std::cout << "Required Boruvka stages: " << count << std::endl;
     }
 
-    Graph::Graph g{matrix};
-    //ToFile(g, "TEMP-Pre", true);
+    return result;
+}
 
-    std::vector<size_t> mst_result;
+std::vector<size_t> RunBoruvka(Graph::Graph&& g)
+{
+    std::vector<size_t> boruvka_result{};
+    uint32_t count = 0;
     {
-        Utils::MeasurePerfomance measure{"SoftHeap MST"};
-        mst_result = MST::FindMST(g);
+        Utils::MeasurePerfomance measure{ "Boruvka" };
+        while (g.GetEdgesCount() != 0)
+        {
+            std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
+            ++count;
+        }
     }
+    std::cout << "Required Boruvka stages: " << count << std::endl;
+    return boruvka_result;
+}
 
+std::vector<size_t> RunMST(Graph::Graph& g)
+{
+    Utils::MeasurePerfomance measure{"SoftHeap MST"};
+    return MST::FindMST(g);
+}
+
+void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::vector<size_t>& mst_result)
+{
     std::ranges::sort(mst_result);
     std::ranges::sort(boruvka_result);
 
     std::vector<size_t> diff{};
     std::ranges::set_symmetric_difference(mst_result, boruvka_result, std::back_inserter(diff));
     EXPECT_THAT(diff, ::testing::SizeIs(0));
+}
+
+//TEST(MST, TestGraph)
+//{
+//    //auto matrix = GenerateMatrix(12, 1);
+//    auto matrix = GenerateMatrix(7, 5);
+//    //auto matrix = GenerateMatrix(1, 3);
+//    Graph::Graph g{matrix};
+//    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
+//
+//    auto boruvka_result = RunBoruvka(Graph::Graph{matrix});
+//    auto mst_result     = RunMST(g);
+//
+//    CompareBoruvkaAndMst(boruvka_result, mst_result);
+//}
+
+TEST(MST, ErdosGraph)
+{
+    auto edges = ErdosRenie(500, 0.001);
+    Graph::Graph g{edges};
+    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
+
+    auto boruvka_result = RunBoruvka(Graph::Graph{edges});
+    auto mst_result     = RunMST(g);
+
+    CompareBoruvkaAndMst(boruvka_result, mst_result);
+
+    auto lambda = [&](size_t result, size_t edge)
+    {
+        return std::get<2>(edges[edge]) + result;
+    };
+    auto boruvka = std::accumulate(boruvka_result.cbegin(), boruvka_result.cend(), 0, lambda);
+    auto mst = std::accumulate(mst_result.cbegin(), mst_result.cend(), 0, lambda);
+
+    std::cout << "Boruvka sum: " << boruvka << " Mst Sum: " << mst << " Boruvka == mst " << (boruvka == mst) << std::endl;
 }

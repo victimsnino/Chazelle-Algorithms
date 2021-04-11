@@ -65,16 +65,22 @@ bool SubGraph::IsMeetTargetSize() const
     return m_vertex.has_value() ? true : m_childs.size() >= m_target_size;
 }
 
-std::list<size_t> SubGraph::GetVertices() const
+std::list<size_t> SubGraph::GetVertices(bool cache)
 {
     assert(m_vertex.has_value()  &&  m_childs.empty() || !m_vertex.has_value() && !m_childs.empty());
 
     if(m_vertex)
         return {*m_vertex};
 
+    if (cache && !m_cached_verticies.empty())
+        return m_cached_verticies;
+
     std::list<size_t> result{};
     for(const auto& child : m_childs)
-        result.splice(result.end(), child.second->GetVertices());
+        result.splice(result.end(), child.second->GetVertices(cache));
+
+    if (cache)
+        m_cached_verticies = result;
 
     return result;
 }

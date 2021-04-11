@@ -164,8 +164,7 @@ std::vector<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& ba
         {
             list_of_subgraphs.emplace_back(child);
 
-            // todo: possible perf imprvement
-            auto vertices = child->GetVertices();
+            auto vertices = child->GetVertices(true);
             auto front = vertices.front();
             for(auto other : vertices | rgv::drop(1))
                 graph.UnionVertices(front, other);

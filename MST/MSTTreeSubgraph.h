@@ -38,7 +38,7 @@ struct ISubGraph
 
     virtual size_t            GetLevelInTree() const = 0;
     virtual bool              IsMeetTargetSize() const = 0;
-    virtual std::list<size_t> GetVertices() const = 0;
+    virtual std::list<size_t> GetVertices(bool cache = false) = 0;
     virtual void              PushToHeap(EdgePtrWrapper edge) = 0;
     virtual MSTSoftHeapDecorator* FindHeapWithMin() = 0;
     virtual std::vector<EdgePtrWrapper> GetMinLinks() const = 0;
@@ -62,7 +62,7 @@ public:
     size_t GetLevelInTree() const override;
     bool   IsMeetTargetSize() const override;
 
-    std::list<size_t>           GetVertices() const override;
+    std::list<size_t>           GetVertices(bool cache = false) override;
     void                        PushToHeap(EdgePtrWrapper edge) override;
     MSTSoftHeapDecorator*       FindHeapWithMin() override;
     std::vector<EdgePtrWrapper> GetMinLinks() const { return m_min_links_to_next_nodes_in_active_path; }
@@ -98,5 +98,7 @@ private:
 
     std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
     std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes_in_active_path{};
+
+    std::list<size_t> m_cached_verticies{};
 };
 }

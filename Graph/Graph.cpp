@@ -50,6 +50,12 @@ Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
     }
 }
 
+Graph::Graph(const std::vector<std::tuple<size_t, size_t, size_t>>& edges)
+{
+    for (auto& [i,j,w] : edges)
+        AddEdge(i,j,w);
+}
+
 void Graph::AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index)
 {
     if (begin == end || !weight)

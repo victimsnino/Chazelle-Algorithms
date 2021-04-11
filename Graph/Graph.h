@@ -40,6 +40,7 @@ class Graph
 {
 public:
     Graph(const std::vector<std::vector<uint32_t>>& adjacency);
+    Graph(const std::vector<std::tuple<size_t, size_t, size_t>>& edges); // i,j, w
 
 
     Graph(Graph&& other) noexcept

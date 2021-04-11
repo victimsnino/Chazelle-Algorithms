@@ -36,7 +36,7 @@ namespace MST
 {
 std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
 {
-    size_t t = FindParamT(graph, max_height);
+    size_t t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
     size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     if (recursion_level == 1)
@@ -46,13 +46,13 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
 
     std::vector<size_t> boruvka_result{};
 
-    while (count > 0 && graph.GetVerticesCount() > 1)
+    while (count > 0 && graph.GetEdgesCount() > 0)
     {
         std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
         --count;
     }
 
-    if (graph.GetVerticesCount() == 1)
+    if (graph.GetEdgesCount() == 0)
         return boruvka_result;
 
     auto tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
@@ -84,7 +84,7 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         if (!F.empty())
             throw std::exception("F is not empty");
 
-    std::ranges::move(MSF(graph, t, recursion_level +1), std::back_inserter(boruvka_result));
+    std::ranges::move(MSF(graph, max_height, recursion_level +1), std::back_inserter(boruvka_result));
     return boruvka_result;
 }
 

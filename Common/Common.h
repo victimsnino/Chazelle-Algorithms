@@ -149,7 +149,8 @@ struct MeasurePerfomance
     ~MeasurePerfomance()
     {
         auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "[" << m_name << "] Execution time is " << std::chrono::duration_cast<std::chrono::seconds>(end - m_start) <<
+        std::cout << "[" << m_name << "] Execution time is " << std::chrono::duration_cast<
+                    std::chrono::milliseconds>(end - m_start) <<
                 std::endl;
     }
 
