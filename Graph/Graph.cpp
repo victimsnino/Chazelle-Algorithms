@@ -152,6 +152,19 @@ void Graph::DisableEdge(size_t edge_index)
     m_edges_view.DisableEdge(edge_index);
 }
 
+std::list<size_t> Graph::GetVertices() const
+{
+    std::list<size_t> result{};
+    for(auto& member : m_subgraphs)
+    {
+        if (!member || !member->IsRoot())
+            continue;
+
+        result.push_back(member->GetParent());
+    }
+    return result;
+}
+
 size_t Graph::FindRootOfSubGraph(size_t i)
 {
     auto member_of_subgraph = m_subgraphs[i];

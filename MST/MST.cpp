@@ -55,8 +55,14 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
     if (graph.GetEdgesCount() == 0)
         return boruvka_result;
 
+    std::list<size_t> vertices = graph.GetVertices();
+
     auto tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
     auto& tree = tree_builder.GetTree();
+
+    for(auto vert : tree.GetVerticesInside())
+        vertices.remove(vert);
+
     auto& bad_edges = tree_builder.GetBadEdges();
 
     auto graphs = tree.CreateSubGraphs(bad_edges);

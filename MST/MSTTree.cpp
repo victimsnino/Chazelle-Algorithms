@@ -178,6 +178,11 @@ std::vector<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& ba
     return result;
 }
 
+std::list<size_t> MSTTree::GetVerticesInside()
+{
+    return m_active_path.front()->GetVertices(true);
+}
+
 void MSTTree::PushNode(size_t vertex)
 {
     SPDLOG_DEBUG(vertex);

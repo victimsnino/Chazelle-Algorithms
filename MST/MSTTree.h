@@ -65,6 +65,7 @@ public:
     }
 
     std::vector<Graph::Graph> CreateSubGraphs(const std::vector<size_t>& bad_edges);
+    std::list<size_t> GetVerticesInside();
 private:
     void PushNode(size_t vertex);
 
