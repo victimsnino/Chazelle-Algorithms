@@ -141,10 +141,10 @@ ISubGraph& MSTTree::top()
 
 size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back()->GetLevelInTree() + 1; }
 
-std::vector<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& bad_edges)
+std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& bad_edges)
 {
     std::list list_of_subgraphs{m_active_path.front()};
-    std::vector<Graph::Graph> result{};
+    std::list<Graph::Graph> result{};
     while(!list_of_subgraphs.empty())
     {
         auto& front = list_of_subgraphs.front();
