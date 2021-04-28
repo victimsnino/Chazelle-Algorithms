@@ -157,8 +157,10 @@ void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::vector<size_
 TEST(MST, ErdosGraph)
 {
     auto edges = ErdosRenie(700, 0.02);
+    //auto edges = ErdosRenie(23, 0.16);
     //auto edges = ErdosRenie(500, 0.001);
     Graph::Graph g{edges};
+    //Graph::ToFile(g, "www", true, false);
     std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
 
     auto boruvka_result = RunBoruvka(Graph::Graph{edges});

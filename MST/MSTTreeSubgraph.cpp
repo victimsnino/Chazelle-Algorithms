@@ -27,20 +27,22 @@
 
 namespace MST::Details
 {
-SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r)
+SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r, std::vector<size_t>& bad_edges)
     : m_vertex{vertex}
     , m_level_in_tree{level_in_tree}
     , m_target_size{target_size}
     , m_r{r}
+    , m_bad_edges{bad_edges}
 {
     InitHeaps();
 }
 
-SubGraph::SubGraph(const SubGraphPtr& child, size_t target_size, size_t r)
+SubGraph::SubGraph(const SubGraphPtr& child, size_t target_size, size_t r, std::vector<size_t>& bad_edges)
     : m_level_in_tree{child->GetLevelInTree() - 1}
     , m_target_size{target_size}
     , m_r{r}
     , m_childs{{std::nullopt, child}}
+    , m_bad_edges{bad_edges}
 {
     InitHeaps();
 }
@@ -50,7 +52,7 @@ void SubGraph::InitHeaps()
     m_heaps.reserve(m_level_in_tree + 1);
 
     for (size_t i = 0; i < m_level_in_tree + 1; ++i)
-        m_heaps.emplace_back(m_r);
+        m_heaps.emplace_back(m_r, m_bad_edges);
 
     m_heaps.shrink_to_fit();
 }

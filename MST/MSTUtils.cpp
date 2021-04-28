@@ -23,6 +23,8 @@
 #include "MSTUtils.h"
 
 #include <Graph.h>
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#include <spdlog/spdlog.h>
 
 #include <cmath>
 #include <cstdint>
@@ -87,6 +89,7 @@ uint32_t FindParamT(const Graph::Graph& graph, uint32_t d)
     const double vertexes_count = static_cast<double>(graph.GetVerticesCount());
 
     uint32_t result = 1;
+    SPDLOG_DEBUG("std::pow(S(result, d), 3) {}", std::pow(S(result, d), 3));
     while (vertexes_count > std::pow(S(result, d), 3))
         ++result;
 

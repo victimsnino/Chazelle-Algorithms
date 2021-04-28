@@ -29,7 +29,7 @@
 
 #include <exception>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -49,7 +49,7 @@ static std::vector<size_t> InitTargetSizesPerHeight(size_t t, size_t max_height)
 
 namespace MST::Details
 {
-MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
+MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height,size_t initial_vertex)
     : m_edges{edges}
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
     , m_sizes_per_height{InitTargetSizesPerHeight(t, max_height)}
@@ -64,7 +64,7 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
     if (itr == m_edges.end())
         throw std::exception{"Graph without edges!"};
 
-    PushNode((*itr).GetCurrentSubgraphs()[0]);
+    PushNode(initial_vertex);
 }
 
 void MSTTree::push(const EdgePtrWrapper& extension_edge)
@@ -87,7 +87,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
     {
         m_active_path.emplace_front(std::make_shared<SubGraph>(last_subgraph,
                                     m_sizes_per_height[IndexToHeight(last_subgraph->GetLevelInTree() - 1)],
-                                    m_r));
+                                    m_r, m_bad_edges));
     }
 
     (*std::next(m_active_path.rbegin()))->MeldHeapsFrom(last_subgraph);
@@ -195,7 +195,7 @@ void MSTTree::PushNode(size_t vertex)
     m_active_path.emplace_back(std::make_shared<SubGraph>(vertex,
                                index,
                                m_sizes_per_height[IndexToHeight(index)],
-                               m_r));
+                               m_r, m_bad_edges));
 
     AddNewBorderEdgesAfterPush();
     DeleteOldBorderEdgesAndUpdateMinLinksAfterPush();

@@ -34,7 +34,7 @@ namespace MST::Details
 class MSTTree
 {
 public:
-    MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height);
+    MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height, size_t initial_vertex);
 
     void push(const EdgePtrWrapper& extension_edge);
 
@@ -65,7 +65,8 @@ public:
     }
 
     std::list<Graph::Graph> CreateSubGraphs(const std::vector<size_t>& bad_edges);
-    std::list<size_t> GetVerticesInside();
+    std::list<size_t>       GetVerticesInside();
+    const std::vector<size_t>&     GetBadEdges() const { return m_bad_edges; }
 private:
     void PushNode(size_t vertex);
 
@@ -77,6 +78,7 @@ private:
 private:
     Graph::Details::EdgesView& m_edges;
     std::list<SubGraphPtr>     m_active_path{};
+    std::vector<size_t>        m_bad_edges{};
 
     const size_t              m_r;
     const std::vector<size_t> m_sizes_per_height;

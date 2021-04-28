@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include "MST.h"
 
@@ -39,8 +39,9 @@ namespace MST
 {
 std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
 {
+    SPDLOG_DEBUG("max_height {}", max_height);
     size_t t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
-    size_t count = t == 1 ? std::numeric_limits<uint32_t>::max() : c;
+    size_t count = t <= 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     if (recursion_level == 1)
         std::cout << " t is  " << t << std::endl;
@@ -59,21 +60,28 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         return boruvka_result;
 
     std::list<size_t> vertices = graph.GetVertices();
+    std::vector<size_t> bad_edges ={};
+    std::list<Graph::Graph> graphs{};
+    while (!vertices.empty())
+    {
+        auto  tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height, vertices.front());
+        auto& tree         = tree_builder.GetTree();
 
-    auto tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height);
-    auto& tree = tree_builder.GetTree();
+        for (auto vert : tree.GetVerticesInside())
+            vertices.remove(vert);
 
-    for(auto vert : tree.GetVerticesInside())
-        vertices.remove(vert);
+        std::ranges::move(tree.GetBadEdges(), std::back_inserter(bad_edges));
+        std::ranges::move(tree.CreateSubGraphs(bad_edges), std::back_inserter(graphs));
+    }
 
-    auto& bad_edges = tree_builder.GetBadEdges();
+
     SPDLOG_DEBUG("UNVISITED VERTICES COUNT {}", vertices.size());
     SPDLOG_DEBUG("BAD EDGES COUNT {}", bad_edges.size());
 
     for(auto& edge : bad_edges)
         SPDLOG_DEBUG("{}", edge);
 
-    auto graphs = tree.CreateSubGraphs(bad_edges);
+
 
     std::vector<size_t> F = bad_edges;
     for (auto& subgraph : graphs)

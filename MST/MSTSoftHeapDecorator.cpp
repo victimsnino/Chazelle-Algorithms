@@ -25,7 +25,7 @@
 #include <Common.h>
 #include <Graph.h>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -33,15 +33,16 @@
 
 namespace MST::Details
 {
-MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r)
+MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::vector<size_t>& bad_edges)
     : m_heap{r,
-             [](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
+             [&bad_edges](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
                  SPDLOG_DEBUG("SetWorking cost for {} cost {}", item.shared_pointer->GetEdge().GetOriginalIndex(), ckey.shared_pointer->GetWorkingCost());
                  if (item.shared_pointer->GetWorkingCost() < ckey.shared_pointer->GetWorkingCost())
                  {
                      SPDLOG_DEBUG("{} becomes corrupted", item.shared_pointer->GetEdge().GetOriginalIndex());
                      item.shared_pointer->SetIsCorrupted(true);
+                     bad_edges.push_back(item.shared_pointer->GetEdge().GetIndex());
                  }
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
              }} {}

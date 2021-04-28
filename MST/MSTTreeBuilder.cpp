@@ -24,15 +24,15 @@
 
 #include <Graph.h>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
 namespace MST
 {
-MSTTreeBuilder::MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
+MSTTreeBuilder::MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height, size_t initial_vertex)
     : m_edges{edges}
-    , m_tree{m_edges, t, max_height}
+    , m_tree{m_edges, t, max_height, initial_vertex}
 {
     while (true)
     {
@@ -149,7 +149,6 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
     {
         SPDLOG_DEBUG("Add to bad edges and disable {} corrupted {}", corrupted_edge->GetOriginalIndex(), corrupted_edge.GetIsCorrupted());
         m_edges.DisableEdge(corrupted_edge->GetIndex());
-        m_bad_edges.emplace_back(corrupted_edge->GetIndex());
     }
 
     CreateClustersAndPushCheapest(std::move(items.items));

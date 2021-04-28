@@ -80,7 +80,7 @@ struct EdgePtrWrapperShared
 class MSTSoftHeapDecorator
 {
 public:
-    explicit MSTSoftHeapDecorator(size_t r);
+    explicit MSTSoftHeapDecorator(size_t r, std::vector<size_t>& bad_edges);
 
     struct ExtractedItems
     {
