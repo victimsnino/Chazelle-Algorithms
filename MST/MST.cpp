@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
 #include "MST.h"
 
 #include "MSTTreeBuilder.h"
@@ -28,6 +30,7 @@
 #include <Common.h>
 #include <Graph.h>
 #include <spdlog/spdlog.h>
+
 
 #include <iterator>
 
@@ -64,33 +67,23 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         vertices.remove(vert);
 
     auto& bad_edges = tree_builder.GetBadEdges();
+    SPDLOG_DEBUG("UNVISITED VERTICES COUNT {}", vertices.size());
+    SPDLOG_DEBUG("BAD EDGES COUNT {}", bad_edges.size());
 
     auto graphs = tree.CreateSubGraphs(bad_edges);
 
     std::vector<size_t> F = bad_edges;
     for (auto& subgraph : graphs)
-        std::ranges::move(MSF(subgraph, max_height, recursion_level +1), std::back_inserter(F));
+        std::ranges::move(MSF(subgraph, max_height, recursion_level + 1), std::back_inserter(F));
 
-    std::vector<size_t> edges_to_disable{};
-    graph.ForEachAvailableEdge([&](const Graph::Details::Edge& edge)
+
+    Graph::Graph new_graph{};
+    for (auto edge : F)
     {
-        if (!Utils::IsRangeContains(F, edge.GetOriginalIndex()))
-            edges_to_disable.push_back(edge.GetOriginalIndex());
-        else
-        {
-            if constexpr (s_mst_debug)
-                F.erase(std::remove(F.begin(), F.end(), edge.GetOriginalIndex()), F.end());
-        }
-    });
-
-    for (auto edge : edges_to_disable)
-        graph.DisableEdge(edge);
-
-    if constexpr (s_mst_debug)
-        if (!F.empty())
-            throw std::exception("F is not empty");
-
-    std::ranges::move(MSF(graph, max_height, recursion_level +1), std::back_inserter(boruvka_result));
+        auto [i,j] = graph.GetEdge(edge).GetCurrentSubgraphs();
+        new_graph.AddEdge(i,j, graph.GetEdge(edge).GetWeight(), graph.GetEdge(edge).GetOriginalIndex());
+    }
+    std::ranges::move(MSF(new_graph, max_height, recursion_level +1), std::back_inserter(boruvka_result));
     return boruvka_result;
 }
 

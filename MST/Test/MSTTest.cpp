@@ -132,10 +132,12 @@ void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::vector<size_
     std::ranges::sort(mst_result);
     std::ranges::sort(boruvka_result);
 
-    std::vector<size_t> diff{};
-    std::ranges::set_symmetric_difference(mst_result, boruvka_result, std::back_inserter(diff));
+    std::vector<size_t> diff_in_boruvka, diff_in_mst{};
+    std::ranges::set_difference(boruvka_result, mst_result, std::back_inserter(diff_in_boruvka));
+    std::ranges::set_difference(mst_result, boruvka_result, std::back_inserter(diff_in_mst));
     EXPECT_EQ(mst_result.size(), boruvka_result.size());
-    EXPECT_THAT(diff, ::testing::SizeIs(0));
+    EXPECT_THAT(diff_in_boruvka, ::testing::SizeIs(0));
+    EXPECT_THAT(diff_in_mst, ::testing::SizeIs(0));
 }
 
 //TEST(MST, TestGraph)
@@ -154,7 +156,7 @@ void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::vector<size_
 
 TEST(MST, ErdosGraph)
 {
-    auto edges = ErdosRenie(700, 0.01);
+    auto edges = ErdosRenie(700, 0.02);
     //auto edges = ErdosRenie(500, 0.001);
     Graph::Graph g{edges};
     std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;

@@ -24,7 +24,7 @@
 
 #include "Graph.h"
 
-static constexpr bool s_mst_debug = false;
+static constexpr bool s_mst_debug = true;
 
 namespace MST
 {

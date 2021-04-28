@@ -29,7 +29,7 @@
 
 #include <exception>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -69,7 +69,7 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height)
 
 void MSTTree::push(const EdgePtrWrapper& extension_edge)
 {
-    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetIndex());
+    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetOriginalIndex());
 
     auto& pre_last = m_active_path.back();
     PushNode(extension_edge.GetOutsideVertex());
@@ -106,7 +106,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
                                                      const EdgePtrWrapper&            fusion_edge)
 {
     auto pop_count = std::distance(itr, m_active_path.end()) - 1;
-    SPDLOG_DEBUG("pop_count for fusion {}", pop_count);
+    SPDLOG_DEBUG("pop_count for fusion {} edge {}", pop_count, fusion_edge->GetOriginalIndex());
 
     MSTSoftHeapDecorator::ExtractedItems items{};
     for (size_t i = 0; i < pop_count; ++i)

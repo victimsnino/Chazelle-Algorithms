@@ -24,7 +24,7 @@
 
 #include <Graph.h>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -93,8 +93,12 @@ void MSTTreeBuilder::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWra
 
     for (auto& cluster : clusters_by_out_vertex | rgv::values)
     {
+        SPDLOG_DEBUG("Cheapest edge index {} weight {}", (*cluster.begin())->GetIndex(), (*cluster.begin())->GetWeight());
         for (auto& edge : cluster | rgv::drop(1))
+        {
+            SPDLOG_DEBUG("Disable edge {} weight {}", edge->GetOriginalIndex(), edge->GetWeight());
             m_edges.DisableEdge(edge->GetIndex());
+        }
 
         m_tree.top().PushToHeap(*cluster.begin());
     }
@@ -131,7 +135,10 @@ Details::MSTSoftHeapDecorator::ExtractedItems MSTTreeBuilder::Fusion(Details::Ed
                                             });
 
         if (edge_itr != min_links.cend())
+        {
+            SPDLOG_DEBUG("Fusion for edge {}", extension_edge->GetOriginalIndex());
             return m_tree.fusion(itr.base(), *edge_itr);
+        }
     }
     return {};
 }
@@ -140,6 +147,7 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
 {
     for (auto& corrupted_edge : items.corrupted)
     {
+        SPDLOG_DEBUG("Add to bad edges and disable {}", corrupted_edge->GetOriginalIndex());
         m_edges.DisableEdge(corrupted_edge->GetIndex());
         m_bad_edges.emplace_back(corrupted_edge->GetIndex());
     }

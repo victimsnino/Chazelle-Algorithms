@@ -25,6 +25,10 @@
 #include <Common.h>
 #include <Graph.h>
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 
 namespace MST::Details
@@ -33,11 +37,15 @@ MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r)
     : m_heap{r,
              [](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
+                 SPDLOG_DEBUG("SetWorking cost for {} cost {}",
+                              item.shared_pointer->GetEdge().GetOriginalIndex(),
+                              ckey.shared_pointer->GetWorkingCost());
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
              }} {}
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
+    SPDLOG_DEBUG("New edge {}", new_key->GetOriginalIndex());
     auto ptr = std::make_shared<EdgePtrWrapper>(std::move(new_key));
 
     m_heap.Insert(EdgePtrWrapperShared{ptr});
@@ -52,6 +60,7 @@ EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
     if (!Utils::IsRangeContains(m_items, value.shared_pointer))
         return DeleteMin();
 
+    SPDLOG_DEBUG("Remove edge {}", ptr->GetEdge().GetOriginalIndex());
     m_items.remove(ptr);
     return *ptr;
 }
@@ -76,6 +85,7 @@ std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<
     {
         if (func(**itr))
         {
+            SPDLOG_DEBUG("Delete edge {}", (*itr)->GetEdge().GetOriginalIndex());
             result.emplace_back(**itr);
             itr = m_items.erase(itr);
         }
@@ -101,6 +111,11 @@ MSTSoftHeapDecorator::ExtractedItems MSTSoftHeapDecorator::ExtractItems()
     };
     std::ranges::transform(data.corrupted, std::back_inserter(to_out.corrupted), convert);
     std::ranges::transform(data.items, std::back_inserter(to_out.items), convert);
+
+    for (auto& edge : to_out.corrupted)
+        SPDLOG_DEBUG("Corrupted edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
+    for (auto& edge : to_out.items)
+        SPDLOG_DEBUG("Normal edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
 
     return to_out;
 }

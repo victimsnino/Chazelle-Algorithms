@@ -26,6 +26,7 @@
 
 #include <array>
 #include <optional>
+#include <ostream>
 
 
 namespace MST::Details
@@ -63,6 +64,11 @@ struct EdgePtrWrapperShared
 
     bool operator<(const EdgePtrWrapperShared& rhs) const { return *shared_pointer < *rhs.shared_pointer; }
     bool operator==(const EdgePtrWrapperShared& rhs) const { return *shared_pointer == *rhs.shared_pointer; }
+
+    friend std::ostream& operator<<(std::ostream& os, const EdgePtrWrapperShared& obj)
+    {
+        return os << "Edge: " << obj.shared_pointer->GetEdge().GetOriginalIndex() << std::endl;
+    }
 
     std::shared_ptr<EdgePtrWrapper> shared_pointer;
 };
