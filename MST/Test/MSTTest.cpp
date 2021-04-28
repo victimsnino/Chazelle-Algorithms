@@ -85,7 +85,7 @@ static std::vector<std::tuple<size_t, size_t, size_t>> ErdosRenie(uint32_t n, do
     std::iota(weights.begin(), weights.end(), 1);
 
     std::random_device rd;
-    std::mt19937       g(rd());
+    std::mt19937       g(1);
     std::ranges::shuffle(weights, g);
 
     std::vector<std::tuple<size_t, size_t, size_t>> result{};

@@ -70,6 +70,9 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
     SPDLOG_DEBUG("UNVISITED VERTICES COUNT {}", vertices.size());
     SPDLOG_DEBUG("BAD EDGES COUNT {}", bad_edges.size());
 
+    for(auto& edge : bad_edges)
+        SPDLOG_DEBUG("{}", edge);
+
     auto graphs = tree.CreateSubGraphs(bad_edges);
 
     std::vector<size_t> F = bad_edges;

@@ -106,7 +106,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
                                                      const EdgePtrWrapper&            fusion_edge)
 {
     auto pop_count = std::distance(itr, m_active_path.end()) - 1;
-    SPDLOG_DEBUG("pop_count for fusion {} edge {}", pop_count, fusion_edge->GetOriginalIndex());
+    SPDLOG_DEBUG("pop_count for fusion {} edge {} corrupted {}", pop_count, fusion_edge->GetOriginalIndex(), fusion_edge.GetIsCorrupted());
 
     MSTSoftHeapDecorator::ExtractedItems items{};
     for (size_t i = 0; i < pop_count; ++i)

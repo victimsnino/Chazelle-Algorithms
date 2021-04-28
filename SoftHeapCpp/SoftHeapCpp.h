@@ -35,12 +35,6 @@
 struct Head;
 struct Node;
 
-template<typename ItemType>
-struct ExtractedItems
-{
-    std::list<ItemType> corrupted{};
-    std::list<ItemType> items{};
-};
 
 template<typename ItemType>
 class SoftHeapCpp
@@ -53,7 +47,6 @@ public:
     virtual ItemType DeleteMin();
 
     void           Meld(SoftHeapCpp& other);
-    ExtractedItems<ItemType> ExtractItems();
 
     virtual ItemType* FindMin();
 private:
@@ -103,26 +96,6 @@ private:
                 func(this);
                 m_next->ForEachNodeWithChildOnLevel(std::move(func));
             }
-        }
-
-        void ExtractCorruptedItems(ExtractedItems<ItemType>& result)
-        {
-            if (m_values || !m_ckey)
-            {
-                for (auto it = m_values->begin(); it != m_values->end();)
-                {
-                    auto& list_to_insert = (*it < *m_ckey) ? result.corrupted : result.items;
-
-                    auto value_to_extract = it++;
-                    list_to_insert.splice(list_to_insert.end(), *m_values, value_to_extract);
-                }
-            }
-
-            if (m_next)
-                m_next->ExtractCorruptedItems(result);
-
-            if (m_child)
-                m_child->ExtractCorruptedItems(result);
         }
 
         ItemType& FrontValue()
@@ -226,23 +199,6 @@ void SoftHeapCpp<ItemType>::Meld(SoftHeapCpp& other)
         Meld(h->ExtractQueue());
         h = h->GetNext();
     }
-}
-
-template<typename ItemType>
-ExtractedItems<ItemType> SoftHeapCpp<ItemType>::ExtractItems()
-{
-    ExtractedItems<ItemType> result{};
-    auto           h = m_header->GetNext();
-
-    while (h != m_tail)
-    {
-        h->GetQueue()->ExtractCorruptedItems(result);
-        h = h->GetNext();
-    }
-
-    result.corrupted.unique();
-    result.items.unique();
-    return result;
 }
 
 template<typename ItemType>

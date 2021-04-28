@@ -37,9 +37,12 @@ MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r)
     : m_heap{r,
              [](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
-                 SPDLOG_DEBUG("SetWorking cost for {} cost {}",
-                              item.shared_pointer->GetEdge().GetOriginalIndex(),
-                              ckey.shared_pointer->GetWorkingCost());
+                 SPDLOG_DEBUG("SetWorking cost for {} cost {}", item.shared_pointer->GetEdge().GetOriginalIndex(), ckey.shared_pointer->GetWorkingCost());
+                 if (item.shared_pointer->GetWorkingCost() < ckey.shared_pointer->GetWorkingCost())
+                 {
+                     SPDLOG_DEBUG("{} becomes corrupted", item.shared_pointer->GetEdge().GetOriginalIndex());
+                     item.shared_pointer->SetIsCorrupted(true);
+                 }
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
              }} {}
 
@@ -103,20 +106,21 @@ void MSTSoftHeapDecorator::Meld(MSTSoftHeapDecorator& other)
 
 MSTSoftHeapDecorator::ExtractedItems MSTSoftHeapDecorator::ExtractItems()
 {
-    auto                                 data = m_heap.ExtractItems();
-    MSTSoftHeapDecorator::ExtractedItems to_out{};
-    auto                                 convert = [](EdgePtrWrapperShared& shared)
+    ExtractedItems to_out{};
+
+    for (auto& edge : m_items)
     {
-        return std::move(*shared.shared_pointer);
-    };
-    std::ranges::transform(data.corrupted, std::back_inserter(to_out.corrupted), convert);
-    std::ranges::transform(data.items, std::back_inserter(to_out.items), convert);
+       if (edge->GetIsCorrupted())
+            to_out.corrupted.push_back(*edge);
+        else
+            to_out.items.push_back(*edge);
+    }
 
     for (auto& edge : to_out.corrupted)
         SPDLOG_DEBUG("Corrupted edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
     for (auto& edge : to_out.items)
         SPDLOG_DEBUG("Normal edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
-
+    m_items.clear();
     return to_out;
 }
 } // namespace MST::Details

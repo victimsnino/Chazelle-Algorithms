@@ -51,10 +51,14 @@ public:
 
     void   SetWorkingCost(size_t cost) { m_working_cost = cost; }
     size_t GetWorkingCost() const { return m_working_cost; }
+
+    void SetIsCorrupted(bool corrupted) { m_is_corrupted = corrupted; }
+    bool GetIsCorrupted() const {return m_is_corrupted; };
 private:
     const Graph::Details::Edge* const m_edge;
     size_t                            m_working_cost = m_edge->GetWeight();
     const size_t                      m_outside_vertex;
+    bool                              m_is_corrupted = false;
 };
 
 struct EdgePtrWrapperShared
@@ -78,7 +82,11 @@ class MSTSoftHeapDecorator
 public:
     explicit MSTSoftHeapDecorator(size_t r);
 
-    using ExtractedItems = ::ExtractedItems<EdgePtrWrapper>;
+    struct ExtractedItems
+    {
+        std::list<EdgePtrWrapper> corrupted{};
+        std::list<EdgePtrWrapper> items{};
+    };
 
     void           Insert(EdgePtrWrapper new_key);
     void           Meld(MSTSoftHeapDecorator& other);

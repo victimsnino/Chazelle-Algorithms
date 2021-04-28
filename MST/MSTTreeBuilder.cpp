@@ -147,7 +147,7 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
 {
     for (auto& corrupted_edge : items.corrupted)
     {
-        SPDLOG_DEBUG("Add to bad edges and disable {}", corrupted_edge->GetOriginalIndex());
+        SPDLOG_DEBUG("Add to bad edges and disable {} corrupted {}", corrupted_edge->GetOriginalIndex(), corrupted_edge.GetIsCorrupted());
         m_edges.DisableEdge(corrupted_edge->GetIndex());
         m_bad_edges.emplace_back(corrupted_edge->GetIndex());
     }
