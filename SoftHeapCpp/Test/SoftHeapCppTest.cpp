@@ -195,22 +195,6 @@ TEST(SoftHeapCpp, CompareWithSoftHeapCShuffle)
     }
 }
 
-TEST(SoftHeapCpp, ExtractCorruptedItems)
-{
-    SoftHeapCpp<int>    heap(0);
-    constexpr const int count = 9;
-
-    for (int i = 1; i <= count; ++i)
-        heap.Insert(i);
-
-    heap.DeleteMin();
-    heap.DeleteMin();
-
-    auto values = heap.ExtractItems();
-    EXPECT_THAT(values.corrupted, testing::ElementsAre(2));
-    EXPECT_THAT(values.items, testing::SizeIs(count - 3));
-}
-
 TEST(SoftHeapCpp, FindMinEmpty)
 {
     SoftHeapCpp<int> heap(0);

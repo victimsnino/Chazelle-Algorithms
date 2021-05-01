@@ -96,7 +96,7 @@ void MSTTreeBuilder::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWra
         SPDLOG_DEBUG("Cheapest edge index {} weight {}", (*cluster.begin())->GetIndex(), (*cluster.begin())->GetWeight());
         for (auto& edge : cluster | rgv::drop(1))
         {
-            SPDLOG_DEBUG("Disable edge {} weight {}", edge->GetOriginalIndex(), edge->GetWeight());
+            SPDLOG_DEBUG("Disable edge {} weight {}", edge->GetIndex(), edge->GetWeight());
             m_edges.DisableEdge(edge->GetIndex());
         }
 
@@ -136,7 +136,7 @@ Details::MSTSoftHeapDecorator::ExtractedItems MSTTreeBuilder::Fusion(Details::Ed
 
         if (edge_itr != min_links.cend())
         {
-            SPDLOG_DEBUG("Fusion for edge {}", extension_edge->GetOriginalIndex());
+            SPDLOG_DEBUG("Fusion for edge {}", extension_edge->GetIndex());
             return m_tree.fusion(itr.base(), *edge_itr);
         }
     }
@@ -147,7 +147,7 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
 {
     for (auto& corrupted_edge : items.corrupted)
     {
-        SPDLOG_DEBUG("Add to bad edges and disable {} corrupted {}", corrupted_edge->GetOriginalIndex(), corrupted_edge.GetIsCorrupted());
+        SPDLOG_DEBUG("Add to bad edges and disable {} corrupted {}", corrupted_edge->GetIndex(), corrupted_edge.GetIsCorrupted());
         m_edges.DisableEdge(corrupted_edge->GetIndex());
     }
 

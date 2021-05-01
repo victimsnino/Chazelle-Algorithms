@@ -25,9 +25,10 @@
 #include <Common.h>
 
 
+
 namespace MST::Details
 {
-SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r, std::vector<size_t>& bad_edges)
+SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r, std::set<size_t>& bad_edges)
     : m_vertex{vertex}
     , m_level_in_tree{level_in_tree}
     , m_target_size{target_size}
@@ -37,7 +38,7 @@ SubGraph::SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size
     InitHeaps();
 }
 
-SubGraph::SubGraph(const SubGraphPtr& child, size_t target_size, size_t r, std::vector<size_t>& bad_edges)
+SubGraph::SubGraph(const SubGraphPtr& child, size_t target_size, size_t r, std::set<size_t>& bad_edges)
     : m_level_in_tree{child->GetLevelInTree() - 1}
     , m_target_size{target_size}
     , m_r{r}

@@ -25,6 +25,7 @@
 #include <array>
 #include <cstdint>
 #include <list>
+#include <map>
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -47,8 +48,7 @@ public:
     Edge(const MemberOfSubGraphPtr& i,
          const MemberOfSubGraphPtr& j,
          uint32_t                   weight,
-         size_t                     index,
-         std::optional<size_t> original_index = {});
+         size_t                     index);
 
     Edge(const Edge& other)            = default;
     Edge& operator=(const Edge& other) = default;
@@ -60,11 +60,6 @@ public:
     std::array<size_t, 2> GetCurrentSubgraphs() const;
 
     size_t GetIndex() const { return m_index; }
-
-    size_t GetOriginalIndex() const
-    {
-        return m_original_index.has_value() ? m_original_index.value() : m_index;
-    }
 
     uint32_t GetWeight() const { return m_weight; }
 
@@ -83,7 +78,6 @@ private:
     size_t                m_index;
     bool                  m_is_contracted{false};
     bool                  m_is_disabled{false};
-    std::optional<size_t> m_original_index;
 };
 
 class MemberOfSubGraph
@@ -115,8 +109,7 @@ struct EdgesView
     template<bool is_const>
     struct iterator
     {
-        using Container = std::conditional_t<
-            is_const, const std::vector<Edge>&, std::vector<Edge>&>;
+        using Container = std::conditional_t<is_const, const std::map<size_t, Edge>&, std::map<size_t, Edge>&>;
 
         using iterator_category = std::forward_iterator_tag;
         using difference_type = std::ptrdiff_t;
@@ -144,7 +137,7 @@ struct EdgesView
         void      operator ++() { ++m_itr; }
         bool      operator ==(const iterator& other) const { return m_itr == other.m_itr; }
         bool      operator !=(const iterator& other) const { return m_itr != other.m_itr; }
-        reference operator*() const { return m_edges[*m_itr]; }
+        reference operator*() const { return m_edges.at(*m_itr); }
     private:
         Container                         m_edges;
         std::list<size_t>::const_iterator m_itr;
@@ -167,10 +160,10 @@ struct EdgesView
     auto begin() const { return iterator<true>{m_edges, m_indexes.cbegin()}; }
     auto end() const { return iterator<true>{m_edges, m_indexes.cend()}; }
 
-    const std::vector<Edge>& Original() { return m_edges; }
-    const std::vector<Edge>& Original() const { return m_edges; }
+    const std::map<size_t, Edge>& Original() { return m_edges; }
+    const std::map<size_t, Edge>& Original() const { return m_edges; }
 private:
-    std::vector<Edge> m_edges{};
-    std::list<size_t> m_indexes{};
+    std::map<size_t, Edge> m_edges{};
+    std::list<size_t>      m_indexes{};
 };
 } // namespace Graph::Details

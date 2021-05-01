@@ -29,7 +29,7 @@
 
 #include <exception>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -69,7 +69,7 @@ MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height,s
 
 void MSTTree::push(const EdgePtrWrapper& extension_edge)
 {
-    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetOriginalIndex());
+    SPDLOG_DEBUG("Push with edge {}", extension_edge->GetIndex());
 
     auto& pre_last = m_active_path.back();
     PushNode(extension_edge.GetOutsideVertex());
@@ -106,7 +106,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
                                                      const EdgePtrWrapper&            fusion_edge)
 {
     auto pop_count = std::distance(itr, m_active_path.end()) - 1;
-    SPDLOG_DEBUG("pop_count for fusion {} edge {} corrupted {}", pop_count, fusion_edge->GetOriginalIndex(), fusion_edge.GetIsCorrupted());
+    SPDLOG_DEBUG("pop_count for fusion {} edge {} corrupted {}", pop_count, fusion_edge->GetIndex(), fusion_edge.GetIsCorrupted());
 
     MSTSoftHeapDecorator::ExtractedItems items{};
     for (size_t i = 0; i < pop_count; ++i)
@@ -141,7 +141,7 @@ ISubGraph& MSTTree::top()
 
 size_t MSTTree::size() const { return m_active_path.empty() ? 0 : m_active_path.back()->GetLevelInTree() + 1; }
 
-std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::vector<size_t>& bad_edges)
+std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::set<size_t>& bad_edges)
 {
     std::list list_of_subgraphs{m_active_path.front()};
     std::list<Graph::Graph> result{};

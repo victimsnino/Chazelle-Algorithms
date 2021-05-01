@@ -42,7 +42,7 @@ static std::vector<std::vector<uint32_t>> s_adjacency_matrix{
 };
 
 
-std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vector<uint32_t>>& matrix)
+std::tuple<Graph::Graph, size_t, size_t> FillGraph(const std::vector<std::vector<uint32_t>>& matrix)
 {
     Graph::Graph g{ matrix };
     size_t       count_of_edges = 0;
@@ -53,7 +53,7 @@ std::tuple<Graph::Graph, uint32_t, size_t> FillGraph(const std::vector<std::vect
 
     EXPECT_EQ(count_of_edges, g.GetEdgesCount());
     EXPECT_EQ(matrix.size(), g.GetVerticesCount());
-    return std::make_tuple(g, count_of_edges, matrix.size());
+    return std::make_tuple(std::move(g), count_of_edges, matrix.size());
 }
 
 TEST(Graph, DummyChecks)

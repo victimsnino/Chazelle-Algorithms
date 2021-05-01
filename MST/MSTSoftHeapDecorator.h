@@ -27,6 +27,7 @@
 #include <array>
 #include <optional>
 #include <ostream>
+#include <set>
 
 
 namespace MST::Details
@@ -71,7 +72,7 @@ struct EdgePtrWrapperShared
 
     friend std::ostream& operator<<(std::ostream& os, const EdgePtrWrapperShared& obj)
     {
-        return os << "Edge: " << obj.shared_pointer->GetEdge().GetOriginalIndex() << std::endl;
+        return os << "Edge: " << obj.shared_pointer->GetEdge().GetIndex() << std::endl;
     }
 
     std::shared_ptr<EdgePtrWrapper> shared_pointer;
@@ -80,7 +81,7 @@ struct EdgePtrWrapperShared
 class MSTSoftHeapDecorator
 {
 public:
-    explicit MSTSoftHeapDecorator(size_t r, std::vector<size_t>& bad_edges);
+    explicit MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges);
 
     struct ExtractedItems
     {

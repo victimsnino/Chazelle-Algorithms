@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include "MST.h"
 
@@ -37,7 +37,7 @@
 
 namespace MST
 {
-std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
+std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
 {
     SPDLOG_DEBUG("max_height {}", max_height);
     size_t t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
@@ -48,11 +48,11 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
 
     SPDLOG_DEBUG("t is {}", t);
 
-    std::vector<size_t> boruvka_result{};
+    std::set<size_t> boruvka_result{};
 
     while (count > 0 && graph.GetEdgesCount() > 0)
     {
-        std::ranges::move(graph.BoruvkaPhase(), std::back_inserter(boruvka_result));
+        std::ranges::move(graph.BoruvkaPhase(), std::inserter(boruvka_result, boruvka_result.end()));
         --count;
     }
 
@@ -60,7 +60,7 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         return boruvka_result;
 
     std::list<size_t> vertices = graph.GetVertices();
-    std::vector<size_t> bad_edges ={};
+    std::set<size_t> bad_edges ={};
     std::list<Graph::Graph> graphs{};
     while (!vertices.empty())
     {
@@ -70,8 +70,9 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
         for (auto vert : tree.GetVerticesInside())
             vertices.remove(vert);
 
-        std::ranges::move(tree.GetBadEdges(), std::back_inserter(bad_edges));
-        std::ranges::move(tree.CreateSubGraphs(bad_edges), std::back_inserter(graphs));
+        auto cur_bad_edges = tree.GetBadEdges();
+        std::ranges::move(tree.CreateSubGraphs(cur_bad_edges), std::back_inserter(graphs));
+        std::ranges::move(cur_bad_edges, std::inserter(bad_edges, bad_edges.end()));
     }
 
 
@@ -81,24 +82,22 @@ std::vector<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion
     for(auto& edge : bad_edges)
         SPDLOG_DEBUG("{}", edge);
 
-
-
-    std::vector<size_t> F = bad_edges;
+    std::set<size_t> F = bad_edges;
     for (auto& subgraph : graphs)
-        std::ranges::move(MSF(subgraph, max_height, recursion_level + 1), std::back_inserter(F));
+        std::ranges::move(MSF(subgraph, max_height, recursion_level + 1), std::inserter(F,  F.end()));
 
 
     Graph::Graph new_graph{};
     for (auto edge : F)
     {
         auto [i,j] = graph.GetEdge(edge).GetCurrentSubgraphs();
-        new_graph.AddEdge(i,j, graph.GetEdge(edge).GetWeight(), graph.GetEdge(edge).GetOriginalIndex());
+        new_graph.AddEdge(i,j, graph.GetEdge(edge).GetWeight(), edge);
     }
-    std::ranges::move(MSF(new_graph, max_height, recursion_level +1), std::back_inserter(boruvka_result));
+    std::ranges::move(MSF(new_graph, max_height, recursion_level +1), std::inserter(boruvka_result, boruvka_result.end()));
     return boruvka_result;
 }
 
-std::vector<size_t> FindMST(Graph::Graph& graph)
+std::set<size_t> FindMST(Graph::Graph& graph)
 {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("Line: %4# [%-35!] %v");

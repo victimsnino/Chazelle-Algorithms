@@ -25,19 +25,18 @@
 #include "Graph.h"
 
 #include <cassert>
+#include <stdexcept>
 
 namespace Graph::Details
 {
 Edge::Edge(const MemberOfSubGraphPtr& i,
            const MemberOfSubGraphPtr& j,
            uint32_t                   weight,
-           size_t                     index,
-           std::optional<size_t>      original_index)
+           size_t                     index)
     : m_i(i)
     , m_j(j)
     , m_weight(weight)
-    , m_index(index)
-    , m_original_index{original_index} { }
+    , m_index(index){ }
 
 
 std::array<size_t, 2> Edge::GetOriginalVertices() const
@@ -60,31 +59,36 @@ void EdgesView::AddEdge(const MemberOfSubGraphPtr& begin,
                         uint32_t                   weight,
                         std::optional<size_t>      original_index)
 {
-    m_indexes.push_back(m_edges.size());
-    m_edges.emplace_back(begin, end, weight, m_indexes.back(), original_index);
+    const auto index = original_index.has_value() ? original_index.value() : m_edges.size();
+    m_indexes.push_back(index);
+    m_edges.emplace(index, Edge(begin, end, weight, index));
 }
 
 void EdgesView::ContractEdge(size_t index)
 {
-    m_edges[index].SetIsContracted();
+    (*this)[index].SetIsContracted();
     DisableEdge(index);
 }
 
 void EdgesView::DisableEdge(size_t index)
 {
     m_indexes.remove(index);
-    m_edges[index].SetIsDisabled();
+    (*this)[index].SetIsDisabled();
 }
 
 Edge& EdgesView::operator[](size_t index)
 {
-    assert(index < m_edges.size());
-    return m_edges[index];
+     auto itr = m_edges.find(index);
+    if (itr == m_edges.cend())
+        throw  std::out_of_range{"Out of edges"};
+    return itr->second;
 }
 
 const Edge& EdgesView::operator[](size_t index) const
 {
-    assert(index < m_edges.size());
-    return m_edges[index];
+    auto itr = m_edges.find(index);
+    if (itr == m_edges.cend())
+        throw  std::out_of_range{"Out of edges"};
+    return itr->second;
 }
 } // namespace Graph::Details

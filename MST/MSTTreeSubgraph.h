@@ -24,6 +24,7 @@
 #include "MSTSoftHeapDecorator.h"
 
 #include <ranges>
+#include <set>
 
 namespace rg = std::ranges;
 namespace rgv = std::ranges::views;
@@ -51,8 +52,8 @@ using SubGraphPtr = std::shared_ptr<SubGraph>;
 class SubGraph : public ISubGraph
 {
 public:
-    SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r, std::vector<size_t>& bad_edges);
-    SubGraph(const SubGraphPtr& child, size_t target_size, size_t r, std::vector<size_t>& bad_edges);
+    SubGraph(size_t vertex, size_t level_in_tree, size_t target_size, size_t r, std::set<size_t>& bad_edges);
+    SubGraph(const SubGraphPtr& child, size_t target_size, size_t r, std::set<size_t>& bad_edges);
 
     SubGraph(SubGraph&& other)                 = delete;
     SubGraph(const SubGraph& other)            = delete;
@@ -99,7 +100,7 @@ private:
     std::vector<MSTSoftHeapDecorator> m_heaps; // i < m_index -> H(i, m_index) cross heap, else - H(m_index)
     std::vector<EdgePtrWrapper>       m_min_links_to_next_nodes_in_active_path{};
 
-    std::list<size_t>    m_cached_verticies{};
-    std::vector<size_t>& m_bad_edges;
+    std::list<size_t> m_cached_verticies{};
+    std::set<size_t>& m_bad_edges;
 };
 }

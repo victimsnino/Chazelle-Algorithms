@@ -29,5 +29,5 @@ static constexpr bool s_mst_debug = true;
 namespace MST
 {
 static constexpr uint32_t c = 1;
-std::vector<size_t>       FindMST(Graph::Graph& graph);
+std::set<size_t>       FindMST(Graph::Graph& graph);
 }

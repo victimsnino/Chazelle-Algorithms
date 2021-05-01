@@ -214,7 +214,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
             continue;
 
         ContractEdge(index);
-        result.emplace_back(GetEdge(index).GetOriginalIndex());
+        result.emplace_back(index);
     }
     result.erase(std::unique(result.begin(), result.end()), result.end());
     return result;
@@ -239,7 +239,7 @@ void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_ms
     std::ofstream file_to_out{filename};
     file_to_out << "strict graph {" << std::endl;
 
-    for (const auto& edge : graph.m_edges_view.Original())
+    for (const auto& edge : graph.m_edges_view.Original() | std::views::values)
     {
         std::string options = "label="s + std::to_string(edge.GetWeight());
         auto        [i, j]  = edge.GetOriginalVertices();

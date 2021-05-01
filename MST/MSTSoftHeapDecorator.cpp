@@ -33,23 +33,23 @@
 
 namespace MST::Details
 {
-MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::vector<size_t>& bad_edges)
+MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges)
     : m_heap{r,
              [&bad_edges](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
-                 SPDLOG_DEBUG("SetWorking cost for {} cost {}", item.shared_pointer->GetEdge().GetOriginalIndex(), ckey.shared_pointer->GetWorkingCost());
+                 SPDLOG_DEBUG("SetWorking cost for {} cost {}", item.shared_pointer->GetEdge().GetIndex(), ckey.shared_pointer->GetWorkingCost());
                  if (item.shared_pointer->GetWorkingCost() < ckey.shared_pointer->GetWorkingCost())
                  {
-                     SPDLOG_DEBUG("{} becomes corrupted", item.shared_pointer->GetEdge().GetOriginalIndex());
+                     SPDLOG_DEBUG("{} becomes corrupted", item.shared_pointer->GetEdge().GetIndex());
                      item.shared_pointer->SetIsCorrupted(true);
-                     bad_edges.push_back(item.shared_pointer->GetEdge().GetIndex());
+                     bad_edges.emplace(item.shared_pointer->GetEdge().GetIndex());
                  }
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
              }} {}
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
-    SPDLOG_DEBUG("New edge {}", new_key->GetOriginalIndex());
+    SPDLOG_DEBUG("New edge {}", new_key->GetIndex());
     auto ptr = std::make_shared<EdgePtrWrapper>(std::move(new_key));
 
     m_heap.Insert(EdgePtrWrapperShared{ptr});
@@ -64,7 +64,7 @@ EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
     if (!Utils::IsRangeContains(m_items, value.shared_pointer))
         return DeleteMin();
 
-    SPDLOG_DEBUG("Remove edge {}", ptr->GetEdge().GetOriginalIndex());
+    SPDLOG_DEBUG("Remove edge {}", ptr->GetEdge().GetIndex());
     m_items.remove(ptr);
     return *ptr;
 }
@@ -89,7 +89,7 @@ std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<
     {
         if (func(**itr))
         {
-            SPDLOG_DEBUG("Delete edge {}", (*itr)->GetEdge().GetOriginalIndex());
+            SPDLOG_DEBUG("Delete edge {}", (*itr)->GetEdge().GetIndex());
             result.emplace_back(**itr);
             itr = m_items.erase(itr);
         }
@@ -118,9 +118,9 @@ MSTSoftHeapDecorator::ExtractedItems MSTSoftHeapDecorator::ExtractItems()
     }
 
     for (auto& edge : to_out.corrupted)
-        SPDLOG_DEBUG("Corrupted edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
+        SPDLOG_DEBUG("Corrupted edge {} original {} current {}", edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
     for (auto& edge : to_out.items)
-        SPDLOG_DEBUG("Normal edge {} original {} current {}", edge->GetOriginalIndex(), edge->GetWeight(), edge.GetWorkingCost());
+        SPDLOG_DEBUG("Normal edge {} original {} current {}", edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
     m_items.clear();
     return to_out;
 }
