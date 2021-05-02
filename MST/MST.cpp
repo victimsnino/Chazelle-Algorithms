@@ -59,16 +59,16 @@ std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_le
     if (graph.GetEdgesCount() == 0)
         return boruvka_result;
 
-    std::list<size_t> vertices = graph.GetVertices();
+    std::set<size_t> vertices = graph.GetVertices();
     std::set<size_t> bad_edges ={};
     std::list<Graph::Graph> graphs{};
     while (!vertices.empty())
     {
-        auto  tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height, vertices.front());
+        auto  tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height, *vertices.begin());
         auto& tree         = tree_builder.GetTree();
 
-        for (auto vert : tree.GetVerticesInside())
-            vertices.remove(vert);
+        for (auto& vert : tree.GetVerticesInside())
+            vertices.erase(vert);
 
         auto cur_bad_edges = tree.GetBadEdges();
         std::ranges::move(tree.CreateSubGraphs(cur_bad_edges), std::back_inserter(graphs));
@@ -79,8 +79,8 @@ std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_le
     SPDLOG_DEBUG("UNVISITED VERTICES COUNT {}", vertices.size());
     SPDLOG_DEBUG("BAD EDGES COUNT {}", bad_edges.size());
 
-    for(auto& edge : bad_edges)
-        SPDLOG_DEBUG("{}", edge);
+    //for(auto& edge : bad_edges)
+    //    SPDLOG_DEBUG("{}", edge);
 
     std::set<size_t> F = bad_edges;
     for (auto& subgraph : graphs)

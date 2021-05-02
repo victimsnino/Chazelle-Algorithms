@@ -66,7 +66,7 @@ public:
     void                ContractEdge(size_t edge_index);
     void                DisableEdge(size_t edge_index);
 
-    std::list<size_t>    GetVertices() const;
+    std::set<size_t>     GetVertices() const;
     size_t               GetVerticesCount() const;
     size_t               GetEdgesCount() const;
     const Details::Edge& GetEdge(size_t index) const { return m_edges_view[index]; }

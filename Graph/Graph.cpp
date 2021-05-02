@@ -152,15 +152,15 @@ void Graph::DisableEdge(size_t edge_index)
     m_edges_view.DisableEdge(edge_index);
 }
 
-std::list<size_t> Graph::GetVertices() const
+std::set<size_t> Graph::GetVertices() const
 {
-    std::list<size_t> result{};
+    std::set<size_t> result{};
     for(auto& member : m_subgraphs)
     {
         if (!member || !member->IsRoot())
             continue;
 
-        result.push_back(member->GetParent());
+        result.insert(member->GetParent());
     }
     return result;
 }
