@@ -44,6 +44,8 @@ public:
 
    
     bool operator>(const ComparableObject& rhs) const { return rhs < *this; }
+
+    const CoreType* Get() const {return m_value;}
 private:
     const CoreType* m_value;
 };

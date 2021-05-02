@@ -236,6 +236,8 @@ void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
         return Utils::IsRangeContains(edge->GetCurrentSubgraphs(), new_node->GetVertices().back());
     };
 
+    SPDLOG_DEBUG("Condition: edge with node {} ", new_node->GetVertices().back());
+
     std::for_each_n(m_active_path.begin(),
                     m_active_path.size() - 1,
                     [&](SubGraphPtr& node)

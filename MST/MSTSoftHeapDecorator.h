@@ -81,7 +81,7 @@ struct EdgePtrWrapperShared
 class MSTSoftHeapDecorator
 {
 public:
-    explicit MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges);
+    explicit MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges, size_t index);
 
     struct ExtractedItems
     {
@@ -101,5 +101,6 @@ public:
 private:
     SoftHeapCpp<EdgePtrWrapperShared>          m_heap;
     std::list<std::shared_ptr<EdgePtrWrapper>> m_items{};
+    size_t                                     m_index;
 };
 }

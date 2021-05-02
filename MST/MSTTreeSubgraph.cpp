@@ -53,7 +53,7 @@ void SubGraph::InitHeaps()
     m_heaps.reserve(m_level_in_tree + 1);
 
     for (size_t i = 0; i < m_level_in_tree + 1; ++i)
-        m_heaps.emplace_back(m_r, m_bad_edges);
+        m_heaps.emplace_back(m_r, m_bad_edges, m_level_in_tree);
 
     m_heaps.shrink_to_fit();
 }

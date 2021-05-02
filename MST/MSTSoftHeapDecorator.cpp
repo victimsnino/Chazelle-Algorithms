@@ -25,7 +25,7 @@
 #include <Common.h>
 #include <Graph.h>
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -33,23 +33,24 @@
 
 namespace MST::Details
 {
-MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges)
+MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges, size_t index )
     : m_heap{r,
-             [&bad_edges](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
+             [&](EdgePtrWrapperShared& item, const EdgePtrWrapperShared& ckey)
              {
                  SPDLOG_DEBUG("SetWorking cost for {} cost {}", item.shared_pointer->GetEdge().GetIndex(), ckey.shared_pointer->GetWorkingCost());
-                 if (item.shared_pointer->GetWorkingCost() < ckey.shared_pointer->GetWorkingCost())
+                 if (item.shared_pointer->GetWorkingCost() != ckey.shared_pointer->GetWorkingCost())
                  {
-                     SPDLOG_DEBUG("{} becomes corrupted", item.shared_pointer->GetEdge().GetIndex());
+                     SPDLOG_DEBUG("[{}] {} becomes corrupted", m_index, item.shared_pointer->GetEdge().GetIndex());
                      item.shared_pointer->SetIsCorrupted(true);
                      bad_edges.emplace(item.shared_pointer->GetEdge().GetIndex());
                  }
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
-             }} {}
+             }}
+    , m_index{index} {}
 
 void MSTSoftHeapDecorator::Insert(EdgePtrWrapper new_key)
 {
-    SPDLOG_DEBUG("New edge {}", new_key->GetIndex());
+    SPDLOG_DEBUG("[{}] New edge {} Cost {} Weight {}", m_index, new_key->GetIndex(), new_key.GetWorkingCost(), new_key->GetWeight());
     auto ptr = std::make_shared<EdgePtrWrapper>(std::move(new_key));
 
     m_heap.Insert(EdgePtrWrapperShared{ptr});
@@ -64,7 +65,7 @@ EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
     if (!Utils::IsRangeContains(m_items, value.shared_pointer))
         return DeleteMin();
 
-    SPDLOG_DEBUG("Remove edge {}", ptr->GetEdge().GetIndex());
+    SPDLOG_DEBUG("[{}] Remove edge {}  Cost {} Weight {}", m_index, ptr->GetEdge().GetIndex(), ptr->GetWorkingCost(), ptr->GetEdge().GetWeight());
     m_items.remove(ptr);
     return *ptr;
 }
@@ -76,7 +77,14 @@ EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
         return {};
 
     if (Utils::IsRangeContains(m_items, value_ptr->shared_pointer))
+    {
+        SPDLOG_DEBUG("[{}] Find min edge {}  Cost {} Weight {}",
+                     m_index,
+                     value_ptr->shared_pointer->GetEdge().GetIndex(),
+                     value_ptr->shared_pointer->GetWorkingCost(),
+                     value_ptr->shared_pointer->GetEdge().GetWeight());
         return value_ptr->shared_pointer.get();
+    }
 
     m_heap.DeleteMin();
     return FindMin();
@@ -89,7 +97,11 @@ std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<
     {
         if (func(**itr))
         {
-            SPDLOG_DEBUG("Delete edge {}", (*itr)->GetEdge().GetIndex());
+            SPDLOG_DEBUG("[{}] Delete edge {}  Cost {} Weight {}",
+                         m_index,
+                         (*itr)->GetEdge().GetIndex(),
+                         (*itr)->GetWorkingCost(),
+                         (*itr)->GetEdge().GetWeight());
             result.emplace_back(**itr);
             itr = m_items.erase(itr);
         }
@@ -118,9 +130,9 @@ MSTSoftHeapDecorator::ExtractedItems MSTSoftHeapDecorator::ExtractItems()
     }
 
     for (auto& edge : to_out.corrupted)
-        SPDLOG_DEBUG("Corrupted edge {} original {} current {}", edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
+        SPDLOG_DEBUG("[{}] Corrupted edge {} original {} current {}", m_index, edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
     for (auto& edge : to_out.items)
-        SPDLOG_DEBUG("Normal edge {} original {} current {}", edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
+        SPDLOG_DEBUG("[{}] Normal edge {} original {} current {}", m_index, edge->GetIndex(), edge->GetWeight(), edge.GetWorkingCost());
     m_items.clear();
     return to_out;
 }

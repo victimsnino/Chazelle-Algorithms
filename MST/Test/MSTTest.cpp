@@ -138,12 +138,6 @@ void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::set<size_t>&
     EXPECT_EQ(mst_result.size(), boruvka_result.size());
     EXPECT_THAT(diff_in_boruvka, ::testing::SizeIs(0));
     EXPECT_THAT(diff_in_mst, ::testing::SizeIs(0));
-
-    //for(auto& edge : mst_result)
-    //    std::cout << "MST: " << edge << std::endl;
-
-    //for(auto& edge : boruvka_result)
-    //    std::cout << "BORUVKA: " << edge << std::endl;
 }
 
 //TEST(MST, TestGraph)
