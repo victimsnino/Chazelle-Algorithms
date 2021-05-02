@@ -185,7 +185,7 @@ void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& e
     std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
 }
 
-std::vector<size_t> Graph::BoruvkaPhase()
+std::list<size_t> Graph::BoruvkaPhase()
 {
     std::map<size_t, std::optional<size_t>> cheapest_edge_for_each_vertex{};
     for (const auto& edge : m_edges_view)
@@ -203,7 +203,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
         }
     }
 
-    std::vector<size_t> result{};
+    std::list<size_t> result{};
     for (const auto& opt_cheapest : cheapest_edge_for_each_vertex | std::ranges::views::values)
     {
         if (!opt_cheapest.has_value())
@@ -216,7 +216,7 @@ std::vector<size_t> Graph::BoruvkaPhase()
         ContractEdge(index);
         result.emplace_back(index);
     }
-    result.erase(std::unique(result.begin(), result.end()), result.end());
+    result.unique();
     return result;
 }
 

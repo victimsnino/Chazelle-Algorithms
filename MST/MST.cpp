@@ -37,7 +37,7 @@
 
 namespace MST
 {
-std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
+std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
 {
     SPDLOG_DEBUG("max_height {}", max_height);
     size_t t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
@@ -48,11 +48,11 @@ std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_le
 
     SPDLOG_DEBUG("t is {}", t);
 
-    std::set<size_t> boruvka_result{};
+    std::list<size_t> boruvka_result{};
 
     while (count > 0 && graph.GetEdgesCount() > 0)
     {
-        std::ranges::move(graph.BoruvkaPhase(), std::inserter(boruvka_result, boruvka_result.end()));
+        boruvka_result.splice(boruvka_result.end(), graph.BoruvkaPhase());
         --count;
     }
 
@@ -60,14 +60,14 @@ std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_le
         return boruvka_result;
 
     std::set<size_t> vertices = graph.GetVertices();
-    std::set<size_t> bad_edges ={};
+    std::list<size_t> bad_edges ={};
     std::list<Graph::Graph> graphs{};
     while (!vertices.empty())
     {
         auto  tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height, *vertices.begin());
         auto& tree         = tree_builder.GetTree();
 
-        for (auto& vert : tree.GetVerticesInside())
+        for (const auto& vert : tree.GetVerticesInside())
             vertices.erase(vert);
 
         auto cur_bad_edges = tree.GetBadEdges();
@@ -75,29 +75,29 @@ std::set<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_le
         std::ranges::move(cur_bad_edges, std::inserter(bad_edges, bad_edges.end()));
     }
 
-
-    SPDLOG_DEBUG("UNVISITED VERTICES COUNT {}", vertices.size());
-    SPDLOG_DEBUG("BAD EDGES COUNT {}", bad_edges.size());
+    SPDLOG_INFO("BAD EDGES COUNT {}", bad_edges.size());
 
     //for(auto& edge : bad_edges)
     //    SPDLOG_DEBUG("{}", edge);
 
-    std::set<size_t> F = bad_edges;
+    std::list<size_t> F = bad_edges;
     for (auto& subgraph : graphs)
-        std::ranges::move(MSF(subgraph, max_height, recursion_level + 1), std::inserter(F,  F.end()));
+        F.splice(F.end(), MSF(subgraph, max_height, recursion_level + 1));
 
 
     Graph::Graph new_graph{};
-    for (auto edge : F)
+    for (const auto& edge : F)
     {
-        auto [i,j] = graph.GetEdge(edge).GetCurrentSubgraphs();
-        new_graph.AddEdge(i,j, graph.GetEdge(edge).GetWeight(), edge);
+        auto& orig_edge = graph.GetEdge(edge);
+        auto  [i,j]     = orig_edge.GetCurrentSubgraphs();
+        new_graph.AddEdge(i, j, orig_edge.GetWeight(), edge);
     }
-    std::ranges::move(MSF(new_graph, max_height, recursion_level +1), std::inserter(boruvka_result, boruvka_result.end()));
+
+    boruvka_result.splice(boruvka_result.end(), MSF(new_graph, max_height, recursion_level +1));
     return boruvka_result;
 }
 
-std::set<size_t> FindMST(Graph::Graph& graph)
+std::list<size_t> FindMST(Graph::Graph& graph)
 {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("Line: %4# [%-35!] %v");

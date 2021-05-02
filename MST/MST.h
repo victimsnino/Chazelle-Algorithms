@@ -28,6 +28,6 @@ static constexpr bool s_mst_debug = true;
 
 namespace MST
 {
-static constexpr uint32_t c = 1;
-std::set<size_t>       FindMST(Graph::Graph& graph);
+static constexpr uint32_t c = 2;
+std::list<size_t>       FindMST(Graph::Graph& graph);
 }

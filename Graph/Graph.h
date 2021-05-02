@@ -61,7 +61,7 @@ public:
     void AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index = {});
     void UnionVertices(size_t i, size_t j);
 
-    std::vector<size_t> BoruvkaPhase();
+    std::list<size_t> BoruvkaPhase();
 
     void                ContractEdge(size_t edge_index);
     void                DisableEdge(size_t edge_index);
