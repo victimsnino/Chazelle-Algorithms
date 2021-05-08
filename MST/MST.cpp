@@ -37,16 +37,17 @@
 
 namespace MST
 {
-std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1)
+std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_level = 1, size_t t = 0)
 {
     SPDLOG_DEBUG("max_height {}", max_height);
-    size_t t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
+    if (!t)
+        t = FindParamT(graph, max_height <= 2 ? 3 : max_height);
     size_t count = t <= 1 ? std::numeric_limits<uint32_t>::max() : c;
 
     if (recursion_level == 1)
         std::cout << " t is  " << t << std::endl;
 
-    SPDLOG_DEBUG("t is {}", t);
+    SPDLOG_DEBUG("t is {} Recursion {}", t, recursion_level);
 
     std::list<size_t> boruvka_result{};
 
@@ -82,7 +83,7 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
 
     std::list<size_t> F = bad_edges;
     for (auto& subgraph : graphs)
-        F.splice(F.end(), MSF(subgraph, max_height, recursion_level + 1));
+        F.splice(F.end(), MSF(subgraph, max_height, recursion_level + 1, t > 1 ? t-1 : t));
 
 
     Graph::Graph new_graph{};
@@ -93,7 +94,7 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
         new_graph.AddEdge(i, j, orig_edge.GetWeight(), edge);
     }
 
-    boruvka_result.splice(boruvka_result.end(), MSF(new_graph, max_height, recursion_level +1));
+    boruvka_result.splice(boruvka_result.end(), MSF(new_graph, max_height, recursion_level, t));
     return boruvka_result;
 }
 
