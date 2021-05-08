@@ -71,11 +71,11 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
             vertices.erase(vert);
 
         auto cur_bad_edges = tree.GetBadEdges();
-        std::ranges::move(tree.CreateSubGraphs(cur_bad_edges), std::back_inserter(graphs));
+        graphs.splice(graphs.end(), tree.CreateSubGraphs(cur_bad_edges));
         std::ranges::move(cur_bad_edges, std::inserter(bad_edges, bad_edges.end()));
     }
 
-    SPDLOG_INFO("BAD EDGES COUNT {}", bad_edges.size());
+    //SPDLOG_INFO("BAD EDGES COUNT {}", bad_edges.size());
 
     //for(auto& edge : bad_edges)
     //    SPDLOG_DEBUG("{}", edge);
