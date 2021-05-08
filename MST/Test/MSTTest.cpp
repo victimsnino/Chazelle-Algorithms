@@ -121,15 +121,15 @@ std::vector<size_t> RunBoruvka(Graph::Graph&& g)
     return boruvka_result;
 }
 
-std::set<size_t> RunMST(Graph::Graph& g)
+auto RunMST(Graph::Graph& g)
 {
     Utils::MeasurePerfomance measure{"SoftHeap MST"};
     return MST::FindMST(g);
 }
 
-void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::set<size_t>& mst_result)
+void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::list<size_t>& mst_result)
 {
-    //std::ranges::sort(mst_result);
+    mst_result.sort();
     std::ranges::sort(boruvka_result);
 
     std::vector<size_t> diff_in_boruvka, diff_in_mst{};
@@ -156,7 +156,7 @@ void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::set<size_t>&
 
 TEST(MST, ErdosGraph)
 {
-    auto edges = ErdosRenie(1000, 0.02); // c == 1 -> fail
+    auto edges = ErdosRenie(5000, 0.001); // c == 1 -> fail
     //auto edges = ErdosRenie(23, 0.16); // c == 1 + Height
     //auto edges = ErdosRenie(190, 0.02); // c == 1 + Height
     //auto edges = ErdosRenie(500, 0.001);
