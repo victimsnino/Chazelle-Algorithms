@@ -105,15 +105,15 @@ static std::vector<std::tuple<size_t, size_t, size_t>> ErdosRenie(uint32_t n, do
     return result;
 }
 
-std::vector<size_t> RunBoruvka(Graph::Graph&& g)
+std::list<size_t> RunBoruvka(Graph::Graph&& g)
 {
-    std::vector<size_t> boruvka_result{};
+    std::list<size_t> boruvka_result{};
     uint32_t count = 0;
     {
         Utils::MeasurePerfomance measure{ "Boruvka" };
         while (g.GetEdgesCount() != 0)
         {
-            std::ranges::move(g.BoruvkaPhase(), std::back_inserter(boruvka_result));
+            boruvka_result.splice(boruvka_result.end(), g.BoruvkaPhase());
             ++count;
         }
     }
@@ -127,10 +127,10 @@ auto RunMST(Graph::Graph& g)
     return MST::FindMST(g);
 }
 
-void CompareBoruvkaAndMst(std::vector<size_t>& boruvka_result, std::list<size_t>& mst_result)
+void CompareBoruvkaAndMst(std::list<size_t>& boruvka_result, std::list<size_t>& mst_result)
 {
     mst_result.sort();
-    std::ranges::sort(boruvka_result);
+    boruvka_result.sort();
 
     std::vector<size_t> diff_in_boruvka, diff_in_mst{};
     std::ranges::set_difference(boruvka_result, mst_result, std::back_inserter(diff_in_boruvka));
@@ -170,12 +170,12 @@ TEST(MST, ErdosGraph)
 
     CompareBoruvkaAndMst(boruvka_result, mst_result);
 
-    auto lambda = [&](size_t result, size_t edge)
+    /*auto lambda = [&](size_t result, size_t edge)
     {
         return std::get<2>(edges[edge]) + result;
     };
     auto boruvka = std::accumulate(boruvka_result.cbegin(), boruvka_result.cend(), 0, lambda);
     auto mst = std::accumulate(mst_result.cbegin(), mst_result.cend(), 0, lambda);
 
-    std::cout << "Boruvka sum: " << boruvka << " Mst Sum: " << mst << " Boruvka == mst " << (boruvka == mst) << std::endl;
+    std::cout << "Boruvka sum: " << boruvka << " Mst Sum: " << mst << " Boruvka == mst " << (boruvka == mst) << std::endl;*/
 }
