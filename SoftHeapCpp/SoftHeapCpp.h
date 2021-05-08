@@ -35,11 +35,6 @@
 struct Head;
 struct Node;
 
-//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
-
-#include <spdlog/spdlog.h>
-
-
 template<typename ItemType>
 class SoftHeapCpp
 {
@@ -100,7 +95,7 @@ private:
         {
             assert(!!m_values && !m_values->empty());
 
-            PrintData();
+            //PrintData();
 
             auto value = std::move(m_values->front());
             m_values->pop_front();
@@ -108,42 +103,42 @@ private:
             return value;
         }
 
-        void PrintData()
-        {
-            auto action = [](Node* node)
-            {
-                if (!node->m_values || node->m_values->empty() || !node->m_ckey)
-                {
-                    SPDLOG_DEBUG("No Values or ckey");
-                    return;
-                }
-                SPDLOG_DEBUG("Rank {}  Index {} Cost {} Ckey Index {}",
-                             node->m_rank,
-                             node->m_values->front().shared_pointer->GetEdge().GetIndex(),
-                             node->m_values->front().shared_pointer->GetWorkingCost(),
-                             node->m_ckey ? std::to_string(node->m_ckey->shared_pointer->GetEdge().GetIndex()) : "INF");
-                for (auto& tmp_value : *node->m_values)
-                {
-                    SPDLOG_DEBUG("Rest edges. index {} Cost {}",
-                                 tmp_value.shared_pointer->GetEdge().GetIndex(),
-                                 tmp_value.shared_pointer->GetWorkingCost());
-                }
-            };
-            action(this);
+        //void PrintData()
+        //{
+        //    auto action = [](Node* node)
+        //    {
+        //        if (!node->m_values || node->m_values->empty() || !node->m_ckey)
+        //        {
+        //            SPDLOG_DEBUG("No Values or ckey");
+        //            return;
+        //        }
+        //        SPDLOG_DEBUG("Rank {}  Index {} Cost {} Ckey Index {}",
+        //                     node->m_rank,
+        //                     node->m_values->front().shared_pointer->GetEdge().GetIndex(),
+        //                     node->m_values->front().shared_pointer->GetWorkingCost(),
+        //                     node->m_ckey ? std::to_string(node->m_ckey->shared_pointer->GetEdge().GetIndex()) : "INF");
+        //        for (auto& tmp_value : *node->m_values)
+        //        {
+        //            SPDLOG_DEBUG("Rest edges. index {} Cost {}",
+        //                         tmp_value.shared_pointer->GetEdge().GetIndex(),
+        //                         tmp_value.shared_pointer->GetWorkingCost());
+        //        }
+        //    };
+        //    action(this);
 
-            auto recursion_action = [action](Node* node)
-            {
-                if(node->m_child)
-                {
-                    action(node->m_child.get());
-                }
-            };
-            ForEachNodeWithChildOnLevel([=](Node* node)
-            {
-                recursion_action(node);
-                node->m_child->ForEachNodeWithChildOnLevel(recursion_action);
-            });
-        }
+        //    auto recursion_action = [action](Node* node)
+        //    {
+        //        if(node->m_child)
+        //        {
+        //            action(node->m_child.get());
+        //        }
+        //    };
+        //    ForEachNodeWithChildOnLevel([=](Node* node)
+        //    {
+        //        recursion_action(node);
+        //        node->m_child->ForEachNodeWithChildOnLevel(recursion_action);
+        //    });
+        //}
 
     private:
         std::shared_ptr<ItemType>             m_ckey;
@@ -240,16 +235,6 @@ typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::FindMinNode()
     assert(m_header->GetNext());
 
     std::shared_ptr<Head> h = m_header->GetNext()->GetSuffixMin();
-
-    for(auto begin = m_header->GetNext(); begin != m_tail; begin = begin->GetNext())
-    {
-        SPDLOG_DEBUG("Queue {} Value {} MinSuffix {}",
-            (void*)begin.get(),
-            begin->GetQueue()->GetCkey().Get()->shared_pointer->GetWorkingCost(), 
-            (void*)begin->GetSuffixMin().get());
-        begin->GetQueue()->PrintData();
-    }
-
     while (h && h->GetQueue()->IsNoValues())
     {
         size_t                                               child_count = 0;
@@ -258,7 +243,6 @@ typename SoftHeapCpp<ItemType>::Node* SoftHeapCpp<ItemType>::FindMinNode()
         // remeld childs
         if (child_count < h->GetRank() / 2)
         {
-            SPDLOG_DEBUG("REMELD for {}", (void*)h.get());
             h->GetPrev()->SetNext(h->GetNext());
             h->GetNext()->SetPrev(h->GetPrev());
             FixMinlist(h->GetPrev());

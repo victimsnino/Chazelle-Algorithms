@@ -25,7 +25,7 @@
 #include <Common.h>
 #include <Graph.h>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
 
@@ -72,6 +72,9 @@ EdgePtrWrapper MSTSoftHeapDecorator::DeleteMin()
 
 EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
 {
+    if (m_items.empty())
+        return {};
+
     const auto value_ptr = m_heap.FindMin();
     if (!value_ptr)
         return {};
