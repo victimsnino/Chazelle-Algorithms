@@ -1,7 +1,2 @@
-Misc/temp.cpp
-Misc/temp.py
-Misc/softheap.pdf
-Misc/softheap-ru.pdf
-Misc/mst.pdf
 _build_/*
-/Misc/temp.txt
+Misc/*
