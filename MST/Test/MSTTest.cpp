@@ -140,23 +140,24 @@ void CompareBoruvkaAndMst(std::list<size_t>& boruvka_result, std::list<size_t>& 
     EXPECT_THAT(diff_in_mst, ::testing::SizeIs(0));
 }
 
-//TEST(MST, TestGraph)
-//{
-//    //auto matrix = GenerateMatrix(12, 1);
-//    auto matrix = GenerateMatrix(7, 5);
-//    //auto matrix = GenerateMatrix(1, 3);
-//    Graph::Graph g{matrix};
-//    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
-//
-//    auto boruvka_result = RunBoruvka(Graph::Graph{matrix});
-//    auto mst_result     = RunMST(g);
-//
-//    CompareBoruvkaAndMst(boruvka_result, mst_result);
-//}
+TEST(MST, TestGraph)
+{
+    //auto matrix = GenerateMatrix(12, 1);
+    //auto matrix = GenerateMatrix(7, 5);
+    auto matrix = GenerateMatrix(6, 5);
+    //auto matrix = GenerateMatrix(1, 3);
+    Graph::Graph g{matrix};
+    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
+
+    auto boruvka_result = RunBoruvka(Graph::Graph{matrix});
+    auto mst_result     = RunMST(g);
+
+    CompareBoruvkaAndMst(boruvka_result, mst_result);
+}
 
 TEST(MST, ErdosGraph)
 {
-    auto edges = ErdosRenie(2000, 0.01); // c == 1 -> fail
+    auto edges = ErdosRenie(3000, 0.001); // c == 1 -> fail
     //auto edges = ErdosRenie(23, 0.16); // c == 1 + Height
     //auto edges = ErdosRenie(190, 0.02); // c == 1 + Height
     //auto edges = ErdosRenie(500, 0.001);
