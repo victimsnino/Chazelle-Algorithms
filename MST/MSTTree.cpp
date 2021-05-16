@@ -172,7 +172,6 @@ std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::set<size_t>& bad_edg
         if (graph.GetVerticesCount() <= 1)
             result.pop_back();
 
-        // DUPLICATED FIRST SUBGRAPH!
         list_of_subgraphs.pop_front();
     }
     return result;
