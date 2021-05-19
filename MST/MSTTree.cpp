@@ -201,20 +201,41 @@ void MSTTree::AddNewBorderEdgesAfterPush()
 
     assert(node_vertices.size() == 1);
 
-    for (const auto& edge : m_graph.GetValidEdges())
+    std::map<size_t, const Graph::Details::Edge*> cheapest_edge_per_vertex{};
+    for (auto& [index,edge] : m_graph.GetEdges())
     {
-        auto i = m_graph.GetRoot(edge->i);
-        auto j = m_graph.GetRoot(edge->j);
+        if (edge.disabled)
+            continue;
+
+        auto i = m_graph.GetRoot(edge.i);
+        auto j = m_graph.GetRoot(edge.j);
+
+        if (i == j)
+            continue;
+
         if (Utils::IsRangeContains(node_vertices, i))
         {
             if (!Utils::IsRangeContains(all_vertices, j))
-                new_node->PushToHeap(EdgePtrWrapper{edge, j});
+            {
+                auto& v = cheapest_edge_per_vertex[j];
+                if (!v || v->w > edge.w)
+                    v = &edge;
+            }
         }
         else if (Utils::IsRangeContains(node_vertices, j))
         {
             if (!Utils::IsRangeContains(all_vertices, i))
-                new_node->PushToHeap(EdgePtrWrapper{edge, i});
+            {
+                auto& v = cheapest_edge_per_vertex[i];
+                if (!v || v->w > edge.w)
+                    v = &edge;
+            }
         }
+    }
+
+    for (const auto& [vertex, edge] : cheapest_edge_per_vertex)
+    {
+        new_node->PushToHeap(EdgePtrWrapper{edge, vertex});
     }
 }
 

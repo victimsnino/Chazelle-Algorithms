@@ -53,7 +53,7 @@ public:
     std::optional<size_t> GetRootIfExists(size_t v) const;
 
     std::list<const Details::Edge*> GetValidEdges() const;
-
+    const std::map<size_t, Details::Edge>& GetEdges() const {return m_edges;}
 private:
     std::map<size_t, Details::Edge> m_edges{};
     std::map<size_t, size_t>        m_vertex_to_set{};

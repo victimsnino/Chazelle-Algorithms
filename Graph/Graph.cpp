@@ -130,6 +130,7 @@ void Graph::Union(size_t i, size_t j)
 
     if (!root_i_opt || !root_j_opt)
         return;
+
     const auto& root_i = root_i_opt.value();
     const auto& root_j = root_j_opt.value();
 
@@ -167,7 +168,7 @@ void Graph::DisableEdge(size_t index)
 
 std::list<const Details::Edge*> Graph::GetValidEdges() const
 {
-    std::map<size_t, std::map<size_t, std::optional<size_t>>> matrix{};
+    std::map<size_t, std::map<size_t, const Details::Edge*>> matrix{};
     for (auto& [index,edge] : m_edges)
     {
         if (edge.disabled)
@@ -182,13 +183,13 @@ std::list<const Details::Edge*> Graph::GetValidEdges() const
         auto  root_i = std::min(i, j);
         auto  root_j = std::max(i, j);
         auto& value  = matrix[root_i][root_j];
-        if (!value.has_value() || m_edges.at(value.value()).w > edge.w)
-            value = index;
+        if (!value || value->w > edge.w)
+            value = &edge;
     }
     std::list<const Details::Edge*> result{};
     for(auto& [_, map]: matrix)
-        for(auto& [_, index] :  map)
-            result.push_back(&m_edges.at(index.value()));
+        for(auto& [_, value] :  map)
+            result.push_back(value);
 
     return result;
 }

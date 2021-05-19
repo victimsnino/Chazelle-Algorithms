@@ -170,7 +170,7 @@ TEST(MST, ErdosGraph)
     //auto edges = ErdosRenie(23, 0.16); // c == 1 + Height
     //auto edges = ErdosRenie(190, 0.02); // c == 1 + Height
     //auto edges = ErdosRenie(500, 0.001);
-    auto edges = ErdosRenie(3000, 0.001);
+    auto edges = ErdosRenie(3000, 0.01);
     Graph::Graph g{edges};
     //Graph::ToFile(g, "www", true, false);
     std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
