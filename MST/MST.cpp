@@ -65,7 +65,7 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
     std::list<Graph::Graph> graphs{};
     while (!vertices.empty())
     {
-        auto  tree_builder = MSTTreeBuilder(graph.GetEdgesView(), t, max_height, *vertices.begin());
+        auto  tree_builder = MSTTreeBuilder(graph, t, max_height, *vertices.begin());
         auto& tree         = tree_builder.GetTree();
 
         for (const auto& vert : tree.GetVerticesInside())
@@ -90,11 +90,12 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
     for (const auto& edge : F)
     {
         auto& orig_edge = graph.GetEdge(edge);
-        auto  [i,j]     = orig_edge.GetCurrentSubgraphs();
-        new_graph.AddEdge(i, j, orig_edge.GetWeight(), edge);
+        auto i = graph.GetRoot(orig_edge.i);
+        auto j = graph.GetRoot(orig_edge.j);
+        new_graph.AddEdge(i, j, orig_edge.w, edge);
     }
 
-    boruvka_result.splice(boruvka_result.end(), MSF(new_graph, max_height, recursion_level, t));
+    boruvka_result.splice(boruvka_result.end(), MSF(new_graph, max_height, recursion_level+1, t));
     return boruvka_result;
 }
 

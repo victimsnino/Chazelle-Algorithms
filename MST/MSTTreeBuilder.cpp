@@ -30,9 +30,9 @@
 
 namespace MST
 {
-MSTTreeBuilder::MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height, size_t initial_vertex)
-    : m_edges{edges}
-    , m_tree{m_edges, t, max_height, initial_vertex}
+MSTTreeBuilder::MSTTreeBuilder(Graph::Graph& graph, size_t t, size_t max_height, size_t initial_vertex)
+    : m_graph{graph}
+    , m_tree{m_graph, t, max_height, initial_vertex}
 {
     while (true)
     {
@@ -83,7 +83,8 @@ void MSTTreeBuilder::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWra
                   std::make_move_iterator(items.end()),
                   [&](Details::EdgePtrWrapper&& edge)
                   {
-                      auto [i,j] = edge->GetCurrentSubgraphs();
+                      auto i = m_graph.GetRoot(edge->i);
+                      auto j = m_graph.GetRoot(edge->j);
 
                       size_t outside_vertex = edge.GetOutsideVertex();
                       assert(i == outside_vertex || j == outside_vertex);
@@ -97,7 +98,7 @@ void MSTTreeBuilder::CreateClustersAndPushCheapest(std::list<Details::EdgePtrWra
         for (auto& edge : cluster | rgv::drop(1))
         {
             SPDLOG_DEBUG("Disable edge {} weight {}", edge->GetIndex(), edge->GetWeight());
-            m_edges.DisableEdge(edge->GetIndex());
+            m_graph.DisableEdge(edge->index);
         }
 
         m_tree.top().PushToHeap(*cluster.begin());
@@ -148,7 +149,7 @@ void MSTTreeBuilder::PostRetractionActions(Details::MSTSoftHeapDecorator::Extrac
     for (auto& corrupted_edge : items.corrupted)
     {
         SPDLOG_DEBUG("Add to bad edges and disable {} corrupted {}", corrupted_edge->GetIndex(), corrupted_edge.GetIsCorrupted());
-        m_edges.DisableEdge(corrupted_edge->GetIndex());
+        m_graph.DisableEdge(corrupted_edge->index);
     }
 
     CreateClustersAndPushCheapest(std::move(items.items));

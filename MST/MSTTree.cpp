@@ -49,21 +49,11 @@ static std::vector<size_t> InitTargetSizesPerHeight(size_t t, size_t max_height)
 
 namespace MST::Details
 {
-MSTTree::MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height,size_t initial_vertex)
-    : m_edges{edges}
+MSTTree::MSTTree(Graph::Graph& graph, size_t t, size_t max_height,size_t initial_vertex)
+    : m_graph{graph}
     , m_r{Utils::CalculateRByEps(1 / static_cast<double>(MST::c))}
     , m_sizes_per_height{InitTargetSizesPerHeight(t, max_height)}
 {
-    const auto itr = std::find_if(m_edges.begin(),
-                                  m_edges.end(),
-                                  [](const Graph::Details::Edge& edge)
-                                  {
-                                      return !edge.IsDisabled() && !edge.IsContracted();
-                                  });
-
-    if (itr == m_edges.end())
-        throw std::exception{"Graph without edges!"};
-
     PushNode(initial_vertex);
 }
 
@@ -74,7 +64,7 @@ void MSTTree::push(const EdgePtrWrapper& extension_edge)
     auto& pre_last = m_active_path.back();
     PushNode(extension_edge.GetOutsideVertex());
 
-    pre_last->AddChild(extension_edge->GetIndex(), m_active_path.back());
+    pre_last->AddChild(extension_edge->index, m_active_path.back());
 }
 
 MSTSoftHeapDecorator::ExtractedItems MSTTree::pop()
@@ -119,7 +109,9 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
     // Fused chain doesn't become an vertex of this subgraph
     auto last_child = m_active_path.back()->PopLastChild();
 
-    auto [i,j] = fusion_edge->GetCurrentSubgraphs();
+    auto i = m_graph.GetRoot(fusion_edge->i);
+    auto j = m_graph.GetRoot(fusion_edge->j);
+
     auto childs = m_active_path.back()->GetChilds();
     auto child_itr = rg::find_if(childs, [&](const SubGraphPtr& sub)
     {
@@ -129,7 +121,7 @@ MSTSoftHeapDecorator::ExtractedItems MSTTree::fusion(std::list<SubGraphPtr>::ite
 
     assert(child_itr != childs.end());
 
-    (*child_itr)->AddChild(fusion_edge->GetIndex(), last_child);
+    (*child_itr)->AddChild(fusion_edge->index, last_child);
     return items;
 }
 
@@ -155,9 +147,10 @@ std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::set<size_t>& bad_edg
             if (Utils::IsRangeContains(bad_edges, edge_index))
                 continue;
 
-            auto& edge  = m_edges[edge_index];
-            auto  [i,j] = edge.GetCurrentSubgraphs();
-            graph.AddEdge(i, j, edge.GetWeight(), edge.GetIndex());
+            auto& edge  = m_graph.GetEdge(edge_index);
+            auto i = m_graph.GetRoot(edge.i);
+            auto j = m_graph.GetRoot(edge.j);
+            graph.AddEdge(i, j, edge.w, edge.index);
         }
 
         for(auto& child : front->GetChilds())
@@ -167,7 +160,7 @@ std::list<Graph::Graph> MSTTree::CreateSubGraphs(const std::set<size_t>& bad_edg
             auto vertices = child->GetVertices(true);
             auto front = vertices.front();
             for(auto other : vertices | rgv::drop(1))
-                graph.UnionVertices(front, other);
+                graph.Union(front, other);
         }
         if (graph.GetVerticesCount() <= 1)
             result.pop_back();
@@ -208,9 +201,10 @@ void MSTTree::AddNewBorderEdgesAfterPush()
 
     assert(node_vertices.size() == 1);
 
-    for (const auto& edge : m_edges)
+    for (const auto& edge : m_graph.GetValidEdges())
     {
-        const auto [i,j] = edge.GetCurrentSubgraphs();
+        auto i = m_graph.GetRoot(edge->i);
+        auto j = m_graph.GetRoot(edge->j);
         if (Utils::IsRangeContains(node_vertices, i))
         {
             if (!Utils::IsRangeContains(all_vertices, j))
@@ -232,7 +226,9 @@ void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
 
     auto condition = [&](const EdgePtrWrapper& edge)
     {
-        return Utils::IsRangeContains(edge->GetCurrentSubgraphs(), new_node->GetVertices().back());
+         auto i = m_graph.GetRoot(edge->i);
+         auto j = m_graph.GetRoot(edge->j);
+        return i == new_node->GetVertices().back() || j == new_node->GetVertices().back();
     };
 
     SPDLOG_DEBUG("Condition: edge with node {} ", new_node->GetVertices().back());

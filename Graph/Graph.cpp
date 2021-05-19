@@ -22,29 +22,16 @@
 
 #include "Graph.h"
 
-#include <Common.h>
-
 #include <algorithm>
-#include <cassert>
-#include <fstream>
 #include <ranges>
-#include <optional>
-#include <utility>
 
-using namespace std::string_literals;
 
 namespace Graph
 {
 Graph::Graph(const std::vector<std::vector<uint32_t>>& adjacency)
 {
-    m_subgraphs.reserve(adjacency.size());
-    for (size_t i = 0; i < adjacency.size(); ++i)
-        m_subgraphs.emplace_back(std::make_shared<Details::MemberOfSubGraph>(i));
-
     for (size_t i = 0; i < adjacency.size(); ++i)
     {
-        assert(adjacency.size() == adjacency[i].size());
-
         for (size_t j = 0; j < i; ++j)
             AddEdge(i, j, std::max(adjacency[i][j], adjacency[j][i]));
     }
@@ -55,220 +42,154 @@ Graph::Graph(const std::vector<std::tuple<size_t, size_t, size_t>>& edges)
     for (auto& [i,j,w] : edges)
         AddEdge(i,j,w);
 }
-
-void Graph::AddEdge(size_t begin, size_t end, uint32_t weight, std::optional<size_t> original_index)
+void Graph::AddEdge(size_t i, size_t j, size_t w, std::optional<size_t> index)
 {
-    if (begin == end || !weight)
+    if (!w)
         return;
 
-    m_edges_view.AddEdge(GetOrCreateSubgraph(std::min(begin, end)), GetOrCreateSubgraph(std::max(begin, end)), weight, original_index);
+    auto cur_index= index.value_or(m_edges.size());
+    m_edges.emplace(cur_index, Details::Edge(std::min(i, j), std::max(i,j), w, cur_index));
+
+    m_vertex_to_set[i] = i;
+    m_vertex_to_set[j] = j;
+
+    m_subset_to_rank.try_emplace(i, 0);
+    m_subset_to_rank.try_emplace(j, 0);
 }
 
-std::shared_ptr<Details::MemberOfSubGraph> Graph::GetOrCreateSubgraph(size_t index)
+size_t Graph::GetEdgesCount() const
 {
-    if (m_subgraphs.size() <= index)
-        m_subgraphs.resize(index+1);
-
-    auto & ptr = m_subgraphs[index];
-    if (ptr)
-        return ptr;
-
-    ptr           = std::make_shared<Details::MemberOfSubGraph>(index);
-    return ptr;
-}
-
-std::shared_ptr<Details::MemberOfSubGraph> Graph::GetSubgraphIfExists(size_t index)
-{
-    if (m_subgraphs.size() <= index)
-        return {};
-
-    return m_subgraphs[index];
-}
-
-void Graph::UnionVertices(size_t i, size_t j)
-{
-    auto root_subgraph_1 = GetSubgraphIfExists(i);
-    auto root_subgraph_2 = GetSubgraphIfExists(j);
-
-    if (root_subgraph_1 == root_subgraph_2 || !root_subgraph_1 || !root_subgraph_2)
-        return;
-
-    if (root_subgraph_1 < root_subgraph_2)
-        root_subgraph_1->SetParent(root_subgraph_2->GetParent());
-    else
-        root_subgraph_2->SetParent(root_subgraph_1->GetParent());
-
-    for (size_t i = 0; i  < m_subgraphs.size(); ++i)
-        if(m_subgraphs[i])
-            FindRootOfSubGraph(i);
-
-    RemoveMultipleEdgesForVertex(root_subgraph_1->GetParent());
-}
-
-void Graph::RemoveMultipleEdgesForVertex(size_t vertex_id)
-{
-    std::map<size_t, const Details::Edge*> cheapest_out_edges{};
-    std::vector<size_t>                    edges_to_disable{};
-    for (const auto& edge : m_edges_view)
-    {
-        auto [i, j] = edge.GetCurrentSubgraphs();
-
-        if (i != vertex_id && j != vertex_id)
-            continue;
-        
-        // self-loops
-        if (i == vertex_id && j==vertex_id)
-        {
-            edges_to_disable.push_back(edge.GetIndex());
-            continue;
-        }
-
-        auto  out_index = i == vertex_id ? j : i;
-        auto& ptr       = cheapest_out_edges[out_index];
-        if (!ptr)
-        {
-            ptr = &edge;
-            continue;
-        }
-        edges_to_disable.push_back(*ptr < edge ? edge.GetIndex() : ptr->GetIndex());
-        ptr = edge < *ptr ? &edge : ptr;
-    }
-
-    for (auto edge_to_disable : edges_to_disable)
-        DisableEdge(edge_to_disable);
-}
-
-void Graph::ContractEdge(size_t edge_index)
-{
-    const auto [i, j] = m_edges_view[edge_index].GetCurrentSubgraphs();
-
-    m_edges_view.ContractEdge(edge_index);
-
-    UnionVertices(i,j);
-}
-
-void Graph::DisableEdge(size_t edge_index)
-{
-    m_edges_view.DisableEdge(edge_index);
-}
-
-std::set<size_t> Graph::GetVertices() const
-{
-    std::set<size_t> result{};
-    for(auto& member : m_subgraphs)
-    {
-        if (!member || !member->IsRoot())
-            continue;
-
-        result.insert(member->GetParent());
-    }
-    return result;
-}
-
-size_t Graph::FindRootOfSubGraph(size_t i)
-{
-    auto member_of_subgraph = m_subgraphs[i];
-
-    if (!member_of_subgraph->IsRoot())
-        member_of_subgraph->SetParent(FindRootOfSubGraph(member_of_subgraph->GetParent()));
-
-    return member_of_subgraph->GetParent();
-}
-
-void Graph::ForEachAvailableEdge(const std::function<void(Details::Edge& edge)>& func)
-{
-    std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
-}
-
-void Graph::ForEachAvailableEdge(const std::function<void(const Details::Edge& edge)>& func) const
-{
-    std::for_each(m_edges_view.begin(), m_edges_view.end(), func);
+    return GetValidEdges().size();
 }
 
 std::list<size_t> Graph::BoruvkaPhase()
 {
     std::map<size_t, std::optional<size_t>> cheapest_edge_for_each_vertex{};
-    for (const auto& edge : m_edges_view)
+    for(auto& [index, edge] : m_edges)
     {
-        const auto subgraphs = edge.GetCurrentSubgraphs();
+        auto i = GetRoot(edge.i);
+        auto j = GetRoot(edge.j);
 
-        if (subgraphs[0] == subgraphs[1])
+        if (i == j)
             continue;
 
-        for (const auto& subgraph : subgraphs)
+        for (const auto& subgraph : {i,j})
         {
             auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
-            if (!cheapest_edge.has_value() || edge < m_edges_view[cheapest_edge.value()])
-                cheapest_edge.emplace(edge.GetIndex());
+            if (!cheapest_edge.has_value() || edge.w < m_edges[cheapest_edge.value()].w)
+                cheapest_edge.emplace(index);
         }
     }
 
     std::list<size_t> result{};
-    for (const auto& opt_cheapest : cheapest_edge_for_each_vertex | std::ranges::views::values)
+    for(auto& [v, edge_index] : cheapest_edge_for_each_vertex)
     {
-        if (!opt_cheapest.has_value())
+        if (!edge_index.has_value())
             continue;
 
-        auto index = opt_cheapest.value();
-        if (auto edge = GetEdge(index); edge.IsContracted() || edge.IsDisabled())
+        auto& edge = m_edges[edge_index.value()];
+
+        auto i = GetRoot(edge.i);
+        auto j = GetRoot(edge.j);
+
+        if (i == j)
             continue;
 
-        ContractEdge(index);
-        result.emplace_back(index);
+        Union(i, j);
+        result.push_back(edge_index.value());
     }
-    result.unique();
+
     return result;
 }
 
-size_t Graph::GetVerticesCount() const
+std::set<size_t> Graph::GetVertices() const
 {
-    return std::ranges::count_if(m_subgraphs, [](const Details::MemberOfSubGraphPtr& member) { return member && member->IsRoot(); });
+    std::set<size_t> result{};
+    for(auto& [v, r] : m_subset_to_rank)
+        result.emplace(v);
+    return result;
 }
 
-size_t Graph::GetEdgesCount() const
+size_t Graph::GetRoot(size_t v) const
 {
-    return std::count_if(m_edges_view.begin(),
-                         m_edges_view.end(),
-                         [](const Details::Edge& edge) { return !edge.IsContracted() && !edge.IsDisabled(); });
+    return m_vertex_to_set.at(v);
 }
 
-void ToFile(Graph& graph, const std::string& graph_name, bool show, bool with_mst)
+std::optional<size_t> Graph::GetRootIfExists(size_t v) const
 {
-#ifndef GRAPHVIZ_DISABLED
-    const auto    filename = graph_name + ".dot";
-    std::ofstream file_to_out{filename};
-    file_to_out << "strict graph {" << std::endl;
+    auto itr = m_vertex_to_set.find(v);
+    if (itr == m_vertex_to_set.cend())
+        return {};
+    return itr->second;
+}
 
-    for (const auto& edge : graph.m_edges_view.Original() | std::views::values)
-    {
-        std::string options = "label="s + std::to_string(edge.GetWeight());
-        auto        [i, j]  = edge.GetOriginalVertices();
+void Graph::Union(size_t i, size_t j)
+{
+    const auto root_i_opt = GetRootIfExists(i); 
+    const auto root_j_opt = GetRootIfExists(j);
 
-        if (with_mst)
-        {
-            if (edge.IsContracted())
-                options += ", color=red, penwidth=3";
-        }
-        else
-        {
-            if (edge.IsDisabled())
-                continue;
-            i = graph.FindRootOfSubGraph(i);
-            j = graph.FindRootOfSubGraph(j);
-        }
-
-        file_to_out << i << " -- " << j << " [" << options << "]" << std::endl;
-    }
-
-    file_to_out << "}";
-    file_to_out.close();
-
-    if (!show)
+    if (!root_i_opt || !root_j_opt)
         return;
+    const auto& root_i = root_i_opt.value();
+    const auto& root_j = root_j_opt.value();
 
-    const auto image_file_name = graph_name + ".png";
-    system(("dot "s + filename + " -Tpng -o " + image_file_name).c_str());
-    system(image_file_name.c_str());
-#endif
+    // merge smaller tree to larger one by comparing rank
+    if (m_subset_to_rank[root_i] < m_subset_to_rank[root_j])
+    {
+       for(auto& [_, set] : m_vertex_to_set)
+           if (set == root_i)
+               set = root_j;
+        m_subset_to_rank.erase(root_i);
+    }
+    else if (m_subset_to_rank[root_i] > m_subset_to_rank[root_j])
+    {
+       for(auto& [_, set] : m_vertex_to_set)
+           if (set == root_j)
+               set = root_i;
+        m_subset_to_rank.erase(root_j);
+    }
+    // If ranks are same
+    else
+    { 
+        for(auto& [_, set] : m_vertex_to_set)
+           if (set == root_i)
+               set = root_j;
+
+        m_subset_to_rank[root_j] += 1;
+        m_subset_to_rank.erase(root_i);
+    } 
+}
+
+void Graph::DisableEdge(size_t index)
+{
+    m_edges[index].disabled = true;
+}
+
+std::list<const Details::Edge*> Graph::GetValidEdges() const
+{
+    std::map<size_t, std::map<size_t, std::optional<size_t>>> matrix{};
+    for (auto& [index,edge] : m_edges)
+    {
+        if (edge.disabled)
+            continue;
+
+        auto i = GetRoot(edge.i);
+        auto j = GetRoot(edge.j);
+
+        if (i == j)
+            continue;
+
+        auto  root_i = std::min(i, j);
+        auto  root_j = std::max(i, j);
+        auto& value  = matrix[root_i][root_j];
+        if (!value.has_value() || m_edges.at(value.value()).w > edge.w)
+            value = index;
+    }
+    std::list<const Details::Edge*> result{};
+    for(auto& [_, map]: matrix)
+        for(auto& [_, index] :  map)
+            result.push_back(&m_edges.at(index.value()));
+
+    return result;
 }
 } // namespace Graph

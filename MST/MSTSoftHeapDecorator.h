@@ -37,8 +37,8 @@ using Label = std::array<std::optional<size_t>, 2>;
 class EdgePtrWrapper
 {
 public:
-    EdgePtrWrapper(const Graph::Details::Edge& edge, size_t outside_vertex)
-        : m_edge{&edge}
+    EdgePtrWrapper(const Graph::Details::Edge* edge, size_t outside_vertex)
+        : m_edge{edge}
         , m_outside_vertex{outside_vertex} {}
 
     const Graph::Details::Edge& GetEdge() const { return *m_edge; }
@@ -57,7 +57,7 @@ public:
     bool GetIsCorrupted() const {return m_is_corrupted; };
 private:
     const Graph::Details::Edge* const m_edge;
-    size_t                            m_working_cost = m_edge->GetWeight();
+    size_t                            m_working_cost = m_edge->w;
     const size_t                      m_outside_vertex;
     bool                              m_is_corrupted = false;
 };
@@ -72,7 +72,7 @@ struct EdgePtrWrapperShared
 
     friend std::ostream& operator<<(std::ostream& os, const EdgePtrWrapperShared& obj)
     {
-        return os << "Edge: " << obj.shared_pointer->GetEdge().GetIndex() << std::endl;
+        return os << "Edge: " << obj.shared_pointer->GetEdge().index << std::endl;
     }
 
     std::shared_ptr<EdgePtrWrapper> shared_pointer;

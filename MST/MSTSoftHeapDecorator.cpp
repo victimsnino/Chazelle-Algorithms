@@ -42,7 +42,7 @@ MSTSoftHeapDecorator::MSTSoftHeapDecorator(size_t r, std::set<size_t>& bad_edges
                  {
                      SPDLOG_DEBUG("[{}] {} becomes corrupted", m_index, item.shared_pointer->GetEdge().GetIndex());
                      item.shared_pointer->SetIsCorrupted(true);
-                     bad_edges.emplace(item.shared_pointer->GetEdge().GetIndex());
+                     bad_edges.emplace(item.shared_pointer->GetEdge().index);
                  }
                  item.shared_pointer->SetWorkingCost(ckey.shared_pointer->GetWorkingCost());
              }}

@@ -24,10 +24,8 @@
 
 #include "Graph.h"
 
-static constexpr bool s_mst_debug = true;
-
 namespace MST
 {
-static constexpr uint32_t c = 3;
+static constexpr uint32_t c = 2;
 std::list<size_t>       FindMST(Graph::Graph& graph);
 }

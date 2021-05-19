@@ -34,7 +34,7 @@ namespace MST::Details
 class MSTTree
 {
 public:
-    MSTTree(Graph::Details::EdgesView& edges, size_t t, size_t max_height, size_t initial_vertex);
+    MSTTree(Graph::Graph& graph, size_t t, size_t max_height, size_t initial_vertex);
 
     void push(const EdgePtrWrapper& extension_edge);
 
@@ -76,9 +76,9 @@ private:
     size_t GetMaxHeight() const { return m_sizes_per_height.size() - 1; }
     size_t IndexToHeight(size_t index) const { return GetMaxHeight() - index; }
 private:
-    Graph::Details::EdgesView& m_edges;
-    std::list<SubGraphPtr>     m_active_path{};
-    std::set<size_t>           m_bad_edges{};
+    Graph::Graph&          m_graph;
+    std::list<SubGraphPtr> m_active_path{};
+    std::set<size_t>       m_bad_edges{};
 
     const size_t              m_r;
     const std::vector<size_t> m_sizes_per_height;

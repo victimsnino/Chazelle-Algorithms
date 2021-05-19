@@ -83,14 +83,30 @@ TEST(Graph, DummyChecks)
     }
 }
 
+TEST(Graph, Init)
+{
+    auto [g, count_of_edges, nodes_count] = FillGraph(s_adjacency_matrix);
+
+    ToFile(g, "Test_1", s_show_graphs);
+
+    g.ContractEdge(0);
+
+    EXPECT_EQ(count_of_edges-3, g.GetEdgesCount());
+    EXPECT_EQ(nodes_count -1, g.GetVerticesCount());
+
+    ToFile(g, "Test_1_contracted", s_show_graphs);
+}
+
 TEST(Graph, Boruvka)
 {
     auto [g, count_of_edges, nodes_count] = FillGraph(s_adjacency_matrix);
 
+    ToFile(g, "Test_2", s_show_graphs);
+
     auto mst_indexes = g.BoruvkaPhase();
     std::vector<std::array<size_t, 2>> mst_edges{};
     for(auto index : mst_indexes)
-        mst_edges.emplace_back(std::array<size_t, 2>{g.GetEdge(index).i, g.GetEdge(index).j});
+        mst_edges.emplace_back(g.GetEdge(index).GetOriginalVertices());
 
     const std::set<std::array<size_t, 2>> contracted{{0, 3},
                                                      {1, 2},
@@ -106,10 +122,14 @@ TEST(Graph, Boruvka)
     EXPECT_EQ(1, g.GetEdgesCount());
     EXPECT_EQ(nodes_count- removed_edges, g.GetVerticesCount());
 
+    ToFile(g, "Test_2_contracted", s_show_graphs, false);
+    ToFile(g, "Test_2_contracted_mst", s_show_graphs, true);
+
     g.BoruvkaPhase();
 
     EXPECT_EQ(0, g.GetEdgesCount());
     EXPECT_EQ(1, g.GetVerticesCount());
+    ToFile(g, "Test_2_contracted_mst_final", s_show_graphs, true);
 }
 
 static std::vector<std::vector<uint32_t>> s_extended_adjacency_matrix{
@@ -129,6 +149,7 @@ TEST(Graph, Boruvka_2)
 {
     auto [g, count_of_edges, nodes_count] = FillGraph(s_extended_adjacency_matrix);
 
+    ToFile(g, "Test_3", s_show_graphs);
 
     auto mst = g.BoruvkaPhase();
 
@@ -147,13 +168,17 @@ TEST(Graph, Boruvka_2)
 
     EXPECT_EQ(mst.size(), contracted.size());
     for (const auto& vertexes : mst)
-        EXPECT_TRUE(contracted.count({g.GetEdge(vertexes).i, g.GetEdge(vertexes).j}));
+        EXPECT_TRUE(contracted.count(g.GetEdge(vertexes).GetOriginalVertices()));
 
     EXPECT_EQ(0, g.GetEdgesCount());
     EXPECT_EQ(1, g.GetVerticesCount());
+
+    ToFile(g, "Test_3_contracted", s_show_graphs, false);
+    ToFile(g, "Test_3_contracted_mst", s_show_graphs, true);
 
     g.BoruvkaPhase();
 
     EXPECT_EQ(0, g.GetEdgesCount());
     EXPECT_EQ(1, g.GetVerticesCount());
+    ToFile(g, "Test_3_contracted_mst_final", s_show_graphs, true);
 }

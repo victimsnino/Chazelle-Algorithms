@@ -30,7 +30,7 @@ namespace MST
 class MSTTreeBuilder
 {
 public:
-    MSTTreeBuilder(Graph::Details::EdgesView& edges, size_t t, size_t max_height, size_t initial_vertex);
+    MSTTreeBuilder(Graph::Graph& graph, size_t t, size_t max_height, size_t initial_vertex);
 
     MST::Details::MSTTree& GetTree() { return m_tree; }
 private:
@@ -44,7 +44,7 @@ private:
     Details::MSTSoftHeapDecorator::ExtractedItems Fusion(Details::EdgePtrWrapper& edge);
     void PostRetractionActions(Details::MSTSoftHeapDecorator::ExtractedItems items);
 private:
-    Graph::Details::EdgesView& m_edges;
-    Details::MSTTree           m_tree;
+    Graph::Graph&    m_graph;
+    Details::MSTTree m_tree;
 };
 }
