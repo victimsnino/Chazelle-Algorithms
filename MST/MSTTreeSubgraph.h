@@ -85,7 +85,7 @@ public:
                 | rgv::transform([](const std::optional<size_t>& v){return v.value();});
     }
 
-    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(const std::function<bool(const EdgePtrWrapper& edge)>& func);
 
 private:
     void InitHeaps();

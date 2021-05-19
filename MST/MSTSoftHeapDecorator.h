@@ -96,7 +96,7 @@ public:
     EdgePtrWrapper  DeleteMin();
     EdgePtrWrapper* FindMin();
 
-    std::list<EdgePtrWrapper> DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func);
+    std::list<EdgePtrWrapper> DeleteAndReturnIf(const std::function<bool(const EdgePtrWrapper& edge)>& func);
 
 private:
     SoftHeapCpp<EdgePtrWrapperShared>          m_heap;

@@ -93,7 +93,7 @@ EdgePtrWrapper* MSTSoftHeapDecorator::FindMin()
     return FindMin();
 }
 
-std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func)
+std::list<EdgePtrWrapper> MSTSoftHeapDecorator::DeleteAndReturnIf(const std::function<bool(const EdgePtrWrapper& edge)>& func)
 {
     std::list<EdgePtrWrapper> result{};
     for (auto itr = m_items.begin(); itr != m_items.end();)

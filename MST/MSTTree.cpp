@@ -201,7 +201,7 @@ void MSTTree::AddNewBorderEdgesAfterPush()
 
     assert(node_vertices.size() == 1);
 
-    std::map<size_t, const Graph::Details::Edge*> cheapest_edge_per_vertex{};
+    std::unordered_map<size_t, const Graph::Details::Edge*> cheapest_edge_per_vertex{};
     for (auto& [index,edge] : m_graph.GetEdges())
     {
         if (edge.disabled)
@@ -245,11 +245,11 @@ void MSTTree::DeleteOldBorderEdgesAndUpdateMinLinksAfterPush()
     if (m_active_path.size() <= 1)
         return;
 
-    auto condition = [&](const EdgePtrWrapper& edge)
+    auto condition = [&, vertex = new_node->GetVertices().back()](const EdgePtrWrapper& edge)
     {
-         auto i = m_graph.GetRoot(edge->i);
-         auto j = m_graph.GetRoot(edge->j);
-        return i == new_node->GetVertices().back() || j == new_node->GetVertices().back();
+         auto   i      = m_graph.GetRoot(edge->i);
+         auto   j      = m_graph.GetRoot(edge->j);
+        return i == vertex || j == vertex;
     };
 
     SPDLOG_DEBUG("Condition: edge with node {} ", new_node->GetVertices().back());

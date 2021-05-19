@@ -161,7 +161,7 @@ MSTSoftHeapDecorator* SubGraph::FindHeapWithMin()
 }
 
 
-std::list<EdgePtrWrapper> SubGraph::DeleteAndReturnIf(std::function<bool(const EdgePtrWrapper& edge)> func)
+std::list<EdgePtrWrapper> SubGraph::DeleteAndReturnIf(const std::function<bool(const EdgePtrWrapper& edge)>& func)
 {
     std::list<EdgePtrWrapper> result{};
     for (auto& heap : m_heaps)
