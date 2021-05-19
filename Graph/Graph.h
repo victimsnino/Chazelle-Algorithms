@@ -28,6 +28,7 @@
 #include <optional>
 #include <ranges>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 namespace Graph
@@ -53,10 +54,13 @@ public:
     std::optional<size_t> GetRootIfExists(size_t v) const;
 
     std::list<const Details::Edge*> GetValidEdges() const;
-    const std::map<size_t, Details::Edge>& GetEdges() const {return m_edges;}
+    const auto& GetEdges() const {return m_edges;}
 private:
-    std::map<size_t, Details::Edge> m_edges{};
-    std::map<size_t, size_t>        m_vertex_to_set{};
-    std::map<size_t, size_t>        m_subset_to_rank{};
+    void AddToVertexToSet(size_t vertex);
+
+private:
+    std::unordered_map<size_t, Details::Edge> m_edges{};
+    std::vector<std::optional<size_t>>        m_vertex_to_set{};
+    std::unordered_map<size_t, size_t>        m_subset_to_rank{};
 };
 } // namespace Graph

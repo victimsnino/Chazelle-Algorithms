@@ -24,7 +24,7 @@
 
 #include <algorithm>
 #include <ranges>
-
+#include <stdexcept>
 
 namespace Graph
 {
@@ -50,8 +50,8 @@ void Graph::AddEdge(size_t i, size_t j, size_t w, std::optional<size_t> index)
     auto cur_index= index.value_or(m_edges.size());
     m_edges.emplace(cur_index, Details::Edge(std::min(i, j), std::max(i,j), w, cur_index));
 
-    m_vertex_to_set[i] = i;
-    m_vertex_to_set[j] = j;
+    AddToVertexToSet(i);
+    AddToVertexToSet(j);
 
     m_subset_to_rank.try_emplace(i, 0);
     m_subset_to_rank.try_emplace(j, 0);
@@ -112,15 +112,17 @@ std::set<size_t> Graph::GetVertices() const
 
 size_t Graph::GetRoot(size_t v) const
 {
-    return m_vertex_to_set.at(v);
+    auto value = GetRootIfExists(v);
+    if (!value.has_value())
+        throw std::out_of_range("");
+    return value.value();
 }
 
 std::optional<size_t> Graph::GetRootIfExists(size_t v) const
 {
-    auto itr = m_vertex_to_set.find(v);
-    if (itr == m_vertex_to_set.cend())
-        return {};
-    return itr->second;
+    if (v < m_vertex_to_set.size())
+        return m_vertex_to_set[v];
+    return {};
 }
 
 void Graph::Union(size_t i, size_t j)
@@ -137,14 +139,14 @@ void Graph::Union(size_t i, size_t j)
     // merge smaller tree to larger one by comparing rank
     if (m_subset_to_rank[root_i] < m_subset_to_rank[root_j])
     {
-       for(auto& [_, set] : m_vertex_to_set)
+       for(auto& set : m_vertex_to_set)
            if (set == root_i)
                set = root_j;
         m_subset_to_rank.erase(root_i);
     }
     else if (m_subset_to_rank[root_i] > m_subset_to_rank[root_j])
     {
-       for(auto& [_, set] : m_vertex_to_set)
+       for(auto& set : m_vertex_to_set)
            if (set == root_j)
                set = root_i;
         m_subset_to_rank.erase(root_j);
@@ -152,7 +154,7 @@ void Graph::Union(size_t i, size_t j)
     // If ranks are same
     else
     { 
-        for(auto& [_, set] : m_vertex_to_set)
+        for(auto& set : m_vertex_to_set)
            if (set == root_i)
                set = root_j;
 
@@ -192,5 +194,12 @@ std::list<const Details::Edge*> Graph::GetValidEdges() const
             result.push_back(value);
 
     return result;
+}
+
+void Graph::AddToVertexToSet(size_t vertex)
+{
+    if (m_vertex_to_set.size() <= vertex)
+        m_vertex_to_set.resize(vertex+1);
+    m_vertex_to_set[vertex] = vertex;
 }
 } // namespace Graph
