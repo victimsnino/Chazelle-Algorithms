@@ -59,7 +59,7 @@ void Graph::AddEdge(size_t i, size_t j, size_t w, std::optional<size_t> index)
 
 size_t Graph::GetEdgesCount()
 {
-    std::map<size_t, std::map<size_t, const Details::Edge*>> matrix{};
+    std::unordered_map<size_t, std::unordered_map<size_t, const Details::Edge*>> matrix{};
     ForValidEdges([&](const Details::Edge& edge, size_t i, size_t j)
     {
         auto  root_i = std::min(i, j);
@@ -77,7 +77,9 @@ size_t Graph::GetEdgesCount()
 
 std::list<size_t> Graph::BoruvkaPhase()
 {
-    std::map<size_t, std::optional<size_t>> cheapest_edge_for_each_vertex{};
+    std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex{};
+    cheapest_edge_for_each_vertex.resize(m_vertex_to_parent.size());
+
     for(auto& [index, edge] : m_edges)
     {
         auto i = GetRoot(edge.i);
@@ -95,7 +97,7 @@ std::list<size_t> Graph::BoruvkaPhase()
     }
 
     std::list<size_t> result{};
-    for(auto& [v, edge_index] : cheapest_edge_for_each_vertex)
+    for(auto& edge_index : cheapest_edge_for_each_vertex)
     {
         if (!edge_index.has_value())
             continue;
