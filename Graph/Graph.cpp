@@ -75,50 +75,57 @@ size_t Graph::GetEdgesCount()
     return count;
 }
 
-std::list<size_t> Graph::BoruvkaPhase()
+std::list<size_t> Graph::BoruvkaPhase(size_t count, bool* out_no_changes)
 {
     std::vector<std::optional<size_t>> cheapest_edge_for_each_vertex{};
     cheapest_edge_for_each_vertex.resize(m_vertex_to_parent.size());
-
-    for(auto& [index, edge] : m_edges)
+    std::list<size_t> result{};
+    for (size_t i = 0; i < count; ++i)
     {
-        auto i = GetRoot(edge.i);
-        auto j = GetRoot(edge.j);
+        if (i != 0)
+            std::fill(cheapest_edge_for_each_vertex.begin(), cheapest_edge_for_each_vertex.end(), std::nullopt);
 
-        if (i == j)
-            continue;
-
-        for (const auto& subgraph : {i,j})
+        ForValidEdges([&](const Details::Edge& edge, size_t i, size_t j)
         {
-            auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
-            if (!cheapest_edge.has_value() || edge.w < m_edges[cheapest_edge.value()].w)
-                cheapest_edge.emplace(index);
+            for (const auto& subgraph : {i, j})
+            {
+                auto& cheapest_edge = cheapest_edge_for_each_vertex[subgraph];
+                if (!cheapest_edge.has_value() || edge.w < m_edges[cheapest_edge.value()].w)
+                    cheapest_edge.emplace(edge.index);
+            }
+        });
+
+        bool no_changes = true;
+        for (auto& edge_index : cheapest_edge_for_each_vertex)
+        {
+            if (!edge_index.has_value())
+                continue;
+
+            auto itr = m_edges.find(edge_index.value());
+            if (itr == m_edges.cend())
+                continue;
+
+            auto i = GetRoot(itr->second.i);
+            auto j = GetRoot(itr->second.j);
+
+            m_edges.erase(itr);
+
+            if (i == j)
+                continue;
+
+            Union(i, j);
+
+            result.push_back(edge_index.value());
+            no_changes = false;
+        }
+
+        if (no_changes)
+        {
+            if (out_no_changes)
+                *out_no_changes = true;
+            return result;
         }
     }
-
-    std::list<size_t> result{};
-    for(auto& edge_index : cheapest_edge_for_each_vertex)
-    {
-        if (!edge_index.has_value())
-            continue;
-
-        auto itr = m_edges.find(edge_index.value());
-        if (itr == m_edges.cend())
-            continue;
-
-        auto i = GetRoot(itr->second.i);
-        auto j = GetRoot(itr->second.j);
-
-        m_edges.erase(itr);
-
-        if (i == j)
-            continue;
-
-        Union(i, j);
-
-        result.push_back(edge_index.value());
-    }
-
     return result;
 }
 

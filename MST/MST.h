@@ -26,6 +26,6 @@
 
 namespace MST
 {
-static constexpr uint32_t c = 5;
+static constexpr uint32_t c = 4;
 std::list<size_t>       FindMST(Graph::Graph& graph);
 }

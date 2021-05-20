@@ -49,7 +49,7 @@ public:
     size_t GetTotalEdgesCount() const {return m_edges.size();};
     size_t GetVerticesCount() const { return m_subset_to_rank.size(); }
 
-    std::list<size_t>     BoruvkaPhase();
+    std::list<size_t>     BoruvkaPhase(size_t count = 1, bool* no_changes = nullptr);
     Details::Edge&        GetEdge(size_t index) { return m_edges[index]; }
     std::set<size_t>      GetVertices() const;
     size_t                GetRoot(size_t v);
