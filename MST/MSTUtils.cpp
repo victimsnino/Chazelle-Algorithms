@@ -74,10 +74,10 @@ static uint32_t S(uint32_t i, uint32_t j)
 //static_assert(S(1, 1) == 2);
 //static_assert(S(3, 1) == 2);
 
-uint32_t FindMaxHeight(const Graph::Graph& graph, uint32_t c)
+uint32_t FindMaxHeight(Graph::Graph& graph, uint32_t c)
 {
     const double vertexes_count = static_cast<double>(graph.GetVerticesCount());
-    const double edges_count    = static_cast<double>(graph.GetEdgesCount());
+    const double edges_count    = static_cast<double>(graph.GetTotalEdgesCount());
     return c * static_cast<uint32_t>(std::ceil(std::pow(edges_count / vertexes_count, 1.0 / 3.0)));
 }
 

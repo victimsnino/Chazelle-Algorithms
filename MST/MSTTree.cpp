@@ -202,17 +202,8 @@ void MSTTree::AddNewBorderEdgesAfterPush()
     assert(node_vertices.size() == 1);
 
     std::unordered_map<size_t, const Graph::Details::Edge*> cheapest_edge_per_vertex{};
-    for (auto& [index,edge] : m_graph.GetEdges())
+    m_graph.ForValidEdges([&](const Graph::Details::Edge& edge, size_t i, size_t j)
     {
-        if (edge.disabled)
-            continue;
-
-        auto i = m_graph.GetRoot(edge.i);
-        auto j = m_graph.GetRoot(edge.j);
-
-        if (i == j)
-            continue;
-
         if (Utils::IsRangeContains(node_vertices, i))
         {
             if (!Utils::IsRangeContains(all_vertices, j))
@@ -231,7 +222,7 @@ void MSTTree::AddNewBorderEdgesAfterPush()
                     v = &edge;
             }
         }
-    }
+    });
 
     for (const auto& [vertex, edge] : cheapest_edge_per_vertex)
     {

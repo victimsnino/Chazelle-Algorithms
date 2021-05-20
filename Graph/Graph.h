@@ -23,6 +23,7 @@
 #pragma once
 #include "GraphDetails.h"
 
+#include <functional>
 #include <list>
 #include <map>
 #include <optional>
@@ -44,23 +45,25 @@ public:
     void Union(size_t i, size_t j);
     void DisableEdge(size_t index);
 
-    size_t GetEdgesCount() const;
+    size_t GetEdgesCount();
+    size_t GetTotalEdgesCount() const {return m_edges.size();};
     size_t GetVerticesCount() const { return m_subset_to_rank.size(); }
 
     std::list<size_t>     BoruvkaPhase();
     Details::Edge&        GetEdge(size_t index) { return m_edges[index]; }
     std::set<size_t>      GetVertices() const;
-    size_t                GetRoot(size_t v) const;
-    std::optional<size_t> GetRootIfExists(size_t v) const;
+    size_t                GetRoot(size_t v);
+    std::optional<size_t> GetRootIfExists(size_t v);
 
-    std::list<const Details::Edge*> GetValidEdges() const;
     const auto& GetEdges() const {return m_edges;}
+
+    void ForValidEdges(std::function<void(const Details::Edge&, size_t i, size_t j)> action);
 private:
     void AddToVertexToSet(size_t vertex);
 
 private:
     std::unordered_map<size_t, Details::Edge> m_edges{};
-    std::vector<std::optional<size_t>>        m_vertex_to_set{};
+    std::vector<std::optional<size_t>>        m_vertex_to_parent{};
     std::unordered_map<size_t, size_t>        m_subset_to_rank{};
 };
 } // namespace Graph

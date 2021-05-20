@@ -51,14 +51,14 @@ std::list<size_t> MSF(Graph::Graph& graph, size_t max_height, size_t recursion_l
 
     std::list<size_t> boruvka_result{};
 
-    while (count > 0 && graph.GetEdgesCount() > 0)
+    while (count > 0)
     {
-        boruvka_result.splice(boruvka_result.end(), graph.BoruvkaPhase());
+        auto boruvka_out = graph.BoruvkaPhase();
+        if (boruvka_out.empty())
+            return boruvka_result;
+        boruvka_result.splice(boruvka_result.end(), boruvka_out);
         --count;
     }
-
-    if (graph.GetEdgesCount() == 0)
-        return boruvka_result;
 
     std::set<size_t> vertices = graph.GetVertices();
     std::list<size_t> bad_edges ={};

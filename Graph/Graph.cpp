@@ -57,9 +57,22 @@ void Graph::AddEdge(size_t i, size_t j, size_t w, std::optional<size_t> index)
     m_subset_to_rank.try_emplace(j, 0);
 }
 
-size_t Graph::GetEdgesCount() const
+size_t Graph::GetEdgesCount()
 {
-    return GetValidEdges().size();
+    std::map<size_t, std::map<size_t, const Details::Edge*>> matrix{};
+    ForValidEdges([&](const Details::Edge& edge, size_t i, size_t j)
+    {
+        auto  root_i = std::min(i, j);
+        auto  root_j = std::max(i, j);
+        auto& value  = matrix[root_i][root_j];
+        if (!value || value->w > edge.w)
+            value = &edge;
+    });
+
+   size_t count = 0;
+    for(auto& [_, map]: matrix)
+        count += map.size();
+    return count;
 }
 
 std::list<size_t> Graph::BoruvkaPhase()
@@ -87,15 +100,20 @@ std::list<size_t> Graph::BoruvkaPhase()
         if (!edge_index.has_value())
             continue;
 
-        auto& edge = m_edges[edge_index.value()];
+        auto itr = m_edges.find(edge_index.value());
+        if (itr == m_edges.cend())
+            continue;
 
-        auto i = GetRoot(edge.i);
-        auto j = GetRoot(edge.j);
+        auto i = GetRoot(itr->second.i);
+        auto j = GetRoot(itr->second.j);
+
+        m_edges.erase(itr);
 
         if (i == j)
             continue;
 
         Union(i, j);
+
         result.push_back(edge_index.value());
     }
 
@@ -110,7 +128,7 @@ std::set<size_t> Graph::GetVertices() const
     return result;
 }
 
-size_t Graph::GetRoot(size_t v) const
+size_t Graph::GetRoot(size_t v)
 {
     auto value = GetRootIfExists(v);
     if (!value.has_value())
@@ -118,48 +136,47 @@ size_t Graph::GetRoot(size_t v) const
     return value.value();
 }
 
-std::optional<size_t> Graph::GetRootIfExists(size_t v) const
+std::optional<size_t> Graph::GetRootIfExists(size_t v)
 {
-    if (v < m_vertex_to_set.size())
-        return m_vertex_to_set[v];
+    if (v < m_vertex_to_parent.size())
+    {
+        if (m_vertex_to_parent[v].has_value() && v != m_vertex_to_parent[v])
+            m_vertex_to_parent[v] = GetRootIfExists(m_vertex_to_parent[v].value());
+        return m_vertex_to_parent[v];
+    }
     return {};
 }
 
 void Graph::Union(size_t i, size_t j)
 {
-    const auto root_i_opt = GetRootIfExists(i); 
-    const auto root_j_opt = GetRootIfExists(j);
+    auto root_i_opt = GetRootIfExists(i); 
+    auto root_j_opt = GetRootIfExists(j);
 
     if (!root_i_opt || !root_j_opt)
         return;
 
-    const auto& root_i = root_i_opt.value();
-    const auto& root_j = root_j_opt.value();
+    auto& root_i = root_i_opt.value();
+    auto& root_j = root_j_opt.value();
 
     // merge smaller tree to larger one by comparing rank
-    if (m_subset_to_rank[root_i] < m_subset_to_rank[root_j])
+    const auto itr_i = m_subset_to_rank.find(root_i);
+    const auto itr_j = m_subset_to_rank.find(root_j);
+    if (itr_i->second < itr_j->second)
     {
-       for(auto& set : m_vertex_to_set)
-           if (set == root_i)
-               set = root_j;
-        m_subset_to_rank.erase(root_i);
+        m_subset_to_rank.erase(itr_i);
+        m_vertex_to_parent[i] = root_j;
     }
-    else if (m_subset_to_rank[root_i] > m_subset_to_rank[root_j])
+    else if (itr_i->second > itr_j->second)
     {
-       for(auto& set : m_vertex_to_set)
-           if (set == root_j)
-               set = root_i;
-        m_subset_to_rank.erase(root_j);
+        m_subset_to_rank.erase(itr_j);
+        m_vertex_to_parent[j] = root_i;
     }
     // If ranks are same
     else
-    { 
-        for(auto& set : m_vertex_to_set)
-           if (set == root_i)
-               set = root_j;
-
-        m_subset_to_rank[root_j] += 1;
-        m_subset_to_rank.erase(root_i);
+    {
+        m_subset_to_rank.erase(itr_i);
+        m_vertex_to_parent[i] = root_j;
+        itr_j->second += 1;
     } 
 }
 
@@ -168,38 +185,34 @@ void Graph::DisableEdge(size_t index)
     m_edges[index].disabled = true;
 }
 
-std::list<const Details::Edge*> Graph::GetValidEdges() const
+void Graph::ForValidEdges(std::function<void(const Details::Edge&, size_t i, size_t j)> action)
 {
-    std::map<size_t, std::map<size_t, const Details::Edge*>> matrix{};
-    for (auto& [index,edge] : m_edges)
+    for (auto itr = m_edges.begin(); itr != m_edges.end();)
     {
-        if (edge.disabled)
+        if (itr->second.disabled)
+        {
+            itr = m_edges.erase(itr);
             continue;
+        }
 
-        auto i = GetRoot(edge.i);
-        auto j = GetRoot(edge.j);
+        const auto i = GetRoot(itr->second.i);
+        const auto j = GetRoot(itr->second.j);
 
         if (i == j)
+        {
+            itr = m_edges.erase(itr);
             continue;
+        }
 
-        auto  root_i = std::min(i, j);
-        auto  root_j = std::max(i, j);
-        auto& value  = matrix[root_i][root_j];
-        if (!value || value->w > edge.w)
-            value = &edge;
+        action(itr->second, i, j);
+        ++itr;
     }
-    std::list<const Details::Edge*> result{};
-    for(auto& [_, map]: matrix)
-        for(auto& [_, value] :  map)
-            result.push_back(value);
-
-    return result;
 }
 
 void Graph::AddToVertexToSet(size_t vertex)
 {
-    if (m_vertex_to_set.size() <= vertex)
-        m_vertex_to_set.resize(vertex+1);
-    m_vertex_to_set[vertex] = vertex;
+    if (m_vertex_to_parent.size() <= vertex)
+        m_vertex_to_parent.resize(vertex+1);
+    m_vertex_to_parent[vertex] = vertex;
 }
 } // namespace Graph

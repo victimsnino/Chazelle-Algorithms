@@ -27,39 +27,37 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include <Kruskal.h>
+
 #include <algorithm>
 #include <numeric>
 #include <random>
 
 
-static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
+static std::vector<std::tuple<size_t, size_t, size_t>> GenerateMatrix(uint32_t k, uint32_t postprocess_)
 {
-    std::vector<std::pair<uint32_t, uint32_t>> edges{};
+    std::vector<std::tuple<size_t, size_t, size_t>> edges{};
     uint32_t                                   N = 1;
     for (uint32_t i = 0; i < k; ++i)
     {
-        std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
-        for (const auto [i,j] : edges)
+        auto size = edges.size();
+        for (size_t count = 0; count < size; ++count)
         {
-            edges_to_add.emplace_back(i + N, j + N);
+            auto [i,j,w] = edges[count];
+            edges.emplace_back(i + N, j + N, 0);
         }
-        std::move(edges_to_add.begin(), edges_to_add.end(), std::back_inserter(edges));
-        edges.emplace_back(0, N);
+        edges.emplace_back(0, N, 0);
         N *= 2;
     }
     for (uint32_t z = 0; z < postprocess_; ++z)
     {
-        std::vector<std::pair<uint32_t, uint32_t>> edges_to_add{};
-        std::for_each(edges.rbegin(),
-                      edges.rend(),
-                      [&](const auto& pair)
-                      {
-                          auto [i, j] = pair;
-                          edges_to_add.emplace_back(i, N);
-                          edges_to_add.emplace_back(j, N);
-                          N += 1;
-                      });
-        std::move(edges_to_add.begin(), edges_to_add.end(), std::back_inserter(edges));
+        for (int count = edges.size() - 1; count >= 0; count--)
+        {
+            auto [i,j,w] = edges[count];
+            edges.emplace_back(i, N, 0);
+            edges.emplace_back(j, N, 0);
+            N += 1;
+        }
     }
 
     std::vector<std::vector<uint32_t>> result{N};
@@ -67,13 +65,11 @@ static std::vector<std::vector<uint32_t>> GenerateMatrix(uint32_t k, uint32_t po
         result[i].resize(N);
 
     uint32_t weight = edges.size();
-    for (const auto& [i,j] : edges)
+    for (auto& edge : edges)
     {
-        result[i][j] = weight;
-        result[j][i] = weight;
-        --weight;
+       std::get<2>(edge) = weight--;
     }
-    return result;
+    return edges;
 }
 
 static std::vector<std::tuple<size_t, size_t, size_t>> ErdosRenie(uint32_t n, double p)
@@ -111,9 +107,12 @@ std::list<size_t> RunBoruvka(Graph::Graph&& g)
     uint32_t count = 0;
     {
         Utils::MeasurePerfomance measure{ "Boruvka" };
-        while (g.GetEdgesCount() != 0)
+        while (true)
         {
-            boruvka_result.splice(boruvka_result.end(), g.BoruvkaPhase());
+            auto boruvka_out = g.BoruvkaPhase();
+            if(boruvka_out.empty())
+                break;
+            boruvka_result.splice(boruvka_result.end(), boruvka_out);
             ++count;
         }
     }
@@ -127,11 +126,16 @@ auto RunMST(Graph::Graph& g)
     return MST::FindMST(g);
 }
 
-//auto RunPrim(Graph::Graph&& g)
-//{
-//    Utils::MeasurePerfomance measure{"Prim"};
-//    return g.PrimAlgorithm();
-//}
+auto RunKruskal(const std::vector<std::tuple<size_t, size_t, size_t>>& edges, size_t v)
+{
+    Kruskal::Graph g{v, edges.size()};
+    size_t count = 0;
+    for(auto& [i,j,w]: edges)
+        g.addEdge(i,j,w, count++);
+
+    Utils::MeasurePerfomance measure{"Kruskal"};
+    return g.kruskalMST();
+}
 
 
 void CompareBoruvkaAndMst(std::list<size_t>& boruvka_result, std::list<size_t>& mst_result)
@@ -147,45 +151,50 @@ void CompareBoruvkaAndMst(std::list<size_t>& boruvka_result, std::list<size_t>& 
     EXPECT_THAT(diff_in_mst, ::testing::SizeIs(0));
 }
 
-//TEST(MST, TestGraph)
-//{
-//    //auto matrix = GenerateMatrix(12, 1);
-//    auto matrix = GenerateMatrix(7, 5);
-//    //auto matrix = GenerateMatrix(6, 5);
-//    //auto matrix = GenerateMatrix(4, 6);
-//    Graph::Graph g{matrix};
-//    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
-//
-//    auto boruvka_result = RunBoruvka(Graph::Graph{matrix});
-//    auto mst_result     = RunMST(g);
-//    auto prim = RunPrim(Graph::Graph{matrix});
-//
-//    CompareBoruvkaAndMst(boruvka_result, mst_result);
-//    CompareBoruvkaAndMst(boruvka_result, prim);
-//}
-
-TEST(MST, ErdosGraph)
+TEST(MST, TestGraph)
 {
-    //auto edges = ErdosRenie(3000, 0.001); // c == 1 -> fail
-    //auto edges = ErdosRenie(23, 0.16); // c == 1 + Height
-    //auto edges = ErdosRenie(190, 0.02); // c == 1 + Height
-    //auto edges = ErdosRenie(500, 0.001);
-    auto edges = ErdosRenie(10000, 0.001);
+    //auto edges = GenerateMatrix(12, 1);
+    auto edges = GenerateMatrix(7, 6);
+    //auto edges = GenerateMatrix(6, 5);
+    //auto edges = GenerateMatrix(4, 6);
     Graph::Graph g{edges};
-    //Graph::ToFile(g, "www", true, false);
-    std::cout << "V: " << g.GetVerticesCount() << " E: " << g.GetEdgesCount() << std::endl;
+    size_t       v = g.GetVerticesCount();
+    std::cout << "V: " << v << " E: " << g.GetEdgesCount() << std::endl;
 
     auto boruvka_result = RunBoruvka(Graph::Graph{edges});
     auto mst_result     = RunMST(g);
+    auto kruskal_result = RunKruskal(edges, v);
 
     CompareBoruvkaAndMst(boruvka_result, mst_result);
-
-    /*auto lambda = [&](size_t result, size_t edge)
-    {
-        return std::get<2>(edges[edge]) + result;
-    };
-    auto boruvka = std::accumulate(boruvka_result.cbegin(), boruvka_result.cend(), 0, lambda);
-    auto mst = std::accumulate(mst_result.cbegin(), mst_result.cend(), 0, lambda);
-
-    std::cout << "Boruvka sum: " << boruvka << " Mst Sum: " << mst << " Boruvka == mst " << (boruvka == mst) << std::endl;*/
+    CompareBoruvkaAndMst(boruvka_result, kruskal_result);
 }
+
+//TEST(MST, ErdosGraph)
+//{
+//    //auto edges = ErdosRenie(3000, 0.001); // c == 1 -> fail
+//    //auto edges = ErdosRenie(23, 0.16); // c == 1 + Height
+//    //auto edges = ErdosRenie(190, 0.02); // c == 1 + Height
+//    //auto edges = ErdosRenie(500, 0.001);
+//    auto         edges = ErdosRenie(10000, 0.0001);
+//    Graph::Graph g{edges};
+//    size_t       v           = g.GetVerticesCount();
+//    size_t       e = g.GetEdgesCount();
+//    //Graph::ToFile(g, "www", true, false);
+//    std::cout << "V: " << v << " E: " << e << std::endl;
+//
+//    auto boruvka_result = RunBoruvka(Graph::Graph{edges});
+//    auto mst_result     = RunMST(g);
+//    //auto kruskal_result = RunKruskal(edges, v);
+//
+//    CompareBoruvkaAndMst(boruvka_result, mst_result);
+//    //CompareBoruvkaAndMst(boruvka_result, kruskal_result);
+//
+//    /*auto lambda = [&](size_t result, size_t edge)
+//    {
+//        return std::get<2>(edges[edge]) + result;
+//    };
+//    auto boruvka = std::accumulate(boruvka_result.cbegin(), boruvka_result.cend(), 0, lambda);
+//    auto mst = std::accumulate(mst_result.cbegin(), mst_result.cend(), 0, lambda);
+//
+//    std::cout << "Boruvka sum: " << boruvka << " Mst Sum: " << mst << " Boruvka == mst " << (boruvka == mst) << std::endl;*/
+//}

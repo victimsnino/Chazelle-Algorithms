@@ -30,7 +30,7 @@ class Graph;
 
 namespace MST
 {
-uint32_t FindMaxHeight(const Graph::Graph& graph, uint32_t c);
+uint32_t FindMaxHeight(Graph::Graph& graph, uint32_t c);
 uint32_t FindParamT(const Graph::Graph& graph, uint32_t d);
 uint32_t CalculateTargetSize(uint32_t t, uint32_t node_height);
 }

@@ -6,7 +6,10 @@ add_library(${TARGET}
 
     GraphDetails.h
     GraphDetails.cpp
-)
+
+    Kruskal.cpp
+    Kruskal.h
+) 
 
 target_include_directories(${TARGET} PUBLIC .)
 target_link_libraries(${TARGET} PRIVATE Common)
